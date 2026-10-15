@@ -10,12 +10,12 @@
  * En las acciones de lista se ejecuta además el pre singular sobre cada ítem (prefijo `[i]`).
  */
 import type { z } from "zod";
-import type { Entity } from "../01 objects/entity.ts";
-import { ValidationError } from "../00 common/errors.ts";
-import { Obj } from "../00 common/obj.ts";
-import { isRequiredOnInsert } from "../01 objects/meta.ts";
-import type { Pojo } from "../01 objects/pojo.ts";
-import { validateQuery } from "../01 objects/query.ts";
+import type { Entity } from "@Jeff-Aporta/DER/src/01 objects/entity.ts";
+import { ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { Obj } from "@Jeff-Aporta/DER/src/00 common/obj.ts";
+import { isRequiredOnInsert } from "@Jeff-Aporta/DER/src/01 objects/meta.ts";
+import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
+import { validateQuery } from "@Jeff-Aporta/DER/src/01 objects/query.ts";
 import {
   type Action,
   type ActionArgs,
@@ -31,8 +31,8 @@ import {
   type Hooks,
   type PojoInit,
   type QuerySpec,
-} from "../00 common/schemas.ts";
-import { pojoValues, zodMessage } from "../01 objects/zod.ts";
+} from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import { pojoValues, zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
 
 const ITEM_ACTION: Partial<Record<Action, Action>> = {
   postList: "post",

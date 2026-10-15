@@ -9,8 +9,8 @@ tags: [objetos, rutas, rest]
 [← índice](../README.md) · `src/01 objects/entity.ts` · tipos `EntityDef`, `EndpointDef`, `CfgDef`, `Hooks`
 
 ```ts
-export const Producto = defineEntity({
-  pojo: TProducto,
+export const ProductoEntity = defineEntity({
+  pojo: Producto,
   singular: "producto",
   plural: "productos",
   name: "producto",                 // opcional (default singular): nombre para `target` en relaciones
@@ -64,14 +64,14 @@ La entidad declara el **contrato** (método, scope, retorno y `pre` compartido).
 
 ```ts
 // server
-new ServerController(Producto, { db, table: "productos", endpoints: {
+new ServerController(ProductoEntity, { db, table: "productos", endpoints: {
   ajustarStock: {
     async handler(p, ctx) { const a = await this.get(p.pkOnly(), ctx); a!.stock! += p.stock!; return this.put(a!, ctx); },
     async sse(p, send) { send("ajustando"); /* ... */ send("listo"); },
   },
 }});
 // client
-const r = await productos.call<TProducto>("ajustarStock", { iproducto: 1, stock: 5 });
+const r = await productos.call<Producto>("ajustarStock", { iproducto: 1, stock: 5 });
 for await (const t of productos.stream("ajustarStock", { iproducto: 1, stock: 5 })) console.log(t);
 ```
 

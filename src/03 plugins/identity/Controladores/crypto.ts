@@ -7,8 +7,8 @@
  * - JWT: HS384. La verificación SOLO acepta HS384 (un `alg: none` u otro se rechaza aunque la firma cuadre),
  *   compara la firma con `crypto.subtle.verify` (tiempo constante) y distingue vencido de inválido.
  */
-import { HttpError } from "../../../00 common/errors.ts";
-import { type JwtClaims, ZJwtClaims } from "../schemas.ts";
+import { HttpError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { type JwtClaims, ZJwtClaims } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();

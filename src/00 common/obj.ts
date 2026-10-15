@@ -34,7 +34,7 @@ import {
   nullable as zNullable, object as zObject, optional as zOptional, safeParse, ZodArray, ZodCatch, ZodDefault, ZodExactOptional, ZodLazy,
   ZodNonOptional, ZodNullable, ZodObject, ZodOptional, ZodPipe, ZodPrefault, ZodPromise, ZodReadonly, ZodRecord, ZodSuccess, ZodUnion, type z,
 } from "zod";
-import { ZConsulta, ZRefObj, type TAccionObj, type TCodigoObj, type TConsulta, type TOpcionesResolver, type TRefObj } from "./schemas.ts";
+import { ZConsulta, ZRefObj, type TAccionObj, type TCodigoObj, type TConsulta, type TOpcionesResolver, type TRefObj } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 
 
 /** Error de `Obj`: `codigo` dice qué falló y `ruta` dónde (claves separadas por punto). */

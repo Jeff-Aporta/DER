@@ -8,7 +8,7 @@
 import { assert, assertEquals } from "@std/assert";
 
 const ROOT = new URL("../", import.meta.url);
-const DOCS = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md";
+const DOCS = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md";
 
 async function files(dir: URL, out: string[] = []): Promise<string[]> {
   for await (const e of Deno.readDir(dir)) {
@@ -22,8 +22,14 @@ async function files(dir: URL, out: string[] = []): Promise<string[]> {
 const SRC = (await files(new URL("src/", ROOT))).map((p) => p.slice(p.indexOf("/src/") + 1));
 const read = (rel: string) => Deno.readTextFile(new URL(rel.replace(/ /g, "%20"), ROOT));
 /** Imports/exports de nivel superior (columna 0): ignora código de navegador dentro de templates HTML. */
+/** Alias de los imports internos de la librería (lo mapea el import map: el propio y el del consumidor). */
+const ALIAS = "@Jeff-Aporta/DER/";
+const isInternal = (spec: string): boolean => spec.startsWith(ALIAS) || spec.startsWith(".");
+
 const imports = (s: string): string[] => [
   ...[...s.matchAll(/(?:^|\n)(?:import|export)[^"']*?from\s+["']([^"']+)["']/g)].flatMap((m) => (m[1] ? [m[1]] : [])),
+  // imports de efecto (`import "x";`)
+  ...[...s.matchAll(/(?:^|\n)import\s+["']([^"']+)["']/g)].flatMap((m) => (m[1] ? [m[1]] : [])),
   // imports dinámicos (`await import("node:fs/promises")`)
   ...[...s.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g)].flatMap((m) => (m[1] ? [m[1]] : [])),
 ];
@@ -43,7 +49,7 @@ Deno.test("arch: cada dimensión sólo importa sus dependencias", async () => {
   for (const f of SRC) {
     const allowed = ALLOWED.find(([p]) => f.startsWith(p))![1];
     for (const spec of imports(await read(f))) {
-      if (spec.startsWith(".")) continue;
+      if (isInternal(spec)) continue;
       assert(allowed.includes(spec), `${f} importa "${spec}" (permitidos: ${allowed.join(", ")})`);
     }
   }
@@ -53,7 +59,7 @@ Deno.test("arch: las capas no importan hacia arriba (common ← objects ← cont
   for (const f of SRC) {
     // `import type` se borra al compilar: schemas.ts puede nombrar la clase Pojo sin depender de ella en runtime.
     const src = (await read(f)).replace(/import type [^;]+;/g, "");
-    for (const spec of imports(src).filter((s) => s.startsWith("."))) {
+    for (const spec of imports(src).filter(isInternal)) {
       if (f.startsWith("src/00 common/")) assert(!spec.includes("01 objects") && !spec.includes("02 controllers"), `${f} → ${spec}`);
       if (f.startsWith("src/01 objects/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
       if (f.startsWith("src/02 controllers/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
@@ -64,9 +70,10 @@ Deno.test("arch: las capas no importan hacia arriba (common ← objects ← cont
   }
 });
 
-Deno.test("arch: imports relativos siempre con extensión .ts", async () => {
-  for (const f of SRC) {
-    for (const spec of imports(await read(f)).filter((s) => s.startsWith("."))) {
+Deno.test("arch: imports internos por alias @Jeff-Aporta/DER/ (nunca relativos) y siempre con .ts", async () => {
+  for (const f of [...SRC, "mod.ts"]) {
+    for (const spec of imports(await read(f)).filter(isInternal)) {
+      assert(spec.startsWith(ALIAS), `${f}: "${spec}" es relativo; use ${ALIAS}<ruta>`);
       assert(spec.endsWith(".ts"), `${f}: "${spec}" sin .ts`);
     }
   }
@@ -120,10 +127,16 @@ async function closure(entry: string): Promise<Map<string, string[]>> {
     const rel = pending.pop() ?? "";
     if (seen.has(rel)) continue;
     const text = await read(rel);
-    const specs = [...text.matchAll(/(?:^|\n)\s*(?:import|export)[^"']*?from\s+["']([^"']+)["']/g)]
-      .flatMap((m) => (m[1] ? [m[1]] : []));
-    seen.set(rel, specs.filter((s) => !s.startsWith(".")));
-    for (const s of specs.filter((x) => x.startsWith("."))) {
+    const specs = [
+      ...[...text.matchAll(/(?:^|\n)\s*(?:import|export)[^"']*?from\s+["']([^"']+)["']/g)],
+      ...[...text.matchAll(/(?:^|\n)\s*import\s+["']([^"']+)["']/g)],
+    ].flatMap((m) => (m[1] ? [m[1]] : []));
+    seen.set(rel, specs.filter((s) => !isInternal(s)));
+    for (const s of specs.filter(isInternal)) {
+      if (s.startsWith(ALIAS)) {
+        pending.push(s.slice(ALIAS.length));
+        continue;
+      }
       const parts = [...rel.split("/").slice(0, -1), ...s.split("/")];
       const norm: string[] = [];
       for (const p of parts) p === ".." ? norm.pop() : p !== "." && norm.push(p);

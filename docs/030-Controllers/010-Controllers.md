@@ -48,7 +48,7 @@ Recibe una entrada tipada como unión discriminada por `action` (`ConfirmInput<P
 hooks: {
   preConfirm(input, ctx) {
     if (!ctx.state.user) return "Sesión requerida";                       // aplica a todo
-    if (input.action === "post" && input.arg.nombre === "x") return "Nombre inválido"; // arg: TProducto
+    if (input.action === "post" && input.arg.nombre === "x") return "Nombre inválido"; // arg: Producto
     if (input.action === "putCfg" && "secreto" in input.cambios) return "No editable";
     if (input.action === "endpoint" && input.name === "importar") { /* ... */ }
   },
@@ -71,7 +71,7 @@ actions: {
 ## ClientController
 
 ```ts
-new ClientController(Producto, {
+new ClientController(ProductoEntity, {
   baseUrl: "https://api.x.com/api",
   fetch,                                       // opcional (tests, interceptores)
   headers: async () => ({ authorization: `Bearer ${token}` }),
@@ -85,7 +85,7 @@ new ClientController(Producto, {
 ## ServerController
 
 ```ts
-new ServerController(Producto, {
+new ServerController(ProductoEntity, {
   db,                               // Database (de server/sqlite, server/pg o server/pglite)
   table: "productos",
   identifierCase: "lower",          // "preserve" | "lower" | "upper" para tabla y columnas (default: el del db)

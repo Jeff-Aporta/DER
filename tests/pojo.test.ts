@@ -1,9 +1,9 @@
 import { assertEquals, assertInstanceOf, assertThrows } from "@std/assert";
-import { defineSchema, Pojo, pojoOf, toStr } from "../mod.ts";
-import { TCategoria, TLinea, TProducto } from "../examples/domain.ts";
+import { defineSchema, Pojo, pojoOf, toStr } from "@Jeff-Aporta/DER/mod.ts";
+import { Categoria, Linea, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("pojo: los setters castean según el tipo de columna", () => {
-  const p = new TProducto({
+  const p = new Producto({
     iproducto: "7",
     nombre: 123,
     precio: "10.50",
@@ -23,7 +23,7 @@ Deno.test("pojo: los setters castean según el tipo de columna", () => {
 });
 
 Deno.test("pojo: bool acepta 0/1/'true'/'si' y undefined se conserva como no definido", () => {
-  const c = new TCategoria({ bactivo: 0 });
+  const c = new Categoria({ bactivo: 0 });
   assertEquals(c.bactivo, false);
   (c as { bactivo: unknown }).bactivo = "si";
   assertEquals(c.bactivo, true);
@@ -32,28 +32,28 @@ Deno.test("pojo: bool acepta 0/1/'true'/'si' y undefined se conserva como no def
 });
 
 Deno.test("pojo: relaciones se castean a POJOs (objeto 1:1, lista 1:N) incluso desde texto JSON", () => {
-  const c = new TCategoria({
+  const c = new Categoria({
     icategoria: 1,
     productos: JSON.stringify([{ iproducto: "1", nombre: "A", precio: "1" }]),
   });
-  assertInstanceOf(c.productos[0], TProducto);
+  assertInstanceOf(c.productos[0], Producto);
   assertEquals(c.productos[0].iproducto, 1);
-  const l = new TLinea({ ipedido: 1, ilinea: 2, producto: { iproducto: 5, categoria: { icategoria: 9 } } });
-  assertInstanceOf(l.producto, TProducto);
-  assertInstanceOf(l.producto!.categoria, TCategoria);
+  const l = new Linea({ ipedido: 1, ilinea: 2, producto: { iproducto: 5, categoria: { icategoria: 9 } } });
+  assertInstanceOf(l.producto, Producto);
+  assertInstanceOf(l.producto!.categoria, Categoria);
   assertEquals(l.toJSON(), { ipedido: 1, ilinea: 2, producto: { iproducto: 5, categoria: { icategoria: 9 } } });
 });
 
 Deno.test("pojo: toJSON omite undefined, serializa fechas e ignora llaves desconocidas", () => {
-  const p = TProducto.fromJSON({ iproducto: 1, creado: new Date("2024-01-01T00:00:00Z"), otra: "x" });
+  const p = Producto.fromJSON({ iproducto: 1, creado: new Date("2024-01-01T00:00:00Z"), otra: "x" });
   assertEquals(p.toJSON(), { iproducto: 1, creado: "2024-01-01T00:00:00.000Z" });
   assertEquals(p.pkValues(), [1]);
-  assertEquals(new TLinea({ ipedido: 1, ilinea: 2, cantidad: 3 }).pkOnly().toJSON(), { ipedido: 1, ilinea: 2 });
+  assertEquals(new Linea({ ipedido: 1, ilinea: 2, cantidad: 3 }).pkOnly().toJSON(), { ipedido: 1, ilinea: 2 });
 });
 
 Deno.test("pojo: estilo manual con getters/setters propios", () => {
   const S = defineSchema({ columns: { id: { type: "int", pk: true }, nombre: { type: "string" } } });
-  class TManual extends Pojo {
+  class Manual extends Pojo {
     static override schema = S;
     get id(): number | null {
       return this.f["id"] as number;
@@ -68,7 +68,7 @@ Deno.test("pojo: estilo manual con getters/setters propios", () => {
       this.f["nombre"] = toStr(v)?.trim() ?? null;
     }
   }
-  const m = TManual.fromJSON({ id: "4", nombre: "  x  " });
+  const m = Manual.fromJSON({ id: "4", nombre: "  x  " });
   assertEquals(m.toJSON(), { id: 4, nombre: "x" });
 });
 

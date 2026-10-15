@@ -20,7 +20,8 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
-    "types": ["node", "deno"]
+    "types": ["node", "deno"],
+    "paths": { "@Jeff-Aporta/DER/*": ["./*"] }
   },
   "include": ["mod.ts", "src", "examples", "tests"]
 }

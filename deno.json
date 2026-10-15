@@ -1,5 +1,5 @@
 {
-  "name": "@jeff-aporta/controllers",
+  "name": "@jeff-aporta/der",
   "version": "0.1.0",
   "exports": {
     ".": "./mod.ts",
@@ -21,6 +21,7 @@
   },
   "nodeModulesDir": "manual",
   "imports": {
+    "@Jeff-Aporta/DER/": "./",
     "zod": "npm:zod@4.6.7",
     "kysely": "npm:kysely@0.28.17",
     "@electric-sql/pglite": "npm:@electric-sql/pglite@0.3.16",
@@ -45,7 +46,7 @@
   },
   "lint": {
     "rules": {
-      "exclude": ["no-explicit-any"]
+      "exclude": ["no-explicit-any", "no-slow-types"]
     }
   },
   "fmt": {

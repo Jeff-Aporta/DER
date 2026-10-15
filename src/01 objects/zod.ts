@@ -1,19 +1,19 @@
 /**
  * Zod como estándar de contratos: cada schema JSON genera sus schemas Zod, iguales en client y server.
  *
- *   zodOf(TProducto).row     lectura / formularios / validación de acciones parciales
- *   zodOf(TProducto).insert  POST: requeridos = no nullable, sin default y no autoincrement
- *   zodOf(TProducto).update  PUT: pks requeridas, el resto opcional
- *   zodOf(TProducto).pk      GET/DELETE: sólo pks requeridas
- *   zodOf(TProducto).molde   molde de `Obj.push`: `null` → null si la columna es nullable; si no, se quita
+ *   zodOf(Producto).row     lectura / formularios / validación de acciones parciales
+ *   zodOf(Producto).insert  POST: requeridos = no nullable, sin default y no autoincrement
+ *   zodOf(Producto).update  PUT: pks requeridas, el resto opcional
+ *   zodOf(Producto).pk      GET/DELETE: sólo pks requeridas
+ *   zodOf(Producto).molde   molde de `Obj.push`: `null` → null si la columna es nullable; si no, se quita
  *
  * Una columna puede refinar su tipo con `zod: z.email()`; en columnas `json` el `zod` es su molde.
  * Los tipos y schemas de contrato (`SchemaZod`, `ZQuerySpec`...) viven en `schema.ts`.
  */
 import { z } from "zod";
-import { isRequiredOnInsert, schemaMeta } from "./meta.ts";
-import { type Pojo, resolvePojo } from "./pojo.ts";
-import type { ColumnDef, PojoClass, Schema, SchemaZod } from "../00 common/schemas.ts";
+import { isRequiredOnInsert, schemaMeta } from "@Jeff-Aporta/DER/src/01 objects/meta.ts";
+import { type Pojo, resolvePojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
+import type { ColumnDef, PojoClass, Schema, SchemaZod } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 
 const EXPECTED: Record<ColumnDef["type"], string> = {
   string: "texto",

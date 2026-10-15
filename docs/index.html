@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Controllers · Documentación</title>
-  <meta name="description" content="Documentación modular de Controllers: schemas JSON, POJOs, Zod, controllers client/server, motores, hosts y plugins de seguridad.">
+  <title>DER · Documentación</title>
+  <meta name="description" content="Documentación modular de DER: schemas JSON, POJOs, Zod, controllers client/server, motores, hosts y plugins de seguridad.">
   <meta name="robots" content="noindex">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ctext y=%2226%22 font-size=%2226%22%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E">
   <style>
@@ -40,7 +40,7 @@
        (y el punto de entrada para agentes LLM que referencian todos los mod.ts). -->
   <iswc-md-docs-vault id="vault" main="README.md">
     <div slot="brand" class="marca">
-      <strong>Controllers</strong>
+      <strong>DER</strong>
       <span id="hojaActual">Documentación</span>
     </div>
     <iswc-prefs-clear slot="actions" scope="cache" color="brand" title="Borrar la caché de esta app y recargar" aria-label="Borrar caché"></iswc-prefs-clear>
@@ -73,7 +73,7 @@
     if (L) await Promise.all(['iswc-md-docs-vault', 'iswc-theme-toggle', 'iswc-palette-selector', 'iswc-prefs-clear'].map((t) => L.ensure(t).catch(() => false)));
     document.getElementById('vault').addEventListener('iswc-md-docs-vault-page', (e) => {
       document.getElementById('hojaActual').textContent = e.detail.titulo;
-      document.title = `${e.detail.titulo} · Controllers`;
+      document.title = `${e.detail.titulo} · DER`;
     });
   </script>
 </body>

@@ -20,7 +20,7 @@
  * Cualquier ruta + `/sse` es su variante Server-Sent Events.
  * Si singular === plural, el plural lleva el sufijo `pluralSuffix` (por defecto "s"): `dato/s`.
  */
-import { type Pojo, registerPojo } from "./pojo.ts";
+import { type Pojo, registerPojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
 import {
   type Action,
   ACTIONS,
@@ -32,11 +32,11 @@ import {
   type RouteMatch,
   type SchemaMeta,
   type SchemaZod,
-} from "../00 common/schemas.ts";
+} from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 import type { z } from "zod";
-import { Obj } from "../00 common/obj.ts";
-import type { Patch } from "../00 common/schemas.ts";
-import { schemaZod } from "./zod.ts";
+import { Obj } from "@Jeff-Aporta/DER/src/00 common/obj.ts";
+import type { Patch } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import { schemaZod } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
 
 const RESERVED_SEGMENTS = new Set(["query", "sse", "cfg", "doc"]);
 

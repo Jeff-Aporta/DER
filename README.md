@@ -1,4 +1,4 @@
-# Controllers
+# DER
 
 Schemas JSON → POJOs tipados (Zod) → controllers REST compartidos entre el client (fetch) y el server
 (SQL agnóstico: PostgreSQL / SQLite). Deno primero, sin build, consumible por CDN.

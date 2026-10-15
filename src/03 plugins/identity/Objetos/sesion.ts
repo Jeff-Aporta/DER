@@ -1,10 +1,8 @@
-/** Objeto del plugin de identidad: Sesion. */
-import { defineEntity, defineSchema, type Entity, type Pojo, pojoOf } from "../../../01 objects/mod.ts";
-import type { PojoClass, Schema } from "../../../00 common/schemas.ts";
-import type { SesionFields } from "../schemas.ts";
+/** Objeto del plugin de identidad: POJO `Sesion`, su schema JSON (`SesionSchema`) y su entidad REST (`SesionEntity`). */
+import { defineEntity, defineSchema, type Entity, pojoOf } from "@Jeff-Aporta/DER/src/01 objects/mod.ts";
 
 /** Sesión emitida (una por token): `logout` la revoca y la puerta la exige vigente. */
-export const SesionSchema: Schema = defineSchema({
+export const SesionSchema = defineSchema({
   columns: {
     jti: { type: "string", pk: true, length: 64 },
     iusuario: { type: "string", length: 120, nullable: false },
@@ -14,13 +12,11 @@ export const SesionSchema: Schema = defineSchema({
   },
 });
 
-const TSesionBase = pojoOf(SesionSchema) as unknown as PojoClass<Pojo & SesionFields>;
+export class Sesion extends pojoOf(SesionSchema) {}
 
-export class TSesion extends TSesionBase {}
-
-export const Sesion: Entity<TSesion> = defineEntity({
-  pojo: TSesion,
-  name: "sec.sesion",
+export const SesionEntity: Entity<Sesion> = defineEntity({
+  pojo: Sesion,
+  name: "permisos.sesion",
   singular: "sesion",
   plural: "sesiones",
 });

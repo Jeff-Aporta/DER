@@ -8,7 +8,7 @@
  * - Decisión (la ruta ya exigió JWT): sin valor o `{ "protected": true }` pasa; `false` niega;
  *   `true`, un objeto o un texto pasan y el valor viaja al handler (`ctx.state.permiso`).
  */
-import type { AuthDecision } from "../../../02 controllers/server/schemas.ts";
+import type { AuthDecision } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 const VERBOS: ReadonlySet<string> = new Set(["GET", "POST", "PUT", "DELETE", "PATCH"]);
 

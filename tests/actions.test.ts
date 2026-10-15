@@ -4,16 +4,16 @@
  * capacidades sólo de código (`ctx.state.can`). Catálogo, perfil y carga del DER usan esos ids.
  */
 import { assert, assertEquals } from "@std/assert";
-import { type CanFn, createRouter, type Router, ServerController } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { pluginsFromConfig } from "../src/03 plugins/mod.ts";
-import { Categoria, Producto } from "../examples/domain.ts";
+import { type CanFn, createRouter, type Router, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const SECRET = "secret-de-pruebas-de-acciones-con-32-o-mas";
 
 function controllers(db: ReturnType<typeof sqliteDatabase>) {
-  const categorias = new ServerController(Categoria, { db, table: "categorias" });
-  const productos = new ServerController(Producto, {
+  const categorias = new ServerController(CategoriaEntity, { db, table: "categorias" });
+  const productos = new ServerController(ProductoEntity, {
     db,
     table: "productos",
     security: {

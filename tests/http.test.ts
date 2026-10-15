@@ -3,12 +3,12 @@
  * Mismas entidades en ambos lados; el fetch del client va directo al handler (sin red).
  */
 import { assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
-import { ClientController, HttpError, ValidationError } from "../src/02 controllers/client/mod.ts";
-import { createRouter } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { at } from "./_util.ts";
-import { buildControllers } from "../examples/backend.ts";
-import { Categoria, Crisis, Linea, Pedido, Producto, TCategoria, TProducto } from "../examples/domain.ts";
+import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
+import { createRouter } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { at } from "@Jeff-Aporta/DER/tests/_util.ts";
+import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
+import { CategoriaEntity, CrisisEntity, LineaEntity, PedidoEntity, ProductoEntity, Categoria, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 async function setup() {
   const db = sqliteDatabase();
@@ -23,11 +23,11 @@ async function setup() {
   };
   const cfg = { baseUrl: "http://test/api", fetch: fetchFn };
   const cli = {
-    categorias: new ClientController(Categoria, cfg),
-    productos: new ClientController(Producto, cfg),
-    pedidos: new ClientController(Pedido, cfg),
-    lineas: new ClientController(Linea, cfg),
-    crisis: new ClientController(Crisis, cfg),
+    categorias: new ClientController(CategoriaEntity, cfg),
+    productos: new ClientController(ProductoEntity, cfg),
+    pedidos: new ClientController(PedidoEntity, cfg),
+    lineas: new ClientController(LineaEntity, cfg),
+    crisis: new ClientController(CrisisEntity, cfg),
   };
   return { db, router, cli, calls };
 }
@@ -36,9 +36,9 @@ Deno.test("http: CRUD + listas con las rutas RESTful", async () => {
   const { db, cli, calls } = await setup();
   try {
     const [cat] = await cli.categorias.postList([{ nombre: "Bebidas" }]);
-    assertInstanceOf(cat, TCategoria);
+    assertInstanceOf(cat, Categoria);
     const p = await cli.productos.post({ nombre: "Café", precio: 3, stock: 2, icategoria: cat.icategoria });
-    assertInstanceOf(p, TProducto);
+    assertInstanceOf(p, Producto);
     const got = (await cli.productos.get(p))!;
     assertEquals(got.categoria!.nombre, "Bebidas");
     assertEquals(got.total, 6);
@@ -109,11 +109,11 @@ Deno.test("http: query por GET ?q=, include en get y endpoints especiales", asyn
     const q = encodeURIComponent(JSON.stringify({ where: { precio: { gt: 1 } } }));
     const res = await router.fetch(new Request(`http://test/api/productos/query?q=${q}`));
     assertEquals((await res.json()).map((p: { nombre: string }) => p.nombre), ["B"]);
-    const r = await cli.productos.call<TProducto>("ajustarStock", { iproducto: 1, stock: 4 });
-    assertInstanceOf(r, TProducto);
+    const r = await cli.productos.call<Producto>("ajustarStock", { iproducto: 1, stock: 4 });
+    assertInstanceOf(r, Producto);
     assertEquals(r.stock, 5);
-    const nuevos = await cli.productos.call<TProducto[]>("importar", [{ nombre: "C", precio: 3 }]);
-    assertInstanceOf(at(nuevos, 0), TProducto);
+    const nuevos = await cli.productos.call<Producto[]>("importar", [{ nombre: "C", precio: 3 }]);
+    assertInstanceOf(at(nuevos, 0), Producto);
     assertEquals((await cli.productos.list()).length, 3);
   } finally {
     await db.destroy();

@@ -4,8 +4,8 @@
  *   curl -X POST localhost:8000/api/productos/query -d '{"where":{"precio":{"gt":2}},"include":{"categoria":true}}'
  *   curl -N localhost:8000/api/productos/sse
  */
-import { createRouter, sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { buildControllers } from "./backend.ts";
+import { createRouter, sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
 
 const db = sqliteDatabase(Deno.env.get("DB") ?? ":memory:");
 const ctrls = buildControllers(db);

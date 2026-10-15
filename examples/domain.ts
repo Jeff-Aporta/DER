@@ -2,7 +2,7 @@
  * Definiciones COMPARTIDAS (front y back): schemas JSON, POJOs y entidades.
  * Este archivo no importa nada de SQL: el front lo puede importar tal cual.
  */
-import { defineEntity, defineSchema, pojoOf, z } from "../mod.ts";
+import { defineEntity, defineSchema, pojoOf, z } from "@Jeff-Aporta/DER/mod.ts";
 
 /** Molde Zod de la config de producto (columna `jconfig`). */
 export const ZProductoCfg = z.object({
@@ -24,12 +24,12 @@ export const CategoriaSchema = defineSchema({
   },
 });
 
-export class TCategoria extends pojoOf(CategoriaSchema) {
-  declare productos: TProducto[];
+export class Categoria extends pojoOf(CategoriaSchema) {
+  declare productos: Producto[];
 }
 
-export const Categoria = defineEntity({
-  pojo: TCategoria,
+export const CategoriaEntity = defineEntity({
+  pojo: Categoria,
   singular: "categoria",
   plural: "categorias",
 });
@@ -56,8 +56,8 @@ export const ProductoSchema = defineSchema({
   },
 });
 
-export class TProducto extends pojoOf(ProductoSchema) {
-  declare categoria: TCategoria | null;
+export class Producto extends pojoOf(ProductoSchema) {
+  declare categoria: Categoria | null;
 
   /** Getter propio (no es columna, no se serializa). */
   get etiqueta(): string {
@@ -65,8 +65,8 @@ export class TProducto extends pojoOf(ProductoSchema) {
   }
 }
 
-export const Producto = defineEntity({
-  pojo: TProducto,
+export const ProductoEntity = defineEntity({
+  pojo: Producto,
   singular: "producto",
   plural: "productos",
   listColumns: ["iproducto", "nombre"],
@@ -99,12 +99,12 @@ export const PedidoSchema = defineSchema({
   },
 });
 
-export class TPedido extends pojoOf(PedidoSchema) {
-  declare lineas: TLinea[];
+export class Pedido extends pojoOf(PedidoSchema) {
+  declare lineas: Linea[];
 }
 
 /** Config de libre definición (sin Zod), guardada por el server en otra tabla. */
-export const Pedido = defineEntity({ pojo: TPedido, singular: "pedido", plural: "pedidos", cfg: {} });
+export const PedidoEntity = defineEntity({ pojo: Pedido, singular: "pedido", plural: "pedidos", cfg: {} });
 
 export const LineaSchema = defineSchema({
   columns: {
@@ -119,13 +119,13 @@ export const LineaSchema = defineSchema({
   },
 });
 
-export class TLinea extends pojoOf(LineaSchema) {
-  declare producto: TProducto | null;
-  declare pedido: TPedido | null;
+export class Linea extends pojoOf(LineaSchema) {
+  declare producto: Producto | null;
+  declare pedido: Pedido | null;
 }
 
-export const Linea = defineEntity({
-  pojo: TLinea,
+export const LineaEntity = defineEntity({
+  pojo: Linea,
   singular: "pedido/linea",
   plural: "pedido/lineas",
   hooks: {
@@ -144,7 +144,7 @@ export const CrisisSchema = defineSchema({
   },
 });
 
-export class TCrisis extends pojoOf(CrisisSchema) {}
+export class Crisis extends pojoOf(CrisisSchema) {}
 
 /** singular === plural → el plural usa `crisis/s` automáticamente. */
-export const Crisis = defineEntity({ pojo: TCrisis, singular: "crisis", plural: "crisis" });
+export const CrisisEntity = defineEntity({ pojo: Crisis, singular: "crisis", plural: "crisis" });

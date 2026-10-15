@@ -15,8 +15,8 @@ El paquete es TypeScript sin build. Cada archivo importa sus dependencias con es
 Base (fija un commit o tag en producción; `@main` solo para desarrollo):
 
 ```
-https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@<ref>/
-https://raw.githubusercontent.com/Jeff-Aporta/Controllers/<ref>/
+https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@<ref>/
+https://raw.githubusercontent.com/Jeff-Aporta/DER/<ref>/
 ```
 
 Las carpetas tienen espacios, que en la URL van como `%20`:
@@ -34,24 +34,27 @@ Las carpetas tienen espacios, que en la URL van como `%20`:
 
 ## Deno
 
-`deno.json` del consumidor:
+El consumidor mapea **tres cosas** en su `deno.json`: las dependencias que use y el **alias de la librería**, `@Jeff-Aporta/DER/`. Los archivos de la librería se importan entre sí por ese alias, así que mapearlo es obligatorio, igual que `zod`.
 
 ```json
 {
   "imports": {
     "zod": "npm:zod@^4.6",
     "kysely": "npm:kysely@^0.28",
-    "controllers/": "https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@<ref>/"
+    "@Jeff-Aporta/DER/": "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@<sha>/"
   }
 }
 ```
 
 ```ts
-import { ClientController } from "controllers/src/02%20controllers/client/mod.ts";
-import { sqliteDatabase, ServerController, createRouter } from "controllers/src/02%20controllers/server/sqlite/mod.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
+import { createRouter, ServerController, sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { IdentityClient } from "@Jeff-Aporta/DER/src/03 plugins/client.ts";
 ```
 
-Deno aplica el import map también a los módulos remotos, así que `"zod"` dentro del paquete resuelve al `zod` del consumidor (una sola instancia de `z` en toda la app).
+- Deno aplica el import map también a los módulos remotos: dentro de la librería, `"zod"` y `"@Jeff-Aporta/DER/…"` resuelven a lo que el consumidor mapeó. Hay una sola instancia de `z` en toda la app y una sola versión de la librería.
+- Una app de solo cliente no mapea `kysely`: las entradas de cliente no lo alcanzan (lo vigila `tests/arch.test.ts`).
+- Dentro de este repo el alias apunta a `./` (`deno.json`) y `tsconfig.json` tiene el `paths` equivalente para el editor.
 
 ## Navegador
 

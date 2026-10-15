@@ -1,7 +1,7 @@
 /**
  * Host Cloudflare Workers: el Worker exporta `fetch`, y el Router resuelve la ruta con su tabla (la misma que
  * Azure registra función por función). Sin dependencias.
- * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  *
  * ```ts
  * export default defineWorker((env: Env) => {
@@ -11,8 +11,8 @@
  * ```
  * Requiere `compatibility_flags = ["nodejs_compat"]` sólo si se usan fuentes de doc locales (`node:fs`).
  */
-import type { Router } from "../../router.ts";
-import type { WorkerExecutionContext, WorkerExport } from "../../schemas.ts";
+import type { Router } from "@Jeff-Aporta/DER/src/02 controllers/server/router.ts";
+import type { WorkerExecutionContext, WorkerExport } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 /**
  * Crea el export del Worker. `setup` corre una vez por isolate (con el `env` de los bindings) y su Router

@@ -9,11 +9,11 @@
  * export default defineWorker((env) => router);      // Cloudflare Workers
  * ```
  */
-import { encodeEvent, TextChannel } from "../../00 common/sse.ts";
-import { HttpError, ValidationError } from "../../00 common/errors.ts";
-import type { Include, RouteMatch } from "../../00 common/schemas.ts";
-import type { ServerController } from "./controller.ts";
-import { apiIndexMd, composeFromSources, vaultHtml } from "./doc.ts";
+import { encodeEvent, TextChannel } from "@Jeff-Aporta/DER/src/00 common/sse.ts";
+import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import type { Include, RouteMatch } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import type { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
+import { apiIndexMd, composeFromSources, vaultHtml } from "@Jeff-Aporta/DER/src/02 controllers/server/doc.ts";
 import {
   controllerRouteSpecs,
   controllerSecurity,
@@ -23,7 +23,7 @@ import {
   routeId,
   routeKey,
   routeSecurity,
-} from "./routes.ts";
+} from "@Jeff-Aporta/DER/src/02 controllers/server/routes.ts";
 import type {
   CanFn,
   CorsOptions,
@@ -36,7 +36,7 @@ import type {
   RouteInfo,
   RouterOptions,
   ServerCtx,
-} from "./schemas.ts";
+} from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 /** `?v=1` (o cualquier valor salvo `0`/`false`) pide la vista HTML del mismo endpoint `/doc`. */
 const wantsView = (url: URL): boolean => {

@@ -9,7 +9,7 @@
  * Secciones:  columnas · pojo · query · entidad · controller · client · sse · obj · zod
  */
 import { z } from "zod";
-import type { Pojo } from "../01 objects/pojo.ts";
+import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
 
 // ===================================================================================== columnas
 

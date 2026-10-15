@@ -28,7 +28,7 @@ tags: [objetos, obj, json]
 
 ```ts
 const p = await productos.get({ iproducto: 1 });
-p.push({ precio: 2.5, jconfig: { ui: { orden: 3 } } });   // Patch<TProducto>: tipado
+p.push({ precio: 2.5, jconfig: { ui: { orden: 3 } } });   // Patch<Producto>: tipado
 p.pushIgnore({ stock: 0 });                                // solo si stock no está definido
 p.update({ nombre: "X" });                                  // solo si nombre ya está definido
 p.delete({ meta: true });                                   // deja meta sin definir
@@ -41,6 +41,6 @@ Reglas:
 1. **Con molde Zod** (columnas tipadas, relaciones y `json` con `zod`), las acciones son parciales y profundas. El resultado se castea y se valida con `zod.row`. Si queda fuera del molde se lanza `ValidationError` y el POJO **no cambia**.
 2. **Sin molde** (columna `json` sin `zod`, el "toJSON sin Zod"), la acción hace **replace directo** de esa columna: `push` reemplaza; `pushIgnore` solo asigna si no existía; `update` solo si existía.
 3. `null` en `push`: en una columna nullable deja `null`; en una no nula la quita (queda sin definir); en un `json` con molde aplica la semántica del molde (opcional → se borra, default → el default…).
-4. Entidad: `Producto.patch(pojo, cambios)` devuelve una copia con el `push` aplicado (el original no cambia) y `Producto.aplicar(pojo, acciones)` aplica una lista `TAccionObj[]` y valida.
+4. Entidad: `ProductoEntity.patch(pojo, cambios)` devuelve una copia con el `push` aplicado (el original no cambia) y `ProductoEntity.aplicar(pojo, acciones)` aplica una lista `TAccionObj[]` y valida.
 
 `/cfg` usa exactamente esta misma semántica de `push` sobre el JSON de configuración ([sse-y-cfg.md](../030-Controllers/030-SSE-y-cfg.md)).

@@ -1,16 +1,16 @@
 /**
  * Dimensión PGlite: PostgreSQL real embebido (WASM), sin servidor. Ideal para tests y apps locales.
  * Dependencias: `kysely` + `zod` + `@electric-sql/pglite`. Reusa el motor de `server/pg`.
- * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  */
 import { PGlite } from "@electric-sql/pglite";
 import { PostgresDialect, type PostgresPool, type PostgresPoolClient } from "kysely";
-import { Database } from "../database.ts";
-import type { IdentifierCase } from "../schemas.ts";
-import { postgres } from "../pg/engine.ts";
+import { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import type { IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import { postgres } from "@Jeff-Aporta/DER/src/02 controllers/server/pg/engine.ts";
 
-export * from "../mod.ts";
-export { postgres } from "../pg/engine.ts";
+export * from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+export { postgres } from "@Jeff-Aporta/DER/src/02 controllers/server/pg/engine.ts";
 
 /** Pool de una sola conexión: serializa el acceso (necesario para que las transacciones no se mezclen). */
 export function pglitePool(pg: PGlite): PostgresPool {

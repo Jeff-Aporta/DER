@@ -3,7 +3,7 @@
  * en su carpeta (`server/pg`, `server/sqlite`, ...) y el ServerController sólo arma la consulta con esas
  * primitivas (Kysely compila la sintaxis y los parámetros).
  */
-import type { IdentifierCase } from "./schemas.ts";
+import type { IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 export function dateToIso(v: unknown): unknown {
   return v instanceof Date ? v.toISOString() : v;

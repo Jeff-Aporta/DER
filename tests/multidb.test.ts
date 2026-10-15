@@ -6,27 +6,27 @@
  * Filtros por relación cross-db, escritura propagada en la base de cada controller y seed propagado.
  */
 import { assert, assertEquals } from "@std/assert";
-import { createRouter, ServerController, sql } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "../src/02 controllers/server/pglite/mod.ts";
-import { Categoria, Linea, Pedido, Producto, type TLinea, type TProducto } from "../examples/domain.ts";
+import { createRouter, ServerController, sql } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
+import { CategoriaEntity, LineaEntity, PedidoEntity, ProductoEntity, type Linea, type Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 function setup() {
   const lite = sqliteDatabase();
   const pg = pgliteDatabase();
-  const productos = new ServerController(Producto, {
+  const productos = new ServerController(ProductoEntity, {
     db: pg,
     table: "productos",
     identifierCase: "lower",
     computed: { total: "{precio} * {stock}" },
   });
-  const categorias = new ServerController(Categoria, {
+  const categorias = new ServerController(CategoriaEntity, {
     db: lite,
     table: "categorias",
     setPropagation: () => ({ productos: true }), // escribe sus productos en la OTRA base
   });
-  const lineas = new ServerController(Linea, { db: lite, table: "pedido_lineas" });
-  const pedidos = new ServerController(Pedido, {
+  const lineas = new ServerController(LineaEntity, { db: lite, table: "pedido_lineas" });
+  const pedidos = new ServerController(PedidoEntity, {
     db: lite,
     table: "pedidos",
     getPropagation: () => ({ lineas: { producto: { categoria: true } } }), // SQLite → PG → SQLite
@@ -61,7 +61,7 @@ Deno.test("multi-db: escritura propagada a otra base, lectura anidada mixta y fi
       nombre: "Bebidas",
       productos: [{ nombre: "Café", precio: 3.5, stock: 10 }, { nombre: "Té", precio: 2 }],
     });
-    const [cafe, te] = beb.productos as TProducto[];
+    const [cafe, te] = beb.productos as Producto[];
     assertEquals([cafe?.icategoria, te?.icategoria], [beb.icategoria, beb.icategoria]);
     assertEquals((await productos.list()).length, 2);
 
@@ -71,7 +71,7 @@ Deno.test("multi-db: escritura propagada a otra base, lectura anidada mixta y fi
     });
     // get: lineas (SQL anidado en SQLite) → producto (join en PG) → categoria (join de vuelta en SQLite)
     const got = (await pedidos.get({ ipedido: p.ipedido }))!;
-    assertEquals(got.lineas.map((l: TLinea) => l.producto?.nombre), ["Café", "Té"]);
+    assertEquals(got.lineas.map((l: Linea) => l.producto?.nombre), ["Café", "Té"]);
     assertEquals(got.lineas[0]?.producto?.categoria?.nombre, "Bebidas");
     assertEquals(got.lineas[0]?.producto?.total, 35); // la columna calculada sale del SQL de PG
 

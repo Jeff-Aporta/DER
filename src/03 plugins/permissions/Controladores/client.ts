@@ -10,9 +10,9 @@
  * await permisos.roles.query({ include: { acciones: true } });
  * ```
  */
-import { ValidationError } from "../../../00 common/errors.ts";
-import { ClientController } from "../../../02 controllers/client/controller.ts";
-import { zodMessage } from "../../../01 objects/zod.ts";
+import { ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/controller.ts";
+import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
 import {
   type CatalogEntry,
   type DerLoad,
@@ -20,14 +20,14 @@ import {
   type PermissionsClientConfig,
   type SessionProfile,
   ZDerLoad,
-} from "../schemas.ts";
-import { AccionRol, Grupo, Rol, RolUsuario, type TAccionRol, type TGrupo, type TRol, type TRolUsuario } from "../Objetos/mod.ts";
+} from "@Jeff-Aporta/DER/src/03 plugins/permissions/schemas.ts";
+import { AccionRolEntity, GrupoEntity, RolEntity, RolUsuarioEntity, type AccionRol, type Grupo, type Rol, type RolUsuario } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Objetos/mod.ts";
 
 export class PermissionsClient {
-  readonly grupos: ClientController<TGrupo>;
-  readonly roles: ClientController<TRol>;
-  readonly rolesUsuario: ClientController<TRolUsuario>;
-  readonly acciones: ClientController<TAccionRol>;
+  readonly grupos: ClientController<Grupo>;
+  readonly roles: ClientController<Rol>;
+  readonly rolesUsuario: ClientController<RolUsuario>;
+  readonly acciones: ClientController<AccionRol>;
 
   constructor(readonly config: PermissionsClientConfig) {
     const base = {
@@ -35,10 +35,10 @@ export class PermissionsClient {
       ...(config.fetch ? { fetch: config.fetch } : {}),
       ...(config.headers ? { headers: config.headers } : {}),
     };
-    this.grupos = new ClientController(Grupo, base);
-    this.roles = new ClientController(Rol, base);
-    this.rolesUsuario = new ClientController(RolUsuario, base);
-    this.acciones = new ClientController(AccionRol, base);
+    this.grupos = new ClientController(GrupoEntity, base);
+    this.roles = new ClientController(RolEntity, base);
+    this.rolesUsuario = new ClientController(RolUsuarioEntity, base);
+    this.acciones = new ClientController(AccionRolEntity, base);
   }
 
   /** `GET /permisos`: perfil de la sesión (anónimo si no hay token). */

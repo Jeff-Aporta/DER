@@ -57,8 +57,8 @@ Opciones: `pk`, `autoincrement` (solo pk entera; en SQLite exige pk única), `se
 ## POJOs
 
 ```ts
-export class TProducto extends pojoOf(ProductoSchema) {
-  declare categoria: TCategoria | null;     // relaciones: solo el tipo (`declare`, nunca un campo de clase)
+export class Producto extends pojoOf(ProductoSchema) {
+  declare categoria: Categoria | null;     // relaciones: solo el tipo (`declare`, nunca un campo de clase)
   get etiqueta() { return `${this.nombre} ($${this.precio})`; }  // getters propios: no se serializan
 }
 ```
@@ -71,7 +71,7 @@ export class TProducto extends pojoOf(ProductoSchema) {
 
 ## Zod generado
 
-`zodOf(TProducto)` o `Producto.zod` devuelven:
+`zodOf(Producto)` o `ProductoEntity.zod` devuelven:
 
 | schema | uso |
 |---|---|

@@ -24,7 +24,7 @@ Se genera desde la definición compartida de la entidad: rutas (con `basePath`),
 ## Secciones: rutas `.md` para concatenar
 
 ```ts
-new ServerController(Producto, {
+new ServerController(ProductoEntity, {
   db, table: "productos",
   doc: [new URL("./docs/productos.md", import.meta.url).href, "docs/productos-faq.md"],
   docBase: new URL("./", import.meta.url),   // base de las rutas relativas (default: cwd)

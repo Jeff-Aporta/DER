@@ -2,7 +2,7 @@
  * Host Azure Functions (v4, modelo de programación Node): registra CADA ruta de la tabla del Router como una
  * función HTTP propia (`app.http`), igual que `registrarEntidad` de ISS. Sin dependencias: el `app` de
  * `@azure/functions` lo pasa el consumidor.
- * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  *
  * ```ts
  * import { app } from "@azure/functions";
@@ -11,9 +11,9 @@
  * registerAzure(app, router);
  * ```
  */
-import type { Router } from "../../router.ts";
-import { joinPath } from "../../routes.ts";
-import type { AzureApp, AzureHttpRequest, AzureHttpResponseInit, AzureOptions, RouteInfo } from "../../schemas.ts";
+import type { Router } from "@Jeff-Aporta/DER/src/02 controllers/server/router.ts";
+import { joinPath } from "@Jeff-Aporta/DER/src/02 controllers/server/routes.ts";
+import type { AzureApp, AzureHttpRequest, AzureHttpResponseInit, AzureOptions, RouteInfo } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 /** Primeros segmentos que reserva el host de Functions: una función ahí queda "in error" y responde 404. */
 export const AZURE_RESERVED_PREFIXES: ReadonlySet<string> = new Set(["runtime", "admin"]);

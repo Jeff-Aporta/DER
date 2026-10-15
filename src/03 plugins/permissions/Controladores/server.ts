@@ -1,6 +1,6 @@
 /**
- * Plugin de permisos: evalúa la relación usuario → rol vigente (dentro del grupo configurado y sus
- * subgrupos) → vector de acciones, y la aplica como puerta `authorize` del Router a toda ruta con
+ * Plugin de permisos: evalúa la relación usuario → rol vigente (dentro del grupo configurado)
+ * → vector de acciones, y la aplica como puerta `authorize` del Router a toda ruta con
  * `security.permissions`. Expone:
  *
  *   GET  /permisos            perfil de la sesión (público: sin token responde el perfil anónimo)
@@ -8,17 +8,17 @@
  *   PUT  /permisos            carga del DER completo (grupos, roles, rolesusuario, acciones) en una transacción
  *   CRUD + list de permisos/grupo(s), permisos/rol(es), permisos/rolusuario(rolesusuario), permisos/accion(es)
  */
-import { HttpError, ValidationError } from "../../../00 common/errors.ts";
-import { ServerController } from "../../../02 controllers/server/controller.ts";
-import type { Database } from "../../../02 controllers/server/database.ts";
-import type { Router } from "../../../02 controllers/server/router.ts";
-import type { CanFn, Identity, RouteInfo, ServerCtx } from "../../../02 controllers/server/schemas.ts";
-import { zodMessage } from "../../../01 objects/zod.ts";
-import type { Pojo } from "../../../01 objects/pojo.ts";
-import { type CatalogEntry, type DerLoad, type PermissionsConfig, type SessionProfile, ZDerLoad } from "../schemas.ts";
-import type { PermissionsPlugin } from "../../schemas.ts";
-import { AccionRol, Grupo, Rol, RolUsuario, type TRol } from "../Objetos/mod.ts";
-import { decide } from "./rules.ts";
+import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
+import type { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import type { Router } from "@Jeff-Aporta/DER/src/02 controllers/server/router.ts";
+import type { CanFn, Identity, RouteInfo, ServerCtx } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
+import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
+import { type CatalogEntry, type DerLoad, type PermissionsConfig, type SessionProfile, ZDerLoad } from "@Jeff-Aporta/DER/src/03 plugins/permissions/schemas.ts";
+import type { PermissionsPlugin } from "@Jeff-Aporta/DER/src/03 plugins/schemas.ts";
+import { AccionRolEntity, GrupoEntity, RolEntity, RolUsuarioEntity, type Rol } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Objetos/mod.ts";
+import { decide } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Controladores/rules.ts";
 
 export function permissionsPlugin(cfg: PermissionsConfig & { db: Database }): PermissionsPlugin {
   const { db } = cfg;
@@ -28,35 +28,18 @@ export function permissionsPlugin(cfg: PermissionsConfig & { db: Database }): Pe
   const denyByDefault = cfg.denyByDefault ?? false;
   let router: Router | null = null;
 
-  const grupos = new ServerController(Grupo, { db, table: "sec_grupos", security: true });
-  const roles = new ServerController(Rol, { db, table: "sec_roles", security: true });
-  const rolesUsuario = new ServerController(RolUsuario, { db, table: "sec_rolesusuario", security: true });
-  const acciones = new ServerController(AccionRol, { db, table: "sec_accionesrol", security: true });
+  const grupos = new ServerController(GrupoEntity, { db, table: "permisos_grupos", security: true });
+  const roles = new ServerController(RolEntity, { db, table: "permisos_roles", security: true });
+  const rolesUsuario = new ServerController(RolUsuarioEntity, { db, table: "permisos_rolesusuario", security: true });
+  const acciones = new ServerController(AccionRolEntity, { db, table: "permisos_accionesrol", security: true });
 
-  /** El grupo configurado y todos sus descendientes. */
-  async function gruposPermitidos(): Promise<Set<string>> {
-    const todos = await grupos.select({ fields: ["igrupo", "igrupopadre"] });
-    const permitidos = new Set<string>([grupo]);
-    for (let creció = true; creció;) {
-      creció = false;
-      for (const g of todos) {
-        if (g.igrupo && g.igrupopadre && permitidos.has(g.igrupopadre) && !permitidos.has(g.igrupo)) {
-          permitidos.add(g.igrupo);
-          creció = true;
-        }
-      }
-    }
-    return permitidos;
-  }
-
-  /** Roles vigentes del usuario en el grupo (activos, dentro de su vigencia), el principal primero. */
-  async function rolesVigentes(iusuario: string): Promise<TRol[]> {
+  /** Roles vigentes del usuario en el grupo configurado (activos, dentro de su vigencia), el principal primero. */
+  async function rolesVigentes(iusuario: string): Promise<Rol[]> {
     const now = Date.now();
-    const permitidos = await gruposPermitidos();
     const asignados = await rolesUsuario.select({ where: { iusuario }, include: { rol: true } });
     return asignados
       .filter((a) => (!a.finicial || a.finicial.getTime() <= now) && (!a.ffinal || a.ffinal.getTime() > now))
-      .filter((a) => a.rol && a.rol.bactivo !== false && a.rol.igrupo && permitidos.has(a.rol.igrupo))
+      .filter((a) => a.rol && a.rol.bactivo !== false && a.rol.igrupo && a.rol.igrupo === grupo)
       .sort((a, b) => Number(b.bprincipal ?? false) - Number(a.bprincipal ?? false))
       .flatMap((a) => (a.rol ? [a.rol] : []));
   }

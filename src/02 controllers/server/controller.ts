@@ -3,7 +3,7 @@
  * (columnas, pks, relaciones) bifurcando por motor; el usuario sólo aporta SQL quemado para columnas calculadas.
  *
  * ```ts
- * const productos = new ServerController(Producto, {
+ * const productos = new ServerController(ProductoEntity, {
  *   db, table: "productos", identifierCase: "lower",
  *   computed: { total: "{precio} * {stock}" },          // {campo} → referencia correcta según motor/caso
  *   hooks: { prePost(p) { if (p.precio! < 0) return "precio negativo"; } },
@@ -14,13 +14,13 @@
  * ```
  */
 import { type Kysely, sql } from "kysely";
-import { CASTS } from "../../00 common/cast.ts";
-import { BaseController } from "../controller.ts";
-import type { Entity } from "../../01 objects/entity.ts";
-import { HttpError, NotFoundError, ValidationError } from "../../00 common/errors.ts";
-import { Obj } from "../../00 common/obj.ts";
-import { type Pojo, resolvePojo } from "../../01 objects/pojo.ts";
-import { expandInclude, isOpsObject, normalizeOrder } from "../../01 objects/query.ts";
+import { CASTS } from "@Jeff-Aporta/DER/src/00 common/cast.ts";
+import { BaseController } from "@Jeff-Aporta/DER/src/02 controllers/controller.ts";
+import type { Entity } from "@Jeff-Aporta/DER/src/01 objects/entity.ts";
+import { HttpError, NotFoundError, ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { Obj } from "@Jeff-Aporta/DER/src/00 common/obj.ts";
+import { type Pojo, resolvePojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
+import { expandInclude, isOpsObject, normalizeOrder } from "@Jeff-Aporta/DER/src/01 objects/query.ts";
 import type {
   Action,
   CfgAction,
@@ -31,12 +31,12 @@ import type {
   Include,
   QuerySpec,
   Where,
-} from "../../00 common/schemas.ts";
-import { TextChannel } from "../../00 common/sse.ts";
-import { zodMessage } from "../../01 objects/zod.ts";
-import { type Database, registeredControllers } from "./database.ts";
-import { composeFromSources, entityContractMd, entitySheetPath, vaultHtml } from "./doc.ts";
-import { applyCase } from "./engine.ts";
+} from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import { TextChannel } from "@Jeff-Aporta/DER/src/00 common/sse.ts";
+import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
+import { type Database, registeredControllers } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import { composeFromSources, entityContractMd, entitySheetPath, vaultHtml } from "@Jeff-Aporta/DER/src/02 controllers/server/doc.ts";
+import { applyCase } from "@Jeff-Aporta/DER/src/02 controllers/server/engine.ts";
 import type {
   ComputedSql,
   BuiltSelect,
@@ -54,7 +54,7 @@ import type {
   SyncSchemaOptions,
   SyncSchemaResult,
   WritePropagation,
-} from "./schemas.ts";
+} from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 
 /** Generador de alias únicos por consulta. */

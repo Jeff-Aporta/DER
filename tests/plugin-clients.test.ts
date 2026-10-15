@@ -3,12 +3,12 @@
  * contra el router real, importados desde la entrada de cliente (sólo zod).
  */
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { ClientController, HttpError, ValidationError } from "../src/02 controllers/client/mod.ts";
-import { IdentityClient, PermissionsClient } from "../src/03 plugins/client.ts";
-import { createRouter, ServerController } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { pluginsFromConfig } from "../src/03 plugins/mod.ts";
-import { Categoria, Producto } from "../examples/domain.ts";
+import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
+import { IdentityClient, PermissionsClient } from "@Jeff-Aporta/DER/src/03 plugins/client.ts";
+import { createRouter, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 async function setup() {
   const db = sqliteDatabase();
@@ -17,8 +17,8 @@ async function setup() {
     permissions: { grupo: "API" },
   }, { db });
   const router = createRouter([
-    new ServerController(Categoria, { db, table: "categorias" }),
-    new ServerController(Producto, { db, table: "productos", security: true }),
+    new ServerController(CategoriaEntity, { db, table: "categorias" }),
+    new ServerController(ProductoEntity, { db, table: "productos", security: true }),
   ], { basePath: "/api", plugins });
   await router.seed();
   let llamadas = 0;
@@ -34,7 +34,7 @@ Deno.test("IdentityClient: login guarda el token, headers lo inyecta en otros co
   try {
     const tokens: (string | null)[] = [];
     const auth = new IdentityClient({ baseUrl: "http://t/api", fetch: fetchFn, onToken: (t) => tokens.push(t) });
-    const productos = new ClientController(Producto, { baseUrl: "http://t/api", fetch: fetchFn, headers: auth.headers });
+    const productos = new ClientController(ProductoEntity, { baseUrl: "http://t/api", fetch: fetchFn, headers: auth.headers });
 
     // validación local con el mismo Zod que el server: no sale la petición
     const antes = llamadas();
@@ -54,7 +54,7 @@ Deno.test("IdentityClient: login guarda el token, headers lo inyecta en otros co
     const viejo = auth.token;
     await auth.logout();
     assertEquals([auth.token, tokens.at(-1)], [null, null]);
-    const otro = new ClientController(Producto, {
+    const otro = new ClientController(ProductoEntity, {
       baseUrl: "http://t/api",
       fetch: fetchFn,
       headers: { authorization: `Bearer ${viejo}` },
@@ -87,6 +87,10 @@ Deno.test("PermissionsClient: perfil, carga del DER (validada en el cliente), ca
     const [vendedor] = await permisos.roles.query({ where: { irol: "VENDEDOR" }, include: { acciones: true } });
     assertEquals(vendedor?.acciones.map((a) => a.iaccion), ["POST:/producto"]);
     assertEquals((await permisos.grupos.list()).map((g) => g.igrupo), ["API"]);
+    // el DER reusa la clase Usuario de identidad: la asignación rol-usuario trae su usuario (sin hash)
+    const [asignacion] = await permisos.rolesUsuario.query({ where: { iusuario: "admin" }, include: { usuario: true } });
+    assertEquals([asignacion?.irol, asignacion?.usuario?.iusuario], ["ADMIN", "admin"]);
+    assertEquals(asignacion?.usuario?.hash, undefined);
   } finally {
     await db.destroy();
   }

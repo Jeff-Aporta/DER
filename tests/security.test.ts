@@ -3,16 +3,16 @@
  * (DER grupos/roles/acciones, vector de acciones, perfil, carga). Todo por HTTP sobre el Router.
  */
 import { assert, assertEquals, assertMatch, assertNotEquals } from "@std/assert";
-import { createRouter, type Database, type Router, ServerController, sql } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
+import { createRouter, type Database, type Router, ServerController, sql } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
 import {
   type IdentityPlugin,
   type LoginResult,
   pluginsFromConfig,
   type PluginsConfig,
   signJwt,
-} from "../src/03 plugins/mod.ts";
-import { Categoria, Producto } from "../examples/domain.ts";
+} from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const SECRET = "una-secret-key-de-pruebas-con-mas-de-32-caracteres";
 
@@ -23,8 +23,8 @@ const CONFIG: PluginsConfig = {
 
 async function setup(config: unknown = CONFIG, opts: { plugins?: boolean } = {}) {
   const db: Database = sqliteDatabase();
-  const categorias = new ServerController(Categoria, { db, table: "categorias" }); // pública
-  const productos = new ServerController(Producto, {
+  const categorias = new ServerController(CategoriaEntity, { db, table: "categorias" }); // pública
+  const productos = new ServerController(ProductoEntity, {
     db,
     table: "productos",
     security: { public: ["list", "get", "doc"] }, // el resto: JWT + permisos
@@ -134,13 +134,13 @@ Deno.test("identidad: usuarios con hash PBKDF2+secret, nunca expuesto ni consult
     assertEquals((await call(router, "POST", "usuarios/query", { token: admin, body: { select: ["hash"] } })).status, 400);
     assertEquals((await call(router, "POST", "usuarios/query", { token: admin, body: { where: { hash: "x" } } })).status, 400);
 
-    const { rows } = await sql<{ hash: string }>`select hash from sec_usuarios where iusuario = 'ana'`.execute(db.kysely);
+    const { rows } = await sql<{ hash: string }>`select hash from permisos_usuarios where iusuario = 'ana'`.execute(db.kysely);
     const hash = rows[0]?.hash ?? "";
     assertMatch(hash, /^pbkdf2-sha256\$10000\$[\w-]{22}\$[\w-]{43}$/);
     assert(!hash.includes("ana-secreta-1"));
     // misma contraseña → otro hash (sal aleatoria)
     await call(router, "POST", "usuario", { token: admin, body: { iusuario: "bea", password: "ana-secreta-1" } });
-    const { rows: r2 } = await sql<{ hash: string }>`select hash from sec_usuarios where iusuario = 'bea'`.execute(db.kysely);
+    const { rows: r2 } = await sql<{ hash: string }>`select hash from permisos_usuarios where iusuario = 'bea'`.execute(db.kysely);
     assertNotEquals(r2[0]?.hash, hash);
     assertEquals((await call(router, "POST", "login", { body: { usuario: "ana", password: "ana-secreta-1" } })).status, 200);
     // cambio de contraseña por PUT
@@ -162,8 +162,7 @@ Deno.test("permisos: carga del DER, vector por rol (base USR + rol), comodín ad
     const carga = await call(router, "PUT", "permisos", {
       token: admin,
       body: {
-        grupos: [{ igrupo: "VENTAS", nombre: "Ventas", igrupopadre: "API" }],
-        roles: [{ irol: "VENDEDOR", igrupo: "VENTAS", nombre: "Vendedor" }],
+        roles: [{ irol: "VENDEDOR", igrupo: "API", nombre: "Vendedor" }],
         rolesusuario: [
           { iusuario: "ana", irol: "VENDEDOR", bprincipal: true },
           { iusuario: "caro", irol: "VENDEDOR", ffinal: "2000-01-01T00:00:00Z" }, // vencido → USR
@@ -175,7 +174,7 @@ Deno.test("permisos: carga del DER, vector por rol (base USR + rol), comodín ad
         ],
       },
     });
-    assertEquals([carga.status, carga.data], [200, { grupos: 1, roles: 1, rolesusuario: 2, acciones: 3 }]);
+    assertEquals([carga.status, carga.data], [200, { grupos: 0, roles: 1, rolesusuario: 2, acciones: 3 }]);
 
     const [ana, beto, caro] = [
       await login(router, "ana", "ana-clave-123"),
@@ -256,8 +255,8 @@ Deno.test("seguridad: /doc es pública por defecto (contexto para agentes), salv
   try {
     const plugins = pluginsFromConfig(CONFIG, { db, env: { TEST_JWT_SECRET: SECRET } });
     const router = createRouter([
-      new ServerController(Categoria, { db, table: "categorias", security: true }),
-      new ServerController(Producto, { db, table: "productos", security: { protected: ["post", "doc"] } }),
+      new ServerController(CategoriaEntity, { db, table: "categorias", security: true }),
+      new ServerController(ProductoEntity, { db, table: "productos", security: { protected: ["post", "doc"] } }),
     ], { basePath: "/api", plugins });
     await router.seed();
     const doc = (p: string) => router.fetch(new Request(`http://t/api/${p}`)); // markdown, no JSON

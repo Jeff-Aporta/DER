@@ -8,15 +8,15 @@
  * - `plural/doc?v=1` → HTML con `<iswc-md-docs-vault>` (kit is-webcomponents por CDN, pineado por SHA).
  * Mismo patrón de página que `ISS-AyudasCPIA/docs/index.html`.
  */
-import type { Entity } from "../../01 objects/entity.ts";
-import { resolvePojo } from "../../01 objects/pojo.ts";
-import type { ColumnDef } from "../../00 common/schemas.ts";
-import type { DocSheet, DocViewOptions } from "./schemas.ts";
+import type { Entity } from "@Jeff-Aporta/DER/src/01 objects/entity.ts";
+import { resolvePojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
+import type { ColumnDef } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import type { DocSheet, DocViewOptions } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 /** Pin del kit iswc (el mismo que usa ISS en su `docs/index.html`). */
 export const ISWC_PIN = "f4356a4191357a927eec7659f8ded07c1186288c";
 /** Punto de entrada de la documentación de esta librería. */
-export const LIB_DOCS = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md";
+export const LIB_DOCS = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md";
 
 const URL_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
 

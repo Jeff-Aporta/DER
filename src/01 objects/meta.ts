@@ -1,5 +1,5 @@
 /** Resolución de un schema JSON: pks, columnas persistidas/virtuales, relaciones y validaciones de definición. */
-import type { ColumnDef, Schema, SchemaMeta } from "../00 common/schemas.ts";
+import type { ColumnDef, Schema, SchemaMeta } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 
 /** Identidad tipada: conserva los literales del JSON para inferir los tipos de los campos. */
 export function defineSchema<const S extends Schema>(schema: S): S {

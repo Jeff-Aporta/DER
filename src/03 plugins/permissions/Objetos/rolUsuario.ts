@@ -1,10 +1,11 @@
-/** Objeto del plugin de permisos (DER): RolUsuario. */
-import { defineEntity, defineSchema, type Entity, type Pojo, pojoOf } from "../../../01 objects/mod.ts";
-import type { PojoClass, Schema } from "../../../00 common/schemas.ts";
-import type { RolUsuarioFields } from "../schemas.ts";
-import type { TRol } from "./rol.ts";
+/** Objeto del plugin de permisos (DER): POJO `RolUsuario`, su schema JSON (`RolUsuarioSchema`) y su entidad REST (`RolUsuarioEntity`). */
+import { defineEntity, defineSchema, type Entity, pojoOf } from "@Jeff-Aporta/DER/src/01 objects/mod.ts";
+import type { Rol } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Objetos/rol.ts";
+// reusa la clase de usuario del plugin de identidad (y la registra para resolver `target: "permisos.usuario"`)
+import "@Jeff-Aporta/DER/src/03 plugins/identity/Objetos/usuario.ts";
+import type { Usuario } from "@Jeff-Aporta/DER/src/03 plugins/identity/Objetos/usuario.ts";
 
-export const RolUsuarioSchema: Schema = defineSchema({
+export const RolUsuarioSchema = defineSchema({
   columns: {
     iusuario: { type: "string", pk: true, length: 120 },
     irol: { type: "string", pk: true, length: 60 },
@@ -13,19 +14,19 @@ export const RolUsuarioSchema: Schema = defineSchema({
     bprincipal: { type: "bool", default: false },
   },
   relations: {
-    rol: { kind: "one", target: "sec.rol", on: { irol: "irol" } },
+    rol: { kind: "one", target: "permisos.rol", on: { irol: "irol" } },
+    usuario: { kind: "one", target: "permisos.usuario", on: { iusuario: "iusuario" } },
   },
 });
 
-const TRolUsuarioBase = pojoOf(RolUsuarioSchema) as unknown as PojoClass<Pojo & RolUsuarioFields>;
-
-export class TRolUsuario extends TRolUsuarioBase {
-  declare rol: TRol | null;
+export class RolUsuario extends pojoOf(RolUsuarioSchema) {
+  declare rol: Rol | null;
+  declare usuario: Usuario | null;
 }
 
-export const RolUsuario: Entity<TRolUsuario> = defineEntity({
-  pojo: TRolUsuario,
-  name: "sec.rolusuario",
+export const RolUsuarioEntity: Entity<RolUsuario> = defineEntity({
+  pojo: RolUsuario,
+  name: "permisos.rolusuario",
   singular: "permisos/rolusuario",
   plural: "permisos/rolesusuario",
 });

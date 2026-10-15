@@ -2,17 +2,17 @@
  * ClientController: misma entidad, mismas verificaciones (corren antes del fetch), pero las acciones son fetch a la API.
  *
  * ```ts
- * const productos = new ClientController(Producto, { baseUrl: "https://api.x.com/api", headers: () => ({ authorization }) });
+ * const productos = new ClientController(ProductoEntity, { baseUrl: "https://api.x.com/api", headers: () => ({ authorization }) });
  * const p = await productos.get({ iproducto: 1 });
  * for await (const t of productos.stream("post", nuevo)) console.log(t);   // POST producto/sse
  * ```
  */
-import { BaseController } from "../controller.ts";
-import type { Entity } from "../../01 objects/entity.ts";
-import type { Action, CfgAction, ClientConfig as Config, ClientCtx, EndpointDef } from "../../00 common/schemas.ts";
-import { HttpError, NotFoundError, ValidationError } from "../../00 common/errors.ts";
-import type { Pojo } from "../../01 objects/pojo.ts";
-import { parseEvents } from "../../00 common/sse.ts";
+import { BaseController } from "@Jeff-Aporta/DER/src/02 controllers/controller.ts";
+import type { Entity } from "@Jeff-Aporta/DER/src/01 objects/entity.ts";
+import type { Action, CfgAction, ClientConfig as Config, ClientCtx, EndpointDef } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import { HttpError, NotFoundError, ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
+import { parseEvents } from "@Jeff-Aporta/DER/src/00 common/sse.ts";
 
 const SINGULAR: ReadonlySet<string> = new Set(["get", "put", "delete", "getCfg", "putCfg"]);
 

@@ -5,14 +5,14 @@
  *
  * 1. Generada desde el schema JSON (recomendada):
  *    ```ts
- *    class TProducto extends pojoOf(ProductoSchema) {
- *      declare categoria: TCategoria | null;   // relaciones: sólo el tipo, el accessor se genera
+ *    class Producto extends pojoOf(ProductoSchema) {
+ *      declare categoria: Categoria | null;   // relaciones: sólo el tipo, el accessor se genera
  *      get etiqueta() { return `${this.nombre} ($${this.precio})`; }
  *    }
  *    ```
  * 2. Manual, al estilo clásico (el schema sigue siendo la fuente para Zod/seed/SQL):
  *    ```ts
- *    class TProducto extends Pojo {
+ *    class Producto extends Pojo {
  *      static override schema = ProductoSchema;
  *      get nombre(): string | null { return this.f["nombre"] as string; }
  *      set nombre(v: unknown) { this.f["nombre"] = toStr(v); }
@@ -28,10 +28,10 @@
  *   p.replace(obj)         reemplazo directo de todo el contenido
  * Una columna `json` SIN `zod` no tiene molde: cualquier acción la reemplaza completa (replace directo).
  */
-import { CASTS } from "../00 common/cast.ts";
-import { ValidationError } from "../00 common/errors.ts";
-import { schemaMeta } from "./meta.ts";
-import { Obj } from "../00 common/obj.ts";
+import { CASTS } from "@Jeff-Aporta/DER/src/00 common/cast.ts";
+import { ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { schemaMeta } from "@Jeff-Aporta/DER/src/01 objects/meta.ts";
+import { Obj } from "@Jeff-Aporta/DER/src/00 common/obj.ts";
 import type {
   GeneratedPojoClass,
   PojoPartialOp,
@@ -42,8 +42,8 @@ import type {
   Schema,
   SchemaMeta,
   TConsulta,
-} from "../00 common/schemas.ts";
-import { pojoValues, schemaZod, zodMessage } from "./zod.ts";
+} from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import { pojoValues, schemaZod, zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
 
 const RESERVED = new Set([
   "f",

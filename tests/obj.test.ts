@@ -1,6 +1,6 @@
 import { assertEquals, assertThrows } from "@std/assert";
-import { Obj, ValidationError, zodOf } from "../mod.ts";
-import { TLinea, TProducto } from "../examples/domain.ts";
+import { Obj, ValidationError, zodOf } from "@Jeff-Aporta/DER/mod.ts";
+import { Linea, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("obj: nomenclatura push · pushIgnore (alias insert) · update · delete · get · getValue · replace", () => {
   const base: Record<string, unknown> = { a: 1, b: { c: 2 } };
@@ -20,7 +20,7 @@ Deno.test("obj: nomenclatura push · pushIgnore (alias insert) · update · dele
 });
 
 Deno.test("pojo: push parcial tipado entra al json con molde y respeta columnas", () => {
-  const p = new TProducto({ iproducto: 1, nombre: "A", precio: 1, jconfig: { ui: { color: "rojo" } } });
+  const p = new Producto({ iproducto: 1, nombre: "A", precio: 1, jconfig: { ui: { color: "rojo" } } });
   p.push({ precio: 2.5, jconfig: { ui: { orden: 3 } } });
   assertEquals(p.precio, 2.5);
   assertEquals(p.jconfig, { ui: { color: "rojo", orden: 3 } });
@@ -34,7 +34,7 @@ Deno.test("pojo: push parcial tipado entra al json con molde y respeta columnas"
 });
 
 Deno.test("pojo: json SIN molde se reemplaza directo; pushIgnore/update/delete/get/replace", () => {
-  const p = new TProducto({ iproducto: 1, nombre: "A", meta: { a: 1, b: 2 } });
+  const p = new Producto({ iproducto: 1, nombre: "A", meta: { a: 1, b: 2 } });
   p.push({ meta: { c: 3 } });
   assertEquals(p.meta, { c: 3 }); // replace directo
   p.pushIgnore({ nombre: "B", precio: 7 });
@@ -49,13 +49,13 @@ Deno.test("pojo: json SIN molde se reemplaza directo; pushIgnore/update/delete/g
 });
 
 Deno.test("pojo: push sobre relaciones usa el molde del detalle", () => {
-  const l = new TLinea({ ipedido: 1, ilinea: 1, producto: { iproducto: 1, nombre: "A" } });
+  const l = new Linea({ ipedido: 1, ilinea: 1, producto: { iproducto: 1, nombre: "A" } });
   l.push({ producto: { precio: 3 } });
   assertEquals(l.producto!.toJSON(), { iproducto: 1, nombre: "A", precio: 3 });
 });
 
 Deno.test("zod: schemas generados por acción", () => {
-  const z = zodOf(TProducto);
+  const z = zodOf(Producto);
   assertEquals(z.insert.safeParse({ nombre: "A", precio: 1 }).success, true);
   assertEquals(z.insert.safeParse({ precio: 1 }).success, false);
   assertEquals(z.update.safeParse({ iproducto: 1 }).success, true);

@@ -3,13 +3,13 @@
  * compartidos con el cliente viven en el `schemas.ts` de cada plugin (`identity/`, `permissions/`).
  */
 import { z } from "zod";
-import type { Database } from "../02 controllers/server/database.ts";
-import type { ServerController } from "../02 controllers/server/controller.ts";
-import type { Identity, Plugin } from "../02 controllers/server/schemas.ts";
-import { type IdentityConfig, type LoginInput, type LoginResult, ZIdentityConfig } from "./identity/schemas.ts";
-import { type DerLoad, type DerLoadResult, type PermissionsConfig, type SessionProfile, ZPermissionsConfig } from "./permissions/schemas.ts";
-import type { TSesion, TUsuario } from "./identity/Objetos/mod.ts";
-import type { TAccionRol, TGrupo, TRol, TRolUsuario } from "./permissions/Objetos/mod.ts";
+import type { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import type { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
+import type { Identity, Plugin } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import { type IdentityConfig, type LoginInput, type LoginResult, ZIdentityConfig } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
+import { type DerLoad, type DerLoadResult, type PermissionsConfig, type SessionProfile, ZPermissionsConfig } from "@Jeff-Aporta/DER/src/03 plugins/permissions/schemas.ts";
+import type { Sesion, Usuario } from "@Jeff-Aporta/DER/src/03 plugins/identity/Objetos/mod.ts";
+import type { AccionRol, Grupo, Rol, RolUsuario } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Objetos/mod.ts";
 
 /** JSON de configuración global: la sección presente (y `enabled` ≠ false) integra el plugin. */
 export interface PluginsConfig {
@@ -31,8 +31,8 @@ export interface PluginsRuntime {
 
 /** Plugin de identidad del lado servidor (sus ServerControllers y operaciones en proceso). */
 export interface IdentityPlugin extends Plugin {
-  usuarios: ServerController<TUsuario>;
-  sesiones: ServerController<TSesion>;
+  usuarios: ServerController<Usuario>;
+  sesiones: ServerController<Sesion>;
   /** Login en proceso (lo mismo que `POST /login`). */
   login(input: LoginInput): Promise<LoginResult>;
   /** Revoca la sesión del token (lo mismo que `DELETE /logout`). */
@@ -43,10 +43,10 @@ export interface IdentityPlugin extends Plugin {
 
 /** Plugin de permisos del lado servidor (sus ServerControllers y operaciones en proceso). */
 export interface PermissionsPlugin extends Plugin {
-  grupos: ServerController<TGrupo>;
-  roles: ServerController<TRol>;
-  rolesUsuario: ServerController<TRolUsuario>;
-  acciones: ServerController<TAccionRol>;
+  grupos: ServerController<Grupo>;
+  roles: ServerController<Rol>;
+  rolesUsuario: ServerController<RolUsuario>;
+  acciones: ServerController<AccionRol>;
   /** Perfil de la sesión (lo mismo que `GET /permisos`). */
   profile(identity: Identity | null): Promise<SessionProfile>;
   /** Carga del DER (lo mismo que `PUT /permisos`). */

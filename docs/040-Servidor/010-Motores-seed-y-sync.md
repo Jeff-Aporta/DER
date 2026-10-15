@@ -95,7 +95,7 @@ columns: {
 ## Índices
 
 ```ts
-new ServerController(Factura, {
+new ServerController(FacturaEntity, {
   db, table: "facturas",
   indexes: [{ columns: ["iempresa", "consecutivo"], unique: true }],   // ux_facturas_iempresa_consecutivo
   autoIndexes: true,                                                   // default

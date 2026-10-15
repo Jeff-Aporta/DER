@@ -3,7 +3,7 @@
  * porque dependen de Kysely: así el cliente nunca necesita instalarlo.
  */
 import type { Dialect, Kysely, RawBuilder } from "kysely";
-import type { Pojo } from "../../01 objects/pojo.ts";
+import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
 import type {
   Action,
   BaseCtx,
@@ -15,10 +15,10 @@ import type {
   Include,
   OrderBy,
   Where,
-} from "../../00 common/schemas.ts";
-import type { Database } from "./database.ts";
-import type { ServerController } from "./controller.ts";
-import type { Router } from "./router.ts";
+} from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import type { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import type { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
+import type { Router } from "@Jeff-Aporta/DER/src/02 controllers/server/router.ts";
 
 export type Raw = RawBuilder<unknown>;
 

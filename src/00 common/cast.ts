@@ -4,7 +4,7 @@
  * Todos reciben `unknown` y devuelven el tipo destino o `null`. `undefined` nunca llega aquí:
  * el setter lo conserva como "no definido" (útil para PUT parciales).
  */
-import type { ColumnType } from "./schemas.ts";
+import type { ColumnType } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 
 export function toStr(v: unknown): string | null {
   if (v == null) return null;

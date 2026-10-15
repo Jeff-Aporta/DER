@@ -81,24 +81,3 @@ export interface IdentityClientConfig {
   /** Aviso al cambiar el token (login → token, logout → null): para persistirlo donde la app decida. */
   onToken?: ((token: string | null) => void) | undefined;
 }
-
-// ------------------------------------------------------------------ campos de los POJOs (API pública sin "slow types")
-
-export interface UsuarioFields {
-  iusuario: string | null | undefined;
-  nombre: string | null | undefined;
-  email: string | null | undefined;
-  bactivo: boolean | null | undefined;
-  jdata: unknown;
-  creado: Date | null | undefined;
-  hash: string | null | undefined;
-  password: string | null | undefined;
-}
-
-export interface SesionFields {
-  jti: string | null | undefined;
-  iusuario: string | null | undefined;
-  emitido: Date | null | undefined;
-  expira: Date | null | undefined;
-  brevocado: boolean | null | undefined;
-}

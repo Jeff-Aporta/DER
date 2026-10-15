@@ -5,24 +5,24 @@
  * ```ts
  * const auth = new IdentityClient({ baseUrl: "/api" });
  * await auth.login({ usuario: "ana", password: "..." });
- * const productos = new ClientController(Producto, { baseUrl: "/api", headers: auth.headers });
+ * const productos = new ClientController(ProductoEntity, { baseUrl: "/api", headers: auth.headers });
  * await auth.logout();
  * ```
  */
-import { ValidationError } from "../../../00 common/errors.ts";
-import { ClientController } from "../../../02 controllers/client/controller.ts";
-import { zodMessage } from "../../../01 objects/zod.ts";
-import { type IdentityClientConfig, type LoginInput, type LoginResult, ZLoginInput } from "../schemas.ts";
-import { type TUsuario, Usuario } from "../Objetos/mod.ts";
+import { ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/controller.ts";
+import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
+import { type IdentityClientConfig, type LoginInput, type LoginResult, ZLoginInput } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
+import { type Usuario, UsuarioEntity } from "@Jeff-Aporta/DER/src/03 plugins/identity/Objetos/mod.ts";
 
 export class IdentityClient {
   /** CRUD + list de usuarios (con el token de la sesión). */
-  readonly usuarios: ClientController<TUsuario>;
+  readonly usuarios: ClientController<Usuario>;
   #token: string | null;
 
   constructor(readonly config: IdentityClientConfig) {
     this.#token = config.token ?? null;
-    this.usuarios = new ClientController(Usuario, {
+    this.usuarios = new ClientController(UsuarioEntity, {
       baseUrl: config.baseUrl,
       headers: this.headers,
       ...(config.fetch ? { fetch: config.fetch } : {}),

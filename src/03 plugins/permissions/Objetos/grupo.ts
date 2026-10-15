@@ -1,29 +1,24 @@
-/** Objeto del plugin de permisos (DER): Grupo. */
-import { defineEntity, defineSchema, type Entity, type Pojo, pojoOf } from "../../../01 objects/mod.ts";
-import type { PojoClass, Schema } from "../../../00 common/schemas.ts";
-import type { GrupoFields } from "../schemas.ts";
-import type { TRol } from "./rol.ts";
+/** Objeto del plugin de permisos (DER): POJO `Grupo`, su schema JSON (`GrupoSchema`) y su entidad REST (`GrupoEntity`). */
+import { defineEntity, defineSchema, type Entity, pojoOf } from "@Jeff-Aporta/DER/src/01 objects/mod.ts";
+import type { Rol } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Objetos/rol.ts";
 
-export const GrupoSchema: Schema = defineSchema({
+export const GrupoSchema = defineSchema({
   columns: {
     igrupo: { type: "string", pk: true, length: 60 },
     nombre: { type: "string", length: 200 },
-    igrupopadre: { type: "string", length: 60 },
   },
   relations: {
-    roles: { kind: "many", target: "sec.rol", on: { igrupo: "igrupo" } },
+    roles: { kind: "many", target: "permisos.rol", on: { igrupo: "igrupo" } },
   },
 });
 
-const TGrupoBase = pojoOf(GrupoSchema) as unknown as PojoClass<Pojo & GrupoFields>;
-
-export class TGrupo extends TGrupoBase {
-  declare roles: TRol[];
+export class Grupo extends pojoOf(GrupoSchema) {
+  declare roles: Rol[];
 }
 
-export const Grupo: Entity<TGrupo> = defineEntity({
-  pojo: TGrupo,
-  name: "sec.grupo",
+export const GrupoEntity: Entity<Grupo> = defineEntity({
+  pojo: Grupo,
+  name: "permisos.grupo",
   singular: "permisos/grupo",
   plural: "permisos/grupos",
 });

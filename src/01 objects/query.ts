@@ -17,7 +17,7 @@
  * }
  * ```
  */
-import { resolvePojo } from "./pojo.ts";
+import { resolvePojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
 import {
   FIELD_OPS,
   type FieldOps,
@@ -28,8 +28,8 @@ import {
   type QuerySpec,
   type SchemaMeta,
   ZQuerySpec,
-} from "../00 common/schemas.ts";
-import { zodMessage } from "./zod.ts";
+} from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
 
 export function normalizeOrder(o: OrderBy | undefined): NormalizedOrder[] {
   if (o == null) return [];

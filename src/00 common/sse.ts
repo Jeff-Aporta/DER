@@ -5,7 +5,7 @@
  * El fin del stream es el cierre de la conexión. Un error se envía como `event: error`.
  */
 
-import type { SseEvent } from "./schemas.ts";
+import type { SseEvent } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 
 /** Codifica un texto como evento SSE (las líneas múltiples van en varios `data:`). */
 export function encodeEvent(text: string, event?: string): string {

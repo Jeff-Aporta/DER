@@ -1,11 +1,9 @@
-/** Objeto del plugin de permisos (DER): Rol. */
-import { defineEntity, defineSchema, type Entity, type Pojo, pojoOf } from "../../../01 objects/mod.ts";
-import type { PojoClass, Schema } from "../../../00 common/schemas.ts";
-import type { RolFields } from "../schemas.ts";
-import type { TAccionRol } from "./accionRol.ts";
-import type { TGrupo } from "./grupo.ts";
+/** Objeto del plugin de permisos (DER): POJO `Rol`, su schema JSON (`RolSchema`) y su entidad REST (`RolEntity`). */
+import { defineEntity, defineSchema, type Entity, pojoOf } from "@Jeff-Aporta/DER/src/01 objects/mod.ts";
+import type { AccionRol } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Objetos/accionRol.ts";
+import type { Grupo } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Objetos/grupo.ts";
 
-export const RolSchema: Schema = defineSchema({
+export const RolSchema = defineSchema({
   columns: {
     irol: { type: "string", pk: true, length: 60 },
     igrupo: { type: "string", length: 60, nullable: false },
@@ -13,21 +11,19 @@ export const RolSchema: Schema = defineSchema({
     bactivo: { type: "bool", default: true },
   },
   relations: {
-    acciones: { kind: "many", target: "sec.accion", on: { irol: "irol" } },
-    grupo: { kind: "one", target: "sec.grupo", on: { igrupo: "igrupo" } },
+    acciones: { kind: "many", target: "permisos.accion", on: { irol: "irol" } },
+    grupo: { kind: "one", target: "permisos.grupo", on: { igrupo: "igrupo" } },
   },
 });
 
-const TRolBase = pojoOf(RolSchema) as unknown as PojoClass<Pojo & RolFields>;
-
-export class TRol extends TRolBase {
-  declare acciones: TAccionRol[];
-  declare grupo: TGrupo | null;
+export class Rol extends pojoOf(RolSchema) {
+  declare acciones: AccionRol[];
+  declare grupo: Grupo | null;
 }
 
-export const Rol: Entity<TRol> = defineEntity({
-  pojo: TRol,
-  name: "sec.rol",
+export const RolEntity: Entity<Rol> = defineEntity({
+  pojo: Rol,
+  name: "permisos.rol",
   singular: "permisos/rol",
   plural: "permisos/roles",
 });

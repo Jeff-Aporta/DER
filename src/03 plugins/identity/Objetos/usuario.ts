@@ -1,9 +1,7 @@
-/** Objeto del plugin de identidad: Usuario. */
-import { defineEntity, defineSchema, type Entity, type Pojo, pojoOf } from "../../../01 objects/mod.ts";
-import type { PojoClass, Schema } from "../../../00 common/schemas.ts";
-import type { UsuarioFields } from "../schemas.ts";
+/** Objeto del plugin de identidad: POJO `Usuario`, su schema JSON (`UsuarioSchema`) y su entidad REST (`UsuarioEntity`). */
+import { defineEntity, defineSchema, type Entity, pojoOf } from "@Jeff-Aporta/DER/src/01 objects/mod.ts";
 
-export const UsuarioSchema: Schema = defineSchema({
+export const UsuarioSchema = defineSchema({
   columns: {
     iusuario: { type: "string", pk: true, length: 120 },
     nombre: { type: "string", length: 200 },
@@ -18,13 +16,11 @@ export const UsuarioSchema: Schema = defineSchema({
   },
 });
 
-const TUsuarioBase = pojoOf(UsuarioSchema) as unknown as PojoClass<Pojo & UsuarioFields>;
+export class Usuario extends pojoOf(UsuarioSchema) {}
 
-export class TUsuario extends TUsuarioBase {}
-
-export const Usuario: Entity<TUsuario> = defineEntity({
-  pojo: TUsuario,
-  name: "sec.usuario",
+export const UsuarioEntity: Entity<Usuario> = defineEntity({
+  pojo: Usuario,
+  name: "permisos.usuario",
   singular: "usuario",
   plural: "usuarios",
   listColumns: ["iusuario", "nombre", "email", "bactivo"],

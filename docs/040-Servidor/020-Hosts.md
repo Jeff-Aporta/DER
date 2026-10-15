@@ -41,7 +41,7 @@ Cualquier método y ruta con parámetros `{nombre}`, relativa al basePath, regis
 
 ```ts
 // del controller: this = el controller
-new ServerController(Producto, { db, table: "productos", routes: [
+new ServerController(ProductoEntity, { db, table: "productos", routes: [
   { method: "GET", path: "reportes/productos/{tipo}",
     handler({ params, query, body, request }, ctx) { return this.query({ where: { tipo: params["tipo"] } }); } },
   { method: "POST", path: "procesos/importar",                      // → POST procesos/importar/sse

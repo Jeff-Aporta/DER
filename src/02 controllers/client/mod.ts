@@ -1,7 +1,7 @@
 /**
  * Lado cliente: controllers fetch que reusan las mismas entidades/POJOs/schemas Zod.
  * Dependencias: sólo `zod`. Sin nada de SQL.
- * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  */
-export * from "../mod.ts";
-export * from "./controller.ts";
+export * from "@Jeff-Aporta/DER/src/02 controllers/mod.ts";
+export * from "@Jeff-Aporta/DER/src/02 controllers/client/controller.ts";

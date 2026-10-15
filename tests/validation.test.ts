@@ -1,14 +1,14 @@
 /** Prioridad baja: mensajes de validación de query/include, Entity.patch/aplicar, config de plugins y Azure sin stream. */
 import { assertEquals, assertRejects, assertThrows } from "@std/assert";
-import { type AzureHttpRequest, createRouter, ServerController } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { registerAzure } from "../src/02 controllers/server/hosts/azure/mod.ts";
-import { pluginsFromConfig, resolveEnv } from "../src/03 plugins/mod.ts";
-import { defineEntity, defineSchema, pojoOf, validateQuery } from "../mod.ts";
-import { Categoria, Producto, TProducto } from "../examples/domain.ts";
+import { type AzureHttpRequest, createRouter, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { registerAzure } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/azure/mod.ts";
+import { pluginsFromConfig, resolveEnv } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { defineEntity, defineSchema, pojoOf, validateQuery } from "@Jeff-Aporta/DER/mod.ts";
+import { CategoriaEntity, ProductoEntity, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("validateQuery: mensajes claros para cada forma inválida", () => {
-  const meta = Producto.meta;
+  const meta = ProductoEntity.meta;
   const lim = { pageSize: 50, maxPageSize: 100 };
   const v = (q: unknown) => validateQuery(meta, q as never, lim);
   assertEquals(v([]), "La consulta debe ser un objeto");
@@ -28,11 +28,11 @@ Deno.test("validateQuery: mensajes claros para cada forma inválida", () => {
 });
 
 Deno.test("Entity.patch (copia con push, el original no cambia) y Entity.aplicar (acciones Obj)", () => {
-  const p = new TProducto({ iproducto: 1, nombre: "A", precio: 1, jconfig: { ui: { color: "rojo" } } });
-  const q = Producto.patch(p, { precio: 2, jconfig: { ui: { orden: 1 } } });
+  const p = new Producto({ iproducto: 1, nombre: "A", precio: 1, jconfig: { ui: { color: "rojo" } } });
+  const q = ProductoEntity.patch(p, { precio: 2, jconfig: { ui: { orden: 1 } } });
   assertEquals([p.precio, q.precio], [1, 2]);
   assertEquals(q.jconfig, { ui: { color: "rojo", orden: 1 } });
-  const r = Producto.aplicar(p, [{ op: "update", valor: { nombre: "B", nada: 1 } }, { op: "delete", query: { jconfig: true } }]);
+  const r = ProductoEntity.aplicar(p, [{ op: "update", valor: { nombre: "B", nada: 1 } }, { op: "delete", query: { jconfig: true } }]);
   assertEquals(r.toJSON(), { iproducto: 1, nombre: "B", precio: 1 });
 });
 
@@ -54,8 +54,8 @@ Deno.test("pluginsFromConfig: JSON inválido, env ausente, secret corto y env de
 Deno.test("azure: stream=false entrega el body completo como bytes", async () => {
   const db = sqliteDatabase();
   try {
-    new ServerController(Categoria, { db, table: "categorias" }); // Producto propaga `categoria` en su lectura
-    const productos = new ServerController(Producto, { db, table: "productos" });
+    new ServerController(CategoriaEntity, { db, table: "categorias" }); // ProductoEntity propaga `categoria` en su lectura
+    const productos = new ServerController(ProductoEntity, { db, table: "productos" });
     await db.seed();
     await productos.post({ nombre: "A", precio: 1 });
     const fns: { route: string; methods: string[]; handler: (r: AzureHttpRequest, c: unknown) => Promise<{ body?: unknown }> }[] = [];

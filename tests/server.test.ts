@@ -3,13 +3,13 @@
  * Cada caso corre igual en ambos motores: misma definición, mismo resultado.
  */
 import { assert, assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
-import { type Database, NotFoundError, sql, ValidationError } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "../src/02 controllers/server/pglite/mod.ts";
+import { type Database, NotFoundError, sql, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
 import { PGlite } from "@electric-sql/pglite";
-import { at } from "./_util.ts";
-import { buildControllers } from "../examples/backend.ts";
-import { TCategoria, TLinea, TPedido, TProducto } from "../examples/domain.ts";
+import { at } from "@Jeff-Aporta/DER/tests/_util.ts";
+import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
+import { Categoria, Linea, Pedido, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 // Una sola instancia PGlite (arrancarla es lo costoso); cada test recrea el schema `public`.
 let sharedPg: PGlite | undefined;
@@ -52,7 +52,7 @@ for (const [name, make] of ENGINES) {
     const { db, c, beb, prods } = await setup(make);
     try {
       const cafe = at(prods, 0);
-      assertInstanceOf(cafe, TProducto);
+      assertInstanceOf(cafe, Producto);
       assertEquals(typeof cafe.iproducto, "number");
       assertEquals(cafe.precio, 3.5);
       assertEquals(cafe.meta, { origen: "CO" });
@@ -60,7 +60,7 @@ for (const [name, make] of ENGINES) {
       const got = (await c.productos.get({ iproducto: cafe.iproducto }))!;
       assertEquals(got.nombre, "Café");
       assertEquals(got.total, 35); // computed "{precio} * {stock}"
-      assertInstanceOf(got.categoria, TCategoria); // getInclude por defecto
+      assertInstanceOf(got.categoria, Categoria); // getInclude por defecto
       assertEquals(got.categoria!.nombre, "Bebidas");
       assertEquals(got.categoria!.bactivo, true); // bool desde 1/true según motor
 
@@ -128,10 +128,10 @@ for (const [name, make] of ENGINES) {
         where: { ipedido: ped.ipedido },
         include: { lineas: { producto: { categoria: true } } },
       }), 0);
-      assertInstanceOf(p, TPedido);
+      assertInstanceOf(p, Pedido);
       assertEquals(p.fecha, "2024-06-01");
       assertEquals(p.lineas.length, 2);
-      assertInstanceOf(at(p.lineas, 0), TLinea);
+      assertInstanceOf(at(p.lineas, 0), Linea);
       assertEquals(at(p.lineas, 0).producto!.nombre, "Café");
       assertEquals(at(p.lineas, 0).producto!.categoria!.icategoria, beb.icategoria);
       assertEquals(at(p.lineas, 1).producto!.categoria!.nombre, "Comidas");
@@ -193,7 +193,7 @@ for (const [name, make] of ENGINES) {
   Deno.test(`[${name}] endpoints especiales, overrides y SSE en proceso`, async () => {
     const { db, c, prods } = await setup(make);
     try {
-      const r = await c.productos.call<TProducto>("ajustarStock", { iproducto: at(prods, 0).iproducto, stock: 5 });
+      const r = await c.productos.call<Producto>("ajustarStock", { iproducto: at(prods, 0).iproducto, stock: 5 });
       assertEquals(r.stock, 15);
       const textos: string[] = [];
       for await (const t of c.productos.stream("post", { nombre: "Nuevo", precio: 1 })) textos.push(t);

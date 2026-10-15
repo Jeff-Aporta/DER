@@ -35,12 +35,12 @@ La configuración se valida con `ZPluginsConfig` (`.strict()`). `"env:NOMBRE"` s
 ## Qué protege cada registro (por endpoint)
 
 ```ts
-new ServerController(Producto, {
+new ServerController(ProductoEntity, {
   db, table: "productos",
   security: { public: ["list", "get", "doc"] },   // el resto: JWT + permisos
 });
-new ServerController(Pedido, { db, table: "pedidos", security: true });            // todo protegido + permisos
-new ServerController(Nota,   { db, table: "notas",   security: { permissions: false } }); // sólo JWT
+new ServerController(PedidoEntity, { db, table: "pedidos", security: true });            // todo protegido + permisos
+new ServerController(NotaEntity,   { db, table: "notas",   security: { permissions: false } }); // sólo JWT
 // sin `security`: pública
 routes: [{ method: "GET", path: "reportes/x", security: { protected: true, permissions: true }, handler }]
 ```
@@ -57,9 +57,9 @@ Orden en cada request: autenticación (identidad) → autorización (permisos) �
 | `DELETE /logout` | JWT | revoca la sesión del token (204); el mismo token responde 401 después |
 | CRUD + list `usuario` / `usuarios` | JWT + permisos | alta/edición de usuarios; `password` se recibe y nunca se guarda ni devuelve |
 
-- **Usuarios:** `sec_usuarios (iusuario string pk, nombre, email, bactivo, jdata, creado, hash)`. `hash` es una columna `hidden`: no se selecciona, no se retorna y no se puede pedir ni filtrar en `query()` (400).
+- **Usuarios:** `permisos_usuarios (iusuario string pk, nombre, email, bactivo, jdata, creado, hash)`. `hash` es una columna `hidden`: no se selecciona, no se retorna y no se puede pedir ni filtrar en `query()` (400).
 - **Hash:** PBKDF2-SHA256 (100 000 iteraciones por defecto, el máximo de Workers) sobre `HMAC-SHA256(secret, contraseña)`: la secret key es un *pepper*. Sal aleatoria de 16 bytes. Formato: `pbkdf2-sha256$<iter>$<sal>$<hash>`. La comparación es en tiempo constante.
-- **JWT HS384** con `sub` (iusuario), `jti` (sesión), `iat`, `exp`, `iss?` y `nombre?`. La verificación solo acepta HS384 (un `alg: none` se rechaza), distingue «Token vencido» de «Token inválido: …» y exige la sesión `sec_sesiones (jti, iusuario, emitido, expira, brevocado)` vigente y el usuario activo. **El rol no viaja en el token:** se lee en cada request, así un cambio aplica de inmediato.
+- **JWT HS384** con `sub` (iusuario), `jti` (sesión), `iat`, `exp`, `iss?` y `nombre?`. La verificación solo acepta HS384 (un `alg: none` se rechaza), distingue «Token vencido» de «Token inválido: …» y exige la sesión `permisos_sesiones (jti, iusuario, emitido, expira, brevocado)` vigente y el usuario activo. **El rol no viaja en el token:** se lee en cada request, así un cambio aplica de inmediato.
 - **`seed`:** crea `admin` si está configurado y no existe.
 - La secret key debe tener al menos 32 caracteres y nunca se versiona: va por `env:`.
 
@@ -68,15 +68,15 @@ Orden en cada request: autenticación (identidad) → autorización (permisos) �
 ### DER
 
 ```
-sec_grupos        (igrupo pk, nombre, igrupopadre)                 jerarquía de grupos
-sec_roles         (irol pk, igrupo, nombre, bactivo)               el rol pertenece a un grupo
-sec_rolesusuario  (iusuario pk, irol pk, finicial, ffinal, bprincipal)   vigencia y rol principal
-sec_accionesrol   (irol pk, iaccion pk, valor json)                iaccion = id de ruta o "*"
+permisos_grupos        (igrupo pk, nombre)                              grupo al que pertenecen los roles
+permisos_roles         (irol pk, igrupo, nombre, bactivo)               el rol pertenece a un grupo
+permisos_rolesusuario  (iusuario pk, irol pk, finicial, ffinal, bprincipal)   vigencia y rol principal; relación `usuario` → `Usuario` (identidad)
+permisos_accionesrol   (irol pk, iaccion pk, valor json)                iaccion = id de ruta o "*"
 ```
 
 ### Vector de acciones
 
-1. Roles del usuario **vigentes** (`finicial ≤ ahora < ffinal`), **activos** y de roles del **grupo configurado o sus subgrupos**. El principal va primero. Sin rol vigente, el usuario es el rol base.
+1. Roles del usuario **vigentes** (`finicial ≤ ahora < ffinal`), **activos** y de roles del **grupo configurado**. El principal va primero. Sin rol vigente, el usuario es el rol base.
 2. Efectivo(R) = (base − ids de R) + R. Primero el id exacto y luego el comodín `"*"`. Un valor partido por verbo (`{ "GET": true, "PUT": false }`) aporta solo el del método.
 3. Decisión: sin valor o `{ "protected": true }` pasa (o se niega con `denyByDefault`); `false` → 403; `true`, un objeto o un texto pasan y el valor viaja en `ctx.state.permiso` (p.ej. `{ "descuentoMax": 10 }`).
 
@@ -112,7 +112,7 @@ const auditoria: Plugin = {
 Por defecto cada ruta se evalúa con su id autogenerado (`DELETE:/producto/{iproducto}`). En el registro se puede vincular a una acción propia, que además puede compartirse entre rutas:
 
 ```ts
-new ServerController(Producto, {
+new ServerController(ProductoEntity, {
   db, table: "productos",
   security: {
     public: ["list", "get"],
@@ -157,7 +157,7 @@ import { IdentityClient, PermissionsClient } from ".../src/03%20plugins/client.t
 
 const auth = new IdentityClient({ baseUrl: "/api", onToken: (t) => guardar(t) });
 await auth.login({ usuario: "ana", password: "..." });        // valida con el mismo Zod que el server
-const productos = new ClientController(Producto, { baseUrl: "/api", headers: auth.headers });  // manda el token
+const productos = new ClientController(ProductoEntity, { baseUrl: "/api", headers: auth.headers });  // manda el token
 const permisos = new PermissionsClient({ baseUrl: "/api", headers: auth.headers });
 const { perms } = await permisos.profile();                     // GET /permisos
 await permisos.load({ roles: [...], acciones: [...] });         // PUT /permisos

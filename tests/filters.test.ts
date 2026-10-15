@@ -4,10 +4,10 @@
  * pueden filtrarse ni siquiera a través de una relación.
  */
 import { assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
-import { type Database, ServerController, sql, ValidationError } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "../src/02 controllers/server/pglite/mod.ts";
-import { defineEntity, defineSchema, pojoOf } from "../mod.ts";
+import { type Database, ServerController, sql, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
+import { defineEntity, defineSchema, pojoOf } from "@Jeff-Aporta/DER/mod.ts";
 
 const ItemSchema = defineSchema({
   columns: {
@@ -24,10 +24,10 @@ const ItemSchema = defineSchema({
   },
   relations: { notas: { kind: "many", target: "filtros.nota", on: { id: "iditem" } } },
 });
-class TItem extends pojoOf(ItemSchema) {
-  declare notas: TNota[];
+class Item extends pojoOf(ItemSchema) {
+  declare notas: Nota[];
 }
-const Item = defineEntity({ pojo: TItem, name: "filtros.item", singular: "item", plural: "items" });
+const ItemEntity = defineEntity({ pojo: Item, name: "filtros.item", singular: "item", plural: "items" });
 
 const NotaSchema = defineSchema({
   columns: {
@@ -37,14 +37,14 @@ const NotaSchema = defineSchema({
     secreto: { type: "string" },
   },
 });
-class TNota extends pojoOf(NotaSchema) {}
-const Nota = defineEntity({ pojo: TNota, name: "filtros.nota", singular: "nota", plural: "notas" });
+class Nota extends pojoOf(NotaSchema) {}
+const NotaEntity = defineEntity({ pojo: Nota, name: "filtros.nota", singular: "nota", plural: "notas" });
 
 const ENGINES: [string, () => Database][] = [["sqlite", () => sqliteDatabase()], ["pg", () => pgliteDatabase()]];
 
 async function setup(make: () => Database) {
   const db = make();
-  const items = new ServerController(Item, {
+  const items = new ServerController(ItemEntity, {
     db,
     table: "items",
     columnNames: { nombre: "NOM_PROD", precio: "PRECIO_UNIT" },
@@ -53,7 +53,7 @@ async function setup(make: () => Database) {
       triple: ({ col }) => col("precio"), // función → sql (Raw)
     },
   });
-  const notas = new ServerController(Nota, { db, table: "notas", hidden: ["secreto"] });
+  const notas = new ServerController(NotaEntity, { db, table: "notas", hidden: ["secreto"] });
   await db.seed();
   const creados = await items.postList([
     { nombre: "Café 100%", codigo: "A-1", precio: 3.5, fecha: "2024-02-29", hora: "8:05", momento: "2024-02-29T10:00:00Z" },
@@ -64,7 +64,7 @@ async function setup(make: () => Database) {
   return { db, items, notas, creados };
 }
 
-const nombres = (xs: TItem[]) => xs.map((x) => x.nombre);
+const nombres = (xs: Item[]) => xs.map((x) => x.nombre);
 
 for (const [name, make] of ENGINES) {
   Deno.test(`[${name}] columnNames: la tabla usa otros nombres y el POJO no se entera (leer, filtrar, ordenar, actualizar)`, async () => {
@@ -139,7 +139,7 @@ for (const [name, make] of ENGINES) {
         "no es consultable",
       );
       const [conNotas] = await items.query({ where: { id: creados[0]?.id }, include: { notas: true } });
-      assertEquals(conNotas?.notas.map((x: TNota) => [x.texto, x.secreto]), [["rica", undefined]]);
+      assertEquals(conNotas?.notas.map((x: Nota) => [x.texto, x.secreto]), [["rica", undefined]]);
     } finally {
       await db.destroy();
     }

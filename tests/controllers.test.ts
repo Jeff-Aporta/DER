@@ -3,10 +3,10 @@
  * cable y en el client), propagación de escritura de 2 niveles con secuencias por ámbito, 501 y computed sin motor.
  */
 import { assertEquals, assertRejects } from "@std/assert";
-import { ClientController } from "../src/02 controllers/client/mod.ts";
-import { createRouter, HttpError, ServerController, ValidationError } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { defineEntity, defineSchema, pojoOf, z } from "../mod.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
+import { createRouter, HttpError, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { defineEntity, defineSchema, pojoOf, z } from "@Jeff-Aporta/DER/mod.ts";
 
 // ------------------------------------------------------------------ dominio de prueba (3 niveles)
 
@@ -36,33 +36,33 @@ const ImpuestoSchema = defineSchema({
     tasa: { type: "float", nullable: false },
   },
 });
-class TImpuesto extends pojoOf(ImpuestoSchema) {}
-class TRenglon extends pojoOf(RenglonSchema) {
-  declare impuestos: TImpuesto[];
+class Impuesto extends pojoOf(ImpuestoSchema) {}
+class Renglon extends pojoOf(RenglonSchema) {
+  declare impuestos: Impuesto[];
 }
-class TFactura extends pojoOf(FacturaSchema) {
-  declare renglones: TRenglon[];
+class Factura extends pojoOf(FacturaSchema) {
+  declare renglones: Renglon[];
 }
 
 // molde con una regla sobre el objeto completo (el fragmento parcial no la ve; el resultado final sí)
 const ZRango = z.object({ min: z.number().optional(), max: z.number().optional() })
   .refine((v) => v.min === undefined || v.max === undefined || v.min <= v.max, "min no puede superar max");
 
-const Factura = defineEntity({
-  pojo: TFactura,
+const FacturaEntity = defineEntity({
+  pojo: Factura,
   name: "ctl.factura",
   singular: "factura",
   plural: "facturas",
   cfg: { column: "jcfg", zod: ZRango },
   endpoints: { anular: { method: "POST", scope: "one" } },
 });
-const Renglon = defineEntity({ pojo: TRenglon, name: "ctl.renglon", singular: "factura/renglon", plural: "factura/renglones" });
-const Impuesto = defineEntity({ pojo: TImpuesto, name: "ctl.impuesto", singular: "factura/impuesto", plural: "factura/impuestos" });
+const RenglonEntity = defineEntity({ pojo: Renglon, name: "ctl.renglon", singular: "factura/renglon", plural: "factura/renglones" });
+const ImpuestoEntity = defineEntity({ pojo: Impuesto, name: "ctl.impuesto", singular: "factura/impuesto", plural: "factura/impuestos" });
 
 function setup() {
   const db = sqliteDatabase();
   const memoria = new Map<number, unknown>();
-  const facturas = new ServerController(Factura, {
+  const facturas = new ServerController(FacturaEntity, {
     db,
     table: "facturas",
     setPropagation: () => ({ renglones: { impuestos: true } }),
@@ -74,11 +74,11 @@ function setup() {
       },
     },
   });
-  const renglones = new ServerController(Renglon, { db, table: "renglones" });
-  const impuestos = new ServerController(Impuesto, { db, table: "impuestos" });
+  const renglones = new ServerController(RenglonEntity, { db, table: "renglones" });
+  const impuestos = new ServerController(ImpuestoEntity, { db, table: "impuestos" });
   // otra entidad con cfg de libre definición en memoria (load/save propios)
   const conCfgLibre = new ServerController(
-    defineEntity({ pojo: TFactura, name: "ctl.factura2", singular: "factura2", plural: "facturas2", cfg: {} }),
+    defineEntity({ pojo: Factura, name: "ctl.factura2", singular: "factura2", plural: "facturas2", cfg: {} }),
     {
       db,
       table: "facturas",
@@ -118,7 +118,7 @@ Deno.test("propagación de 2 niveles con secuencias por ámbito: post, get, put 
     await facturas.delete({ idfactura: f.idfactura });
     assertEquals([(await renglones.list()).length, (await impuestos.list()).length], [0, 0]);
     // la secuencia por ámbito exige el ámbito
-    await assertRejects(() => renglones.nextSequence("irenglon", new TRenglon({})), ValidationError, "idfactura");
+    await assertRejects(() => renglones.nextSequence("irenglon", new Renglon({})), ValidationError, "idfactura");
   } finally {
     await db.destroy();
   }
@@ -158,7 +158,7 @@ Deno.test("SSE que falla a mitad: en proceso lanza tras lo emitido; en el cable 
     const raw = await router.fetch(new Request("http://t/api/facturas/sse"));
     assertEquals(await raw.text(), "data: uno\n\nevent: error\ndata: se cayó el proceso\n\n");
 
-    const cli = new ClientController(Factura, {
+    const cli = new ClientController(FacturaEntity, {
       baseUrl: "http://t/api",
       fetch: (i, init) => router.fetch(new Request(i, init)),
     });

@@ -4,18 +4,18 @@
  * usuario inactivo (no inicia sesión y sus tokens dejan de servir) y el valor del permiso en el handler.
  */
 import { assertEquals } from "@std/assert";
-import { createRouter, type Router, ServerController } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { decide, effectiveValue, pluginsFromConfig } from "../src/03 plugins/mod.ts";
-import { Categoria, Producto } from "../examples/domain.ts";
+import { createRouter, type Router, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { decide, effectiveValue, pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const SECRET = "secret-de-pruebas-de-permisos-con-32-o-mas";
 
 async function setup() {
   const db = sqliteDatabase();
-  const categorias = new ServerController(Categoria, { db, table: "categorias", security: true });
+  const categorias = new ServerController(CategoriaEntity, { db, table: "categorias", security: true });
   const permisoVisto: unknown[] = [];
-  const productos = new ServerController(Producto, {
+  const productos = new ServerController(ProductoEntity, {
     db,
     table: "productos",
     security: true,

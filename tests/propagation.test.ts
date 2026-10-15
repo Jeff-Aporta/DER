@@ -3,16 +3,16 @@
  * post/put/delete, en transacción y en cascada), más el seed propagado a las tablas de los detalles.
  */
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { createRouter, ServerController, sql, ValidationError } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { Categoria, Linea, Pedido, Producto, type TLinea } from "../examples/domain.ts";
+import { createRouter, ServerController, sql, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { CategoriaEntity, LineaEntity, PedidoEntity, ProductoEntity, type Linea } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 function setup() {
   const db = sqliteDatabase();
-  const categorias = new ServerController(Categoria, { db, table: "categorias" });
-  const productos = new ServerController(Producto, { db, table: "productos" });
-  const lineas = new ServerController(Linea, { db, table: "pedido_lineas" });
-  const pedidos = new ServerController(Pedido, {
+  const categorias = new ServerController(CategoriaEntity, { db, table: "categorias" });
+  const productos = new ServerController(ProductoEntity, { db, table: "productos" });
+  const lineas = new ServerController(LineaEntity, { db, table: "pedido_lineas" });
+  const pedidos = new ServerController(PedidoEntity, {
     db,
     table: "pedidos",
     getPropagation: () => ({ lineas: { producto: true } }), // se lee más de lo que se escribe
@@ -51,7 +51,7 @@ Deno.test("propagación: post inserta padre + detalles con la FK, get los extrae
         { ilinea: 2, iproducto: b?.iproducto, cantidad: 3 },
       ],
     });
-    assertEquals(p.lineas.map((l: TLinea) => [l.ipedido, l.ilinea, l.cantidad]), [[p.ipedido, 1, 2], [p.ipedido, 2, 3]]);
+    assertEquals(p.lineas.map((l: Linea) => [l.ipedido, l.ilinea, l.cantidad]), [[p.ipedido, 1, 2], [p.ipedido, 2, 3]]);
     const got = (await pedidos.get({ ipedido: p.ipedido }))!;
     assertEquals(got.lineas.map((l) => l.producto?.nombre), ["A", "B"]);
     assertEquals((await lineas.list()).length, 2);

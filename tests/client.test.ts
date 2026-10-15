@@ -1,13 +1,13 @@
 /** ClientController: cabeceras (config y por llamada), AbortSignal, endpoints GET con `?q=`, 204 y errores 500. */
 import { assertEquals, assertRejects } from "@std/assert";
-import { ClientController, HttpError } from "../src/02 controllers/client/mod.ts";
-import { createRouter, ServerController } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { defineEntity } from "../mod.ts";
-import { TCategoria } from "../examples/domain.ts";
+import { ClientController, HttpError } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
+import { createRouter, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { defineEntity } from "@Jeff-Aporta/DER/mod.ts";
+import { Categoria } from "@Jeff-Aporta/DER/examples/domain.ts";
 
-const Cat = defineEntity({
-  pojo: TCategoria,
+const CatEntity = defineEntity({
+  pojo: Categoria,
   name: "cli.categoria",
   singular: "cli/categoria",
   plural: "cli/categorias",
@@ -20,13 +20,13 @@ const Cat = defineEntity({
 
 async function setup() {
   const db = sqliteDatabase();
-  const ctrl = new ServerController(Cat, {
+  const ctrl = new ServerController(CatEntity, {
     db,
     table: "categorias",
     endpoints: {
       buscar: {
         handler(lista) {
-          const nombres = (lista as TCategoria[]).map((c) => c.nombre ?? "");
+          const nombres = (lista as Categoria[]).map((c) => c.nombre ?? "");
           return this.query({ where: { nombre: nombres } });
         },
       },
@@ -53,7 +53,7 @@ async function setup() {
 Deno.test("client: cabeceras de config (función async) + por llamada, y el server las recibe", async () => {
   const { db, vistos, fetchFn } = await setup();
   try {
-    const cli = new ClientController(Cat, {
+    const cli = new ClientController(CatEntity, {
       baseUrl: "http://t/api/",
       fetch: fetchFn,
       headers: () => Promise.resolve({ authorization: "Bearer abc", "x-app": "pruebas" }), // función que retorna promesa
@@ -75,8 +75,8 @@ Deno.test("client: cabeceras de config (función async) + por llamada, y el serv
 Deno.test("client: endpoint GET viaja como ?q=, 204 da undefined, 500 llega como HttpError", async () => {
   const { db, vistos, fetchFn } = await setup();
   try {
-    const cli = new ClientController(Cat, { baseUrl: "http://t/api", fetch: fetchFn });
-    const encontrados = await cli.call<TCategoria[]>("buscar", [{ nombre: "A" }, { nombre: "C" }]);
+    const cli = new ClientController(CatEntity, { baseUrl: "http://t/api", fetch: fetchFn });
+    const encontrados = await cli.call<Categoria[]>("buscar", [{ nombre: "A" }, { nombre: "C" }]);
     assertEquals(encontrados.map((c) => c.nombre), ["A", "C"]);
     const url = new URL(vistos.at(-1)?.url ?? "");
     assertEquals([vistos.at(-1)?.method, url.pathname], ["GET", "/api/cli/categorias/buscar"]);
@@ -97,7 +97,7 @@ Deno.test("client: AbortSignal cancela la petición", async () => {
       if (init?.signal?.aborted) cancelar();
       else init?.signal?.addEventListener("abort", cancelar);
     });
-  const cli = new ClientController(Cat, { baseUrl: "http://t/api", fetch: lento });
+  const cli = new ClientController(CatEntity, { baseUrl: "http://t/api", fetch: lento });
   const ac = new AbortController();
   const p = cli.list({ signal: ac.signal });
   ac.abort();

@@ -1,9 +1,7 @@
-/** Objeto del plugin de permisos (DER): AccionRol. */
-import { defineEntity, defineSchema, type Entity, type Pojo, pojoOf } from "../../../01 objects/mod.ts";
-import type { PojoClass, Schema } from "../../../00 common/schemas.ts";
-import type { AccionRolFields } from "../schemas.ts";
+/** Objeto del plugin de permisos (DER): POJO `AccionRol`, su schema JSON (`AccionRolSchema`) y su entidad REST (`AccionRolEntity`). */
+import { defineEntity, defineSchema, type Entity, pojoOf } from "@Jeff-Aporta/DER/src/01 objects/mod.ts";
 
-export const AccionRolSchema: Schema = defineSchema({
+export const AccionRolSchema = defineSchema({
   columns: {
     irol: { type: "string", pk: true, length: 60 },
     iaccion: { type: "string", pk: true, length: 300 },
@@ -11,13 +9,11 @@ export const AccionRolSchema: Schema = defineSchema({
   },
 });
 
-const TAccionRolBase = pojoOf(AccionRolSchema) as unknown as PojoClass<Pojo & AccionRolFields>;
+export class AccionRol extends pojoOf(AccionRolSchema) {}
 
-export class TAccionRol extends TAccionRolBase {}
-
-export const AccionRol: Entity<TAccionRol> = defineEntity({
-  pojo: TAccionRol,
-  name: "sec.accion",
+export const AccionRolEntity: Entity<AccionRol> = defineEntity({
+  pojo: AccionRol,
+  name: "permisos.accion",
   singular: "permisos/accion",
   plural: "permisos/acciones",
 });

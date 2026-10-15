@@ -2,14 +2,14 @@
  * Plugin de identidad: usuarios, hash con secret key, JWT HS384 y las rutas `POST /login` y `DELETE /logout`.
  * Aporta la puerta de autenticación del Router (`authenticate`): sin plugin de identidad no hay seguridad.
  */
-import { HttpError, ValidationError } from "../../../00 common/errors.ts";
-import { ServerController } from "../../../02 controllers/server/controller.ts";
-import type { Database } from "../../../02 controllers/server/database.ts";
-import type { Identity } from "../../../02 controllers/server/schemas.ts";
-import { type IdentityConfig, type LoginResult, ZLoginInput } from "../schemas.ts";
-import type { IdentityPlugin } from "../../schemas.ts";
-import { hashPassword, randomId, signJwt, verifyJwt, verifyPassword } from "./crypto.ts";
-import { Sesion, type TUsuario, Usuario } from "../Objetos/mod.ts";
+import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
+import type { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import type { Identity } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import { type IdentityConfig, type LoginResult, ZLoginInput } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
+import type { IdentityPlugin } from "@Jeff-Aporta/DER/src/03 plugins/schemas.ts";
+import { hashPassword, randomId, signJwt, verifyJwt, verifyPassword } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/crypto.ts";
+import { SesionEntity, type Usuario, UsuarioEntity } from "@Jeff-Aporta/DER/src/03 plugins/identity/Objetos/mod.ts";
 
 const BEARER = /^Bearer\s+(\S+)$/i;
 const CREDENCIALES = "Usuario o contraseña inválidos";
@@ -21,7 +21,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   const expiresIn = cfg.expiresIn ?? 86_400;
 
   /** Reemplaza `password` (virtual) por su hash antes de guardar. */
-  const withHash = async (u: TUsuario): Promise<TUsuario> => {
+  const withHash = async (u: Usuario): Promise<Usuario> => {
     if (u.password) {
       u.hash = await hashPassword(u.password, secret, iterations);
       u.password = undefined;
@@ -29,9 +29,9 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
     return u;
   };
 
-  const usuarios = new ServerController(Usuario, {
+  const usuarios = new ServerController(UsuarioEntity, {
     db,
-    table: "sec_usuarios",
+    table: "permisos_usuarios",
     hidden: ["hash"],
     security: true,
     actions: {
@@ -53,7 +53,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
     },
   });
 
-  const sesiones = new ServerController(Sesion, { db, table: "sec_sesiones", expose: [], security: true });
+  const sesiones = new ServerController(SesionEntity, { db, table: "permisos_sesiones", expose: [], security: true });
 
   async function login(input: unknown): Promise<LoginResult> {
     const parsed = ZLoginInput.safeParse(input);

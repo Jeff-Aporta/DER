@@ -1,7 +1,7 @@
 /** Motor PostgreSQL: tipos, normalización de lectura y agregación JSON (row_to_json / json_agg). */
 import { sql } from "kysely";
-import { dateToIso, parseMaybe } from "../engine.ts";
-import type { Engine } from "../schemas.ts";
+import { dateToIso, parseMaybe } from "@Jeff-Aporta/DER/src/02 controllers/server/engine.ts";
+import type { Engine } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 export const postgres: Engine = {
   name: "pg",

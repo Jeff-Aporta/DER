@@ -6,7 +6,7 @@ import { z } from "zod";
 /** Configuración del plugin de permisos (sección `permissions` del JSON global). */
 export interface PermissionsConfig {
   enabled?: boolean | undefined;
-  /** Grupo cuyos roles aplican a este API (y sus subgrupos). Default `"API"`. */
+  /** Grupo cuyos roles aplican a este API. Default `"API"`. */
   grupo?: string | undefined;
   /** Rol base: define los valores por defecto de todos (y es el de quien no tiene rol). Default `"USR"`. */
   rolBase?: string | undefined;
@@ -59,7 +59,6 @@ export interface CatalogEntry {
 export interface GrupoInput {
   igrupo: string;
   nombre?: string | null | undefined;
-  igrupopadre?: string | null | undefined;
 }
 export interface RolInput {
   irol: string;
@@ -103,7 +102,6 @@ export const ZDerLoad: z.ZodType<DerLoad> = z.object({
   grupos: z.array(z.object({
     igrupo: z.string().min(1),
     nombre: z.string().nullable().optional(),
-    igrupopadre: z.string().nullable().optional(),
   }).strict()).optional(),
   roles: z.array(z.object({
     irol: z.string().min(1),
@@ -128,33 +126,4 @@ export interface PermissionsClientConfig {
   fetch?: typeof fetch | undefined;
   /** Cabeceras (p.ej. `identity.headers` de `IdentityClient` para mandar el token). */
   headers?: HeadersInit | (() => HeadersInit | Promise<HeadersInit>) | undefined;
-}
-
-// ------------------------------------------------------------------ campos de los POJOs (API pública sin "slow types")
-
-export interface GrupoFields {
-  igrupo: string | null | undefined;
-  nombre: string | null | undefined;
-  igrupopadre: string | null | undefined;
-}
-
-export interface RolFields {
-  irol: string | null | undefined;
-  igrupo: string | null | undefined;
-  nombre: string | null | undefined;
-  bactivo: boolean | null | undefined;
-}
-
-export interface RolUsuarioFields {
-  iusuario: string | null | undefined;
-  irol: string | null | undefined;
-  finicial: Date | null | undefined;
-  ffinal: Date | null | undefined;
-  bprincipal: boolean | null | undefined;
-}
-
-export interface AccionRolFields {
-  irol: string | null | undefined;
-  iaccion: string | null | undefined;
-  valor: unknown;
 }

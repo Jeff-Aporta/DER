@@ -6,16 +6,16 @@
  * import { sqliteDatabase, ServerController, createRouter } from ".../server/sqlite/mod.ts";
  * const db = sqliteDatabase("app.db");
  * ```
- * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  */
 import { SqliteDialect, type SqliteDatabase } from "kysely";
 import { DatabaseSync } from "node:sqlite";
-import { Database } from "../database.ts";
-import type { IdentifierCase } from "../schemas.ts";
-import { sqlite } from "./engine.ts";
+import { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import type { IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import { sqlite } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/engine.ts";
 
-export * from "../mod.ts";
-export { sqlite } from "./engine.ts";
+export * from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+export { sqlite } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/engine.ts";
 
 /** Adaptador de `node:sqlite` a la interfaz que espera el SqliteDialect de Kysely. */
 export function nodeSqliteAdapter(db: DatabaseSync): SqliteDatabase {

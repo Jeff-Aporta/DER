@@ -7,15 +7,15 @@
  * import { pgDatabase } from ".../server/pg/mod.ts";
  * const db = pgDatabase(new pg.Pool({ connectionString }), { identifierCase: "lower" });
  * ```
- * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  */
 import { PostgresDialect, type PostgresPool } from "kysely";
-import { Database } from "../database.ts";
-import type { IdentifierCase } from "../schemas.ts";
-import { postgres } from "./engine.ts";
+import { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
+import type { IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import { postgres } from "@Jeff-Aporta/DER/src/02 controllers/server/pg/engine.ts";
 
-export * from "../mod.ts";
-export { postgres } from "./engine.ts";
+export * from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+export { postgres } from "@Jeff-Aporta/DER/src/02 controllers/server/pg/engine.ts";
 
 export function pgDatabase(
   pool: PostgresPool | (() => Promise<PostgresPool>),

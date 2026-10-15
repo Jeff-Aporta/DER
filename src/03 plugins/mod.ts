@@ -11,17 +11,17 @@
  * ```
  * Sin la sección `identity` no hay seguridad (las rutas protegidas se sirven sin JWT); sin `permissions`
  * sólo se exige JWT. Dependencias: `zod` + `kysely` (las del server).
- * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/Controllers@main/docs/README.md
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  */
-import { zodMessage } from "../01 objects/zod.ts";
-import type { Plugin } from "../02 controllers/server/schemas.ts";
-import { type PluginsConfig, type PluginsRuntime, ZPluginsConfig } from "./schemas.ts";
-import { identityPlugin } from "./identity/Controladores/server.ts";
-import { permissionsPlugin } from "./permissions/Controladores/server.ts";
+import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
+import type { Plugin } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import { type PluginsConfig, type PluginsRuntime, ZPluginsConfig } from "@Jeff-Aporta/DER/src/03 plugins/schemas.ts";
+import { identityPlugin } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/server.ts";
+import { permissionsPlugin } from "@Jeff-Aporta/DER/src/03 plugins/permissions/Controladores/server.ts";
 
-export * from "./schemas.ts";
-export * from "./identity/mod.ts";
-export * from "./permissions/mod.ts";
+export * from "@Jeff-Aporta/DER/src/03 plugins/schemas.ts";
+export * from "@Jeff-Aporta/DER/src/03 plugins/identity/mod.ts";
+export * from "@Jeff-Aporta/DER/src/03 plugins/permissions/mod.ts";
 
 /** Lee `"env:NOMBRE"` del `env` dado o del entorno del proceso (Deno / Node). */
 export function resolveEnv(value: string, env?: Record<string, string | undefined>): string {

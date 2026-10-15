@@ -1,7 +1,7 @@
 /** Motor SQLite: tipos, booleanos 0/1 y agregación JSON (json_object / json_group_array). */
 import { type RawBuilder, sql } from "kysely";
-import { dateToIso, parseMaybe } from "../engine.ts";
-import type { Engine, OutField } from "../schemas.ts";
+import { dateToIso, parseMaybe } from "@Jeff-Aporta/DER/src/02 controllers/server/engine.ts";
+import type { Engine, OutField } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 function sqlitePairs(alias: string, fields: OutField[]): RawBuilder<unknown> {
   return sql.join(

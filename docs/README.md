@@ -1,10 +1,10 @@
 ---
-Titulo: Controllers · Punto de entrada
+Titulo: DER · Punto de entrada
 Estado: vigente
 Autor:
 tags: [indice, agentes]
 ---
-# Controllers: punto de entrada
+# DER: punto de entrada
 
 > **Para agentes LLM:** este es el índice. Todo `mod.ts` consumible por CDN apunta aquí. Lee primero esta página, después solo el documento del tema que necesites. Las reglas de la sección [Reglas para agentes](#reglas-para-agentes) son obligatorias.
 
@@ -64,11 +64,11 @@ export const ProductoSchema = defineSchema({
   },
   relations: { categoria: { kind: "one", target: "categoria", on: { icategoria: "icategoria" } } },
 });
-export class TProducto extends pojoOf(ProductoSchema) {
-  declare categoria: TCategoria | null;
+export class Producto extends pojoOf(ProductoSchema) {
+  declare categoria: Categoria | null;
 }
-export const Producto = defineEntity({
-  pojo: TProducto, singular: "producto", plural: "productos",
+export const ProductoEntity = defineEntity({
+  pojo: Producto, singular: "producto", plural: "productos",
   hooks: { prePost: (p) => p.precio! < 0 && "El precio no puede ser negativo" },
 });
 ```
@@ -77,7 +77,7 @@ export const Producto = defineEntity({
 // back
 import { createRouter, ServerController, sqliteDatabase } from "<base>/src/02%20controllers/server/sqlite/mod.ts";
 const db = sqliteDatabase("app.db");
-const productos = new ServerController(Producto, { db, table: "productos" });
+const productos = new ServerController(ProductoEntity, { db, table: "productos" });
 await db.seed();
 Deno.serve(createRouter([productos], { basePath: "/api" }).fetch);
 ```
@@ -85,7 +85,7 @@ Deno.serve(createRouter([productos], { basePath: "/api" }).fetch);
 ```ts
 // front
 import { ClientController } from "<base>/src/02%20controllers/client/mod.ts";
-const productos = new ClientController(Producto, { baseUrl: "/api" });
+const productos = new ClientController(ProductoEntity, { baseUrl: "/api" });
 const caros = await productos.query({ where: { precio: { gt: 10 } }, include: { categoria: true } });
 ```
 
@@ -96,7 +96,7 @@ Ejemplo completo y ejecutable: `examples/domain.ts` (compartido) y `examples/bac
 1. **Tipos, interfaces y schemas Zod solo en `schemas.ts`.** Todo lo común va en `src/00 common/schemas.ts`. Lo del server que depende de Kysely va en `src/02 controllers/server/schemas.ts`. Los archivos de lógica no declaran `type`, `interface` ni `const Z...`. Lo vigila `tests/arch.test.ts`.
 2. **Capas:** `00 common ← 01 objects ← 02 controllers ← 03 plugins`, y `client ⟂ server`. Solo se importa hacia abajo. La excepción es `import type`, que se borra al compilar.
 3. **Dependencias por dimensión:** el client y el núcleo solo usan `zod`; el server agrega `kysely`; cada motor agrega lo suyo. Una dependencia nueva va en la carpeta más específica posible. Lo vigila `tests/arch.test.ts`.
-4. **Imports relativos con `.ts`** y especificadores desnudos (`"zod"`, `"kysely"`) para las dependencias: las resuelve el import map del consumidor.
+4. **Imports internos por el alias `@Jeff-Aporta/DER/…` (nunca relativos) y siempre con `.ts`**; especificadores desnudos (`"zod"`, `"kysely"`) para las dependencias. El alias y las dependencias los resuelve el import map (el de este repo apunta a `./`; el del consumidor, al CDN). Lo vigila `tests/arch.test.ts`.
 5. **Las acciones reciben siempre el POJO** (o `QuerySpec` en `query()`), nunca datos sueltos.
 6. **`pre*` retorna truthy = mensaje de error** y falsy = OK.
 7. **El SQL lo arma el controller** (bifurcando por motor). El SQL escrito a mano se admite solo en columnas calculadas (`computed`), nunca en relaciones.
@@ -109,4 +109,7 @@ Ejemplo completo y ejecutable: `examples/domain.ts` (compartido) y `examples/bac
     frontmatter con `Titulo` y se lista en `docs/index.html` (visor `iswc-md-docs-vault`; lo vigila `tests/arch.test.ts`).
     `docs/README.md` es el punto de entrada. Un párrafo es una sola línea (el visor respeta los saltos).
 14. **Tests:** `tests/<tema>.test.ts` (nunca `_test.ts`); los helpers de tests, sin sufijo (`tests/_util.ts`).
-15. Antes de terminar un cambio: `npm install` (una vez), luego `deno task check` (tsc + deno check) y `deno task test` en verde.
+15. **Nomenclatura (sin prefijo T):** schema JSON `UsuarioSchema`, POJO `Usuario`, entidad REST `UsuarioEntity`, instancia de
+    controller en plural `usuarios`; tablas con el prefijo de su dominio (`permisos_usuarios`), nombres de entidad
+    `dominio.entidad` (`permisos.usuario`). Los plugins reusan las clases de otros plugins en vez de duplicar campos.
+16. Antes de terminar un cambio: `npm install` (una vez), luego `deno task check` (tsc + deno check) y `deno task test` en verde.

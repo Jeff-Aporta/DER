@@ -3,9 +3,9 @@
  * Mismo modelo que `registrarEntidad` de ISS: cada acción del controller es una ruta propia con parámetros
  * `{pk}`, id estable `METHOD:/ruta`, sin duplicados ni ambigüedades.
  */
-import type { ServerController } from "./controller.ts";
-import type { ActionRouteSpec, ExposedName, RouteSecurity } from "./schemas.ts";
-import type { HttpMethod } from "../../00 common/schemas.ts";
+import type { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
+import type { ActionRouteSpec, ExposedName, RouteSecurity } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import type { HttpMethod } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 
 /** Une segmentos de ruta sin barras repetidas (`["a/", "/b"]` → `a/b`). */
 export function joinPath(...parts: string[]): string {

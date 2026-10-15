@@ -3,7 +3,7 @@
  * `/doc?v=1`: esa misma doc en la vista iswc. Fuentes locales, `file:` y http indistintamente.
  */
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { ClientController } from "../src/02 controllers/client/mod.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
 import {
   composeDoc,
   createRouter,
@@ -11,10 +11,10 @@ import {
   ISWC_PIN,
   readDocSource,
   ServerController,
-} from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { buildControllers } from "../examples/backend.ts";
-import { Categoria, Producto } from "../examples/domain.ts";
+} from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
+import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 async function setup() {
   const db = sqliteDatabase();
@@ -54,7 +54,7 @@ Deno.test("doc: plural/doc = contrato autogenerado + fuentes del controller como
     const iSec2 = md.indexOf("\n## Productos · Preguntas frecuentes\n");
     assert(iSec1 > 0 && iSec2 > iSec1, "las secciones van al final y en orden");
     assertStringIncludes(md, "\n### Reglas de negocio\n"); // encabezados de la sección bajan un nivel
-    const cli = new ClientController(Producto, { baseUrl: "http://test/api", fetch: fetchFn });
+    const cli = new ClientController(ProductoEntity, { baseUrl: "http://test/api", fetch: fetchFn });
     assertEquals(await cli.doc(), md);
   } finally {
     await db.destroy();
@@ -123,7 +123,7 @@ Deno.test("doc: fuentes indistintas (ruta relativa, file:, http) y función que 
     assertEquals(await readDocSource(url), "# Remoto\n");
     assertStringIncludes(await readDocSource("examples/docs/productos.md"), "# Productos");
     assertStringIncludes(await readDocSource("productos.md", new URL("../examples/docs/", import.meta.url)), "# Productos");
-    const ctrl = new ServerController(Categoria, {
+    const ctrl = new ServerController(CategoriaEntity, {
       db,
       table: "categorias",
       doc() {

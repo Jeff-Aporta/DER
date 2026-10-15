@@ -1,19 +1,19 @@
 /** `preConfirm`: regla general que corre en TODAS las acciones (antes del pre* específico). */
 import { assertEquals, assertRejects } from "@std/assert";
-import { type ConfirmInput, ServerController, ValidationError } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { Categoria, Producto, type TProducto } from "../examples/domain.ts";
+import { type ConfirmInput, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { CategoriaEntity, ProductoEntity, type Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("preConfirm: corre en todas las acciones con su entrada tipada, antes del pre* específico", async () => {
   const db = sqliteDatabase();
   const vistos: string[] = [];
   const orden: string[] = [];
-  new ServerController(Categoria, { db, table: "categorias" });
-  const productos = new ServerController(Producto, {
+  new ServerController(CategoriaEntity, { db, table: "categorias" });
+  const productos = new ServerController(ProductoEntity, {
     db,
     table: "productos",
     hooks: {
-      preConfirm(input: ConfirmInput<TProducto>, ctx) {
+      preConfirm(input: ConfirmInput<Producto>, ctx) {
         vistos.push(input.action === "endpoint" ? `endpoint:${input.name}` : input.action);
         orden.push("confirm");
         if (ctx.state["bloqueado"]) return "Servicio en mantenimiento";
@@ -27,7 +27,7 @@ Deno.test("preConfirm: corre en todas las acciones con su entrada tipada, antes 
         orden.push("prePost");
       },
     },
-    endpoints: { ajustarStock: { handler: (p: TProducto) => p }, importar: { handler: (l: TProducto[]) => l } },
+    endpoints: { ajustarStock: { handler: (p: Producto) => p }, importar: { handler: (l: Producto[]) => l } },
   });
   await db.seed();
   try {

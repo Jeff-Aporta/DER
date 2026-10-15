@@ -3,10 +3,10 @@
  * Agnóstico: las fábricas concretas viven en `server/sqlite`, `server/pg`, `server/pglite`.
  */
 import { Kysely } from "kysely";
-import type { Pojo } from "../../01 objects/pojo.ts";
-import type { PojoClass } from "../../00 common/schemas.ts";
-import type { DatabaseOptions, Engine, IdentifierCase, ServerCtx } from "./schemas.ts";
-import type { ServerController } from "./controller.ts";
+import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
+import type { PojoClass } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import type { DatabaseOptions, Engine, IdentifierCase, ServerCtx } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import type { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
 
 /**
  * Registro GLOBAL (todas las bases): los controllers pueden vivir en bases, motores y credenciales distintos

@@ -1,10 +1,10 @@
 /** Secuencias (globales, por ámbito, con formato) e índices (explícitos y automáticos) en ambos motores. */
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { type Database, ServerController, sql } from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "../src/02 controllers/server/pglite/mod.ts";
-import { defineEntity, defineSchema, pojoOf, zodOf } from "../mod.ts";
-import { Categoria, Linea, Pedido, Producto } from "../examples/domain.ts";
+import { type Database, ServerController, sql } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
+import { defineEntity, defineSchema, pojoOf, zodOf } from "@Jeff-Aporta/DER/mod.ts";
+import { CategoriaEntity, LineaEntity, PedidoEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const FacturaSchema = defineSchema({
   columns: {
@@ -16,8 +16,8 @@ const FacturaSchema = defineSchema({
     total: { type: "decimal" },
   },
 });
-class TFactura extends pojoOf(FacturaSchema) {}
-const Factura = defineEntity({ pojo: TFactura, singular: "factura", plural: "facturas" });
+class Factura extends pojoOf(FacturaSchema) {}
+const FacturaEntity = defineEntity({ pojo: Factura, singular: "factura", plural: "facturas" });
 
 async function indexNames(db: Database, table: string): Promise<string[]> {
   if (db.engine.name === "pg") {
@@ -36,14 +36,14 @@ for (const [name, make] of ENGINES) {
   Deno.test(`[${name}] secuencias: global con inicio, con formato y por ámbito (numérica y con formato)`, async () => {
     const db = make();
     try {
-      const facturas = new ServerController(Factura, {
+      const facturas = new ServerController(FacturaEntity, {
         db,
         table: "facturas",
         indexes: [{ columns: ["iempresa", "consecutivo"], unique: true }],
       });
       await db.seed();
       // el client no exige la pk con secuencia
-      assertEquals(zodOf(TFactura).insert.safeParse({ iempresa: "A" }).success, true);
+      assertEquals(zodOf(Factura).insert.safeParse({ iempresa: "A" }).success, true);
       const [a1, a2, b1] = await facturas.postList([{ iempresa: "A", total: 10 }, { iempresa: "A" }, { iempresa: "B" }]);
       assertEquals([a1?.ifactura, a2?.ifactura, b1?.ifactura], [1000, 1001, 1002]);
       assertEquals([a1?.numero, a2?.numero, b1?.numero], ["FAC-00001", "FAC-00002", "FAC-00003"]);
@@ -65,10 +65,10 @@ for (const [name, make] of ENGINES) {
   Deno.test(`[${name}] índices automáticos (FK 1:1 y llaves de detalles 1:N) sin depender del orden del seed`, async () => {
     const db = make();
     try {
-      new ServerController(Categoria, { db, table: "categorias" });
-      const productos = new ServerController(Producto, { db, table: "productos" });
-      new ServerController(Pedido, { db, table: "pedidos" });
-      new ServerController(Linea, { db, table: "pedido_lineas" });
+      new ServerController(CategoriaEntity, { db, table: "categorias" });
+      const productos = new ServerController(ProductoEntity, { db, table: "productos" });
+      new ServerController(PedidoEntity, { db, table: "pedidos" });
+      new ServerController(LineaEntity, { db, table: "pedido_lineas" });
       await db.seed();
       assertEquals(await indexNames(db, "productos"), ["ix_productos_icategoria"]);
       // linea.producto (1:1) → iproducto; pedido.lineas (1:N) sobre ipedido no se indexa: es prefijo de la pk

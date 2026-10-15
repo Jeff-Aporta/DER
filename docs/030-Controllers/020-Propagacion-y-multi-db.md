@@ -11,7 +11,7 @@ tags: [controllers, propagacion, multidb]
 Las relaciones del schema (`kind: "one" | "many"`, `on`) definen la **cardinalidad**. El consumidor decide qué detalles se **leen** y cuáles se **escriben** junto al padre, que pueden ser distintos:
 
 ```ts
-new ServerController(Pedido, {
+new ServerController(PedidoEntity, {
   db, table: "pedidos",
   getPropagation: () => ({ lineas: { producto: true } }),  // get trae líneas y el producto de cada una
   setPropagation: () => ({ lineas: true }),                // post/put/delete escriben sólo las líneas
@@ -57,8 +57,8 @@ Cada `ServerController` tiene su `db` (motor + credenciales). Se relacionan **s�
 ```ts
 const lite = sqliteDatabase("app.db");
 const pg = pgDatabase(pool);
-new ServerController(Producto, { db: pg, table: "productos" });
-new ServerController(Pedido, { db: lite, table: "pedidos", getPropagation: () => ({ lineas: { producto: true } }) });
+new ServerController(ProductoEntity, { db: pg, table: "productos" });
+new ServerController(PedidoEntity, { db: lite, table: "pedidos", getPropagation: () => ({ lineas: { producto: true } }) });
 ```
 
 Las columnas locales de `on` se agregan solas a la salida cuando una relación es de otra base (las necesita el join). Probado con SQLite + PostgreSQL mezclados en `tests/multidb.test.ts`.

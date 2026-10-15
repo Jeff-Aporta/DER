@@ -11,12 +11,12 @@ import {
   type Database,
   HttpError,
   ServerController,
-} from "../src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
-import { registerAzure } from "../src/02 controllers/server/hosts/azure/mod.ts";
-import { defineWorker } from "../src/02 controllers/server/hosts/cloudflare/mod.ts";
-import { buildControllers } from "../examples/backend.ts";
-import { Categoria, Producto } from "../examples/domain.ts";
+} from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { registerAzure } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/azure/mod.ts";
+import { defineWorker } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/cloudflare/mod.ts";
+import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
+import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 async function setup() {
   const db = sqliteDatabase();
@@ -69,7 +69,7 @@ Deno.test("rutas: la tabla expone cada acción del controller con id METHOD:/rut
 Deno.test("rutas: expose (como `aplicar`) limita lo registrado y las duplicadas/ambiguas fallan", async () => {
   const db: Database = sqliteDatabase();
   try {
-    const cats = new ServerController(Categoria, { db, table: "categorias", expose: ["get", "list", "doc"] });
+    const cats = new ServerController(CategoriaEntity, { db, table: "categorias", expose: ["get", "list", "doc"] });
     const router = createRouter([cats]);
     assertEquals(router.routes.map((r) => r.id).sort(), [
       "GET:/categoria/{icategoria}",
@@ -91,7 +91,7 @@ Deno.test("rutas: expose (como `aplicar`) limita lo registrado y las duplicadas/
 Deno.test("rutas irregulares: del controller (this = controller) y del router, con params, body y SSE", async () => {
   const db = sqliteDatabase();
   try {
-    const productos = new ServerController(Producto, {
+    const productos = new ServerController(ProductoEntity, {
       db,
       table: "productos",
       routes: [
@@ -114,7 +114,7 @@ Deno.test("rutas irregulares: del controller (this = controller) y del router, c
         },
       ],
     });
-    new ServerController(Categoria, { db, table: "categorias" });
+    new ServerController(CategoriaEntity, { db, table: "categorias" });
     await db.seed();
     const router = createRouter(productos.db.controllers, {
       basePath: "/api",
@@ -236,7 +236,7 @@ Deno.test("azure: una función por ruta (nombres válidos y únicos) que atiende
 Deno.test("azure: prefijos reservados del host fallan al registrar", async () => {
   const db = sqliteDatabase();
   try {
-    const cats = new ServerController(Categoria, { db, table: "categorias", expose: ["list"] });
+    const cats = new ServerController(CategoriaEntity, { db, table: "categorias", expose: ["list"] });
     const router = createRouter([cats], { routes: [{ method: "GET", path: "admin/x", handler: () => 1 }] });
     assertThrows(() => registerAzure(fakeAzure().app, router), Error, "reservada");
   } finally {
