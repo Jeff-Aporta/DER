@@ -1,0 +1,270 @@
+/**
+ * Plugins de seguridad integrados por JSON: identidad (usuarios, hash, JWT, login/logout) y permisos
+ * (DER grupos/roles/acciones, vector de acciones, perfil, carga). Todo por HTTP sobre el Router.
+ */
+import { assert, assertEquals, assertMatch, assertNotEquals } from "@std/assert";
+import { createRouter, type Database, type Router, ServerController, sql } from "../src/02 controllers/server/mod.ts";
+import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
+import {
+  type IdentityPlugin,
+  type LoginResult,
+  pluginsFromConfig,
+  type PluginsConfig,
+  signJwt,
+} from "../src/03 plugins/mod.ts";
+import { Categoria, Producto } from "../examples/domain.ts";
+
+const SECRET = "una-secret-key-de-pruebas-con-mas-de-32-caracteres";
+
+const CONFIG: PluginsConfig = {
+  identity: { secret: "env:TEST_JWT_SECRET", iterations: 10_000, admin: { usuario: "admin", password: "admin-12345" } },
+  permissions: { grupo: "API" },
+};
+
+async function setup(config: unknown = CONFIG, opts: { plugins?: boolean } = {}) {
+  const db: Database = sqliteDatabase();
+  const categorias = new ServerController(Categoria, { db, table: "categorias" }); // pública
+  const productos = new ServerController(Producto, {
+    db,
+    table: "productos",
+    security: { public: ["list", "get", "doc"] }, // el resto: JWT + permisos
+  });
+  const plugins = opts.plugins === false ? [] : pluginsFromConfig(config, { db, env: { TEST_JWT_SECRET: SECRET } });
+  const router = createRouter([categorias, productos], { basePath: "/api", plugins });
+  await router.seed();
+  return { db, router, plugins };
+}
+
+const call = async (router: Router, method: string, path: string, opts: { token?: string; body?: unknown } = {}) => {
+  const headers: Record<string, string> = {};
+  if (opts.token) headers["authorization"] = `Bearer ${opts.token}`;
+  const res = await router.fetch(
+    new Request(`http://t/api/${path}`, {
+      method,
+      headers,
+      ...(opts.body === undefined ? {} : { body: JSON.stringify(opts.body) }),
+    }),
+  );
+  const text = await res.text();
+  return { status: res.status, data: text ? JSON.parse(text) : undefined };
+};
+
+async function login(router: Router, usuario: string, password: string): Promise<string> {
+  const r = await call(router, "POST", "login", { body: { usuario, password } });
+  assertEquals(r.status, 200, JSON.stringify(r.data));
+  return (r.data as LoginResult).token;
+}
+
+Deno.test("seguridad: sin plugins no aplica (skip), aunque las rutas declaren security", async () => {
+  const { db, router } = await setup(CONFIG, { plugins: false });
+  try {
+    assertEquals((await call(router, "POST", "producto", { body: { nombre: "A", precio: 1 } })).status, 201);
+    assertEquals((await call(router, "DELETE", "producto/1")).status, 200);
+    assertEquals((await call(router, "POST", "login", { body: {} })).status, 404); // sin plugin no hay /login
+  } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("identidad: login/logout, rutas públicas vs protegidas y validación del token", async () => {
+  const { db, router } = await setup();
+  try {
+    const mal = await call(router, "POST", "login", { body: { usuario: "admin", password: "otra-cosa" } });
+    assertEquals([mal.status, mal.data.error], [401, "Usuario o contraseña inválidos"]);
+    assertEquals((await call(router, "POST", "login", { body: { usuario: "nadie", password: "x" } })).status, 401);
+    assertEquals((await call(router, "POST", "login", { body: { usuario: "admin" } })).status, 400);
+
+    const ok = await call(router, "POST", "login", { body: { usuario: "admin", password: "admin-12345" } });
+    const res = ok.data as LoginResult;
+    assertEquals([ok.status, res.tipo, res.usuario.iusuario], [200, "Bearer", "admin"]);
+    assertMatch(res.token, /^[\w-]+\.[\w-]+\.[\w-]+$/);
+
+    // públicas: sin token (y un token basura en una pública no bloquea)
+    assertEquals((await call(router, "GET", "productos")).status, 200);
+    assertEquals((await call(router, "GET", "categorias", { token: "basura" })).status, 200);
+    // protegidas
+    assertEquals((await call(router, "POST", "producto", { body: { nombre: "A", precio: 1 } })).status, 401);
+    const basura = await call(router, "POST", "producto", { token: "a.b.c", body: { nombre: "A", precio: 1 } });
+    assertEquals(basura.status, 401);
+    assertMatch(basura.data.error, /^Token inválido/);
+    assertEquals((await call(router, "POST", "producto", { token: res.token, body: { nombre: "A", precio: 1 } })).status, 201);
+
+    // logout revoca: el mismo token deja de servir
+    assertEquals((await call(router, "DELETE", "logout", { token: res.token })).status, 204);
+    const tras = await call(router, "POST", "producto", { token: res.token, body: { nombre: "B", precio: 1 } });
+    assertEquals([tras.status, tras.data.error], [401, "Sesión cerrada o inexistente"]);
+    assertEquals((await call(router, "DELETE", "logout")).status, 401);
+  } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("identidad: alg distinto de HS384, firma ajena y token vencido se rechazan con códigos distintos", async () => {
+  const { db, router, plugins } = await setup();
+  try {
+    const identity = plugins[0] as IdentityPlugin;
+    const now = Math.floor(Date.now() / 1000);
+    await identity.sesiones.post({ jti: "s1", iusuario: "admin", emitido: new Date(), expira: new Date() });
+    const vencido = await signJwt({ sub: "admin", jti: "s1", iat: now - 100, exp: now - 10 }, SECRET);
+    const r1 = await call(router, "POST", "producto", { token: vencido, body: { nombre: "A", precio: 1 } });
+    assertEquals([r1.status, r1.data.error], [401, "Token vencido"]);
+    const ajeno = await signJwt({ sub: "admin", jti: "s1", iat: now, exp: now + 60 }, "otra-secret-con-mas-de-32-caracteres!!");
+    assertMatch((await call(router, "POST", "producto", { token: ajeno, body: {} })).data.error, /firma/);
+    const [, payload] = vencido.split(".");
+    const none = `${btoa(JSON.stringify({ alg: "none", typ: "JWT" })).replace(/=+$/, "")}.${payload}.`;
+    assertMatch((await call(router, "POST", "producto", { token: none, body: {} })).data.error, /Token inválido/);
+  } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("identidad: usuarios con hash PBKDF2+secret, nunca expuesto ni consultable", async () => {
+  const { db, router } = await setup();
+  try {
+    const admin = await login(router, "admin", "admin-12345");
+    const alta = await call(router, "POST", "usuario", { token: admin, body: { iusuario: "ana", nombre: "Ana", password: "ana-secreta-1" } });
+    assertEquals(alta.status, 201);
+    assertEquals(alta.data.hash, undefined);
+    assertEquals(alta.data.password, undefined);
+    const corta = await call(router, "POST", "usuario", { token: admin, body: { iusuario: "x", password: "123" } });
+    assertEquals([corta.status, corta.data.error], [400, "La contraseña debe tener al menos 8 caracteres"]);
+    const got = await call(router, "GET", "usuario/ana", { token: admin });
+    assertEquals(Object.keys(got.data).sort(), ["bactivo", "creado", "email", "iusuario", "jdata", "nombre"]);
+    assert(!("hash" in got.data) && !("password" in got.data));
+    assertEquals((await call(router, "POST", "usuarios/query", { token: admin, body: { select: ["hash"] } })).status, 400);
+    assertEquals((await call(router, "POST", "usuarios/query", { token: admin, body: { where: { hash: "x" } } })).status, 400);
+
+    const { rows } = await sql<{ hash: string }>`select hash from sec_usuarios where iusuario = 'ana'`.execute(db.kysely);
+    const hash = rows[0]?.hash ?? "";
+    assertMatch(hash, /^pbkdf2-sha256\$10000\$[\w-]{22}\$[\w-]{43}$/);
+    assert(!hash.includes("ana-secreta-1"));
+    // misma contraseña → otro hash (sal aleatoria)
+    await call(router, "POST", "usuario", { token: admin, body: { iusuario: "bea", password: "ana-secreta-1" } });
+    const { rows: r2 } = await sql<{ hash: string }>`select hash from sec_usuarios where iusuario = 'bea'`.execute(db.kysely);
+    assertNotEquals(r2[0]?.hash, hash);
+    assertEquals((await call(router, "POST", "login", { body: { usuario: "ana", password: "ana-secreta-1" } })).status, 200);
+    // cambio de contraseña por PUT
+    await call(router, "PUT", "usuario/ana", { token: admin, body: { password: "nueva-clave-2" } });
+    assertEquals((await call(router, "POST", "login", { body: { usuario: "ana", password: "ana-secreta-1" } })).status, 401);
+    assertEquals((await call(router, "POST", "login", { body: { usuario: "ana", password: "nueva-clave-2" } })).status, 200);
+  } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("permisos: carga del DER, vector por rol (base USR + rol), comodín admin, vigencia y perfil", async () => {
+  const { db, router } = await setup();
+  try {
+    const admin = await login(router, "admin", "admin-12345");
+    for (const u of ["ana", "beto", "caro"]) {
+      await call(router, "POST", "usuario", { token: admin, body: { iusuario: u, password: `${u}-clave-123` } });
+    }
+    const carga = await call(router, "PUT", "permisos", {
+      token: admin,
+      body: {
+        grupos: [{ igrupo: "VENTAS", nombre: "Ventas", igrupopadre: "API" }],
+        roles: [{ irol: "VENDEDOR", igrupo: "VENTAS", nombre: "Vendedor" }],
+        rolesusuario: [
+          { iusuario: "ana", irol: "VENDEDOR", bprincipal: true },
+          { iusuario: "caro", irol: "VENDEDOR", ffinal: "2000-01-01T00:00:00Z" }, // vencido → USR
+        ],
+        acciones: [
+          { irol: "USR", iaccion: "DELETE:/producto/{iproducto}", valor: false },
+          { irol: "USR", iaccion: "PUT:/producto/{iproducto}", valor: false },
+          { irol: "VENDEDOR", iaccion: "PUT:/producto/{iproducto}", valor: { descuentoMax: 10 } },
+        ],
+      },
+    });
+    assertEquals([carga.status, carga.data], [200, { grupos: 1, roles: 1, rolesusuario: 2, acciones: 3 }]);
+
+    const [ana, beto, caro] = [
+      await login(router, "ana", "ana-clave-123"),
+      await login(router, "beto", "beto-clave-123"),
+      await login(router, "caro", "caro-clave-123"),
+    ];
+    const p = (await call(router, "POST", "producto", { token: beto, body: { nombre: "A", precio: 1 } })).data;
+    // PUT: USR false, VENDEDOR lo redefine (el valor viaja al handler)
+    assertEquals((await call(router, "PUT", `producto/${p.iproducto}`, { token: ana, body: { precio: 2 } })).status, 200);
+    const pb = await call(router, "PUT", `producto/${p.iproducto}`, { token: beto, body: { precio: 3 } });
+    assertEquals([pb.status, pb.data.error], [403, "Sin permiso: PUT:/producto/{iproducto}"]);
+    assertEquals((await call(router, "PUT", `producto/${p.iproducto}`, { token: caro, body: { precio: 3 } })).status, 403);
+    // DELETE: false para todos salvo ADMIN ("*": true)
+    assertEquals((await call(router, "DELETE", `producto/${p.iproducto}`, { token: ana })).status, 403);
+    assertEquals((await call(router, "DELETE", `producto/${p.iproducto}`, { token: admin })).status, 200);
+
+    // perfil: anónimo (público, sin perms) y del usuario (mismo cálculo que la puerta)
+    const anon = await call(router, "GET", "permisos");
+    assertEquals(anon.data, { usuario: null, irol: "USR", igrupo: "API", roles: [], perms: {} });
+    const perfil = (await call(router, "GET", "permisos", { token: ana })).data;
+    assertEquals([perfil.usuario, perfil.irol, perfil.roles], ["ana", "VENDEDOR", ["VENDEDOR"]]);
+    assertEquals(perfil.perms["PUT:/producto/{iproducto}"], { descuentoMax: 10 });
+    assertEquals(perfil.perms["DELETE:/producto/{iproducto}"], false);
+    assertEquals(perfil.perms["POST:/producto"], true);
+    assertEquals((await call(router, "GET", "permisos", { token: caro })).data.irol, "USR");
+
+    // CRUD/list del DER y catálogo
+    const roles = (await call(router, "GET", "permisos/roles", { token: admin })).data.map((r: { irol: string }) => r.irol);
+    assertEquals(roles.sort(), ["ADMIN", "USR", "VENDEDOR"]);
+    const cat = (await call(router, "GET", "permisos?catalogo=1", { token: admin })).data as { id: string }[];
+    assert(cat.some((r) => r.id === "DELETE:/producto/{iproducto}"));
+    assert(!cat.some((r) => r.id === "GET:/productos"), "las públicas no se evalúan");
+    const malo = await call(router, "PUT", "permisos", {
+      token: admin,
+      body: { acciones: [{ irol: "USR", iaccion: "GET:/no/existe", valor: true }] },
+    });
+    assertEquals([malo.status, malo.data.error], [400, "Acciones no declaradas: GET:/no/existe"]);
+    // cualquiera con USR no puede cargar si el base lo niega
+    await call(router, "PUT", "permisos", {
+      token: admin,
+      body: { acciones: [{ irol: "USR", iaccion: "PUT:/permisos", valor: false }] },
+    });
+    assertEquals((await call(router, "PUT", "permisos", { token: beto, body: {} })).status, 403);
+    // el catálogo (`?catalogo=1`) lo ve quien puede cargar el DER
+    assertEquals((await call(router, "GET", "permisos?catalogo=1")).status, 401);
+    assertEquals((await call(router, "GET", "permisos?catalogo=1", { token: beto })).status, 403);
+    assertEquals((await call(router, "GET", "permisos?catalogo=1", { token: admin })).status, 200);
+  } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("permisos: denyByDefault y sólo identidad (sin plugin de permisos = sólo JWT)", async () => {
+  const strict = await setup({ ...CONFIG, permissions: { grupo: "API", denyByDefault: true } });
+  try {
+    const admin = await login(strict.router, "admin", "admin-12345");
+    await call(strict.router, "POST", "usuario", { token: admin, body: { iusuario: "dan", password: "dan-clave-123" } });
+    const dan = await login(strict.router, "dan", "dan-clave-123");
+    const r = await call(strict.router, "POST", "producto", { token: dan, body: { nombre: "A", precio: 1 } });
+    assertEquals([r.status, r.data.error], [403, "Sin permiso definido: POST:/producto"]);
+    assertEquals((await call(strict.router, "POST", "producto", { token: admin, body: { nombre: "A", precio: 1 } })).status, 201);
+  } finally {
+    await strict.db.destroy();
+  }
+  const soloJwt = await setup({ identity: CONFIG.identity });
+  try {
+    const admin = await login(soloJwt.router, "admin", "admin-12345");
+    assertEquals((await call(soloJwt.router, "DELETE", "producto/1", { token: admin })).status, 404);
+    assertEquals((await call(soloJwt.router, "DELETE", "producto/1")).status, 401);
+    assertEquals((await call(soloJwt.router, "GET", "permisos")).status, 404);
+  } finally {
+    await soloJwt.db.destroy();
+  }
+});
+
+Deno.test("seguridad: /doc es pública por defecto (contexto para agentes), salvo que se proteja explícitamente", async () => {
+  const db = sqliteDatabase();
+  try {
+    const plugins = pluginsFromConfig(CONFIG, { db, env: { TEST_JWT_SECRET: SECRET } });
+    const router = createRouter([
+      new ServerController(Categoria, { db, table: "categorias", security: true }),
+      new ServerController(Producto, { db, table: "productos", security: { protected: ["post", "doc"] } }),
+    ], { basePath: "/api", plugins });
+    await router.seed();
+    const doc = (p: string) => router.fetch(new Request(`http://t/api/${p}`)); // markdown, no JSON
+    assertEquals((await doc("categorias/doc")).status, 200);
+    assertEquals((await call(router, "GET", "categorias")).status, 401);
+    assertEquals((await doc("productos/doc")).status, 401); // protegida a propósito
+  } finally {
+    await db.destroy();
+  }
+});

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light" data-palette="contapyme">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Controllers · Documentación</title>
+  <meta name="description" content="Documentación modular de Controllers: schemas JSON, POJOs, Zod, controllers client/server, motores, hosts y plugins de seguridad.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ctext y=%2226%22 font-size=%2226%22%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E">
+  <style>
+    /* Antes de que cargue el CSS del kit (sin parpadeo); despues mandan los tokens. */
+    html[data-theme="dark"] { background: #0f1520; color: #e7eef8; }
+    html[data-theme="light"] { background: #f4f7fb; color: #142033; }
+  </style>
+  <!-- Kit IS Web Components (mismo pin que ISS-AyudasCPIA/docs/index.html y que el /doc?v=1 de los controllers). -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@f4356a4191357a927eec7659f8ded07c1186288c/dist/cdn/core/is-base.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@f4356a4191357a927eec7659f8ded07c1186288c/dist/cdn/core/palettes.min.css">
+  <style>
+    html, body { margin: 0; height: 100%; }
+    body { background: var(--iswc-bg); color: var(--iswc-text); }
+    iswc-md-docs-vault { display: block; height: 100vh; height: 100dvh; }
+    .marca { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+    .marca strong { font: 600 15px system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .marca span { font: 12px system-ui, sans-serif; color: var(--iswc-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    iswc-theme-toggle:not(:defined), iswc-palette-selector:not(:defined), iswc-prefs-clear:not(:defined) { visibility: hidden; }
+    @media (max-width: 480px) {
+      .marca strong { font-size: 14px; }
+      iswc-palette-selector { font-size: 0.78em; }
+    }
+  </style>
+  <script type="module">
+    // Tema claro y paleta ContaPyme por defecto, mientras el usuario no elija otra cosa.
+    import { initApp } from 'https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@f4356a4191357a927eec7659f8ded07c1186288c/dist/cdn/core/app-init.min.js';
+    initApp({ theme: 'light', palette: 'contapyme' });
+  </script>
+  <script type="module" src="https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@f4356a4191357a927eec7659f8ded07c1186288c/dist/cdn/core/loader.min.js"></script>
+</head>
+<body>
+  <!-- Las hojas del libro: rutas relativas a esta carpeta, en orden de lectura. README.md es la vista principal
+       (y el punto de entrada para agentes LLM que referencian todos los mod.ts). -->
+  <iswc-md-docs-vault id="vault" main="README.md">
+    <div slot="brand" class="marca">
+      <strong>Controllers</strong>
+      <span id="hojaActual">Documentación</span>
+    </div>
+    <iswc-prefs-clear slot="actions" scope="cache" color="brand" title="Borrar la caché de esta app y recargar" aria-label="Borrar caché"></iswc-prefs-clear>
+    <iswc-palette-selector slot="actions" scope="root" aria-label="Elegir paleta"></iswc-palette-selector>
+    <iswc-theme-toggle slot="actions" scope="root" dark="true"></iswc-theme-toggle>
+    <script type="application/json">
+    [
+      "README.md",
+      "010-General/010-Arquitectura.md",
+      "010-General/020-Consumo-por-CDN.md",
+      "020-Objetos/010-Schemas-y-POJOs.md",
+      "020-Objetos/020-Obj-y-acciones-JSON.md",
+      "020-Objetos/030-Entidades-y-rutas.md",
+      "020-Objetos/040-Query.md",
+      "030-Controllers/010-Controllers.md",
+      "030-Controllers/020-Propagacion-y-multi-db.md",
+      "030-Controllers/030-SSE-y-cfg.md",
+      "030-Controllers/040-Documentacion-servida.md",
+      "040-Servidor/010-Motores-seed-y-sync.md",
+      "040-Servidor/020-Hosts.md",
+      "050-Plugins/010-Seguridad.md"
+    ]
+    </script>
+  </iswc-md-docs-vault>
+
+  <script type="module">
+    // El loader del kit se registra al cargar su módulo; el visor lo usa para pedir sus tags.
+    for (let i = 0; i < 100 && !globalThis.iswcLoader; i++) await new Promise((r) => setTimeout(r, 30));
+    const L = globalThis.iswcLoader;
+    if (L) await Promise.all(['iswc-md-docs-vault', 'iswc-theme-toggle', 'iswc-palette-selector', 'iswc-prefs-clear'].map((t) => L.ensure(t).catch(() => false)));
+    document.getElementById('vault').addEventListener('iswc-md-docs-vault-page', (e) => {
+      document.getElementById('hojaActual').textContent = e.detail.titulo;
+      document.title = `${e.detail.titulo} · Controllers`;
+    });
+  </script>
+</body>
+</html>

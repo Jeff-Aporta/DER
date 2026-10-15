@@ -1,0 +1,54 @@
+{
+  "name": "@jeff-aporta/controllers",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./mod.ts",
+    "./common": "./src/00 common/mod.ts",
+    "./objects": "./src/01 objects/mod.ts",
+    "./client": "./src/02 controllers/client/mod.ts",
+    "./server": "./src/02 controllers/server/mod.ts",
+    "./server/sqlite": "./src/02 controllers/server/sqlite/mod.ts",
+    "./server/pg": "./src/02 controllers/server/pg/mod.ts",
+    "./server/pglite": "./src/02 controllers/server/pglite/mod.ts",
+    "./hosts/azure": "./src/02 controllers/server/hosts/azure/mod.ts",
+    "./hosts/cloudflare": "./src/02 controllers/server/hosts/cloudflare/mod.ts",
+    "./plugins": "./src/03 plugins/mod.ts",
+    "./plugins/identity": "./src/03 plugins/identity/mod.ts",
+    "./plugins/permissions": "./src/03 plugins/permissions/mod.ts",
+    "./plugins/client": "./src/03 plugins/client.ts",
+    "./plugins/identity/client": "./src/03 plugins/identity/client.ts",
+    "./plugins/permissions/client": "./src/03 plugins/permissions/client.ts"
+  },
+  "nodeModulesDir": "manual",
+  "imports": {
+    "zod": "npm:zod@4.6.7",
+    "kysely": "npm:kysely@0.28.17",
+    "@electric-sql/pglite": "npm:@electric-sql/pglite@0.3.16",
+    "@std/assert": "jsr:@std/assert@1"
+  },
+  "tasks": {
+    "test": "deno test -A",
+    "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.json",
+    "check": "deno task typecheck && deno check mod.ts \"src/02 controllers/client/mod.ts\" \"src/02 controllers/server/sqlite/mod.ts\" \"src/02 controllers/server/pg/mod.ts\" \"src/02 controllers/server/pglite/mod.ts\" \"src/02 controllers/server/hosts/azure/mod.ts\" \"src/02 controllers/server/hosts/cloudflare/mod.ts\" \"src/03 plugins/mod.ts\" \"src/03 plugins/client.ts\" examples/",
+    "example": "deno run -A examples/server.ts"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    }
+  },
+  "fmt": {
+    "lineWidth": 110
+  }
+}
