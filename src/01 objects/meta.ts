@@ -50,7 +50,10 @@ export function schemaMeta(schema: Schema): SchemaMeta {
   return m;
 }
 
-/** Columna obligatoria al insertar: no nullable, sin default y no autoincrement. */
+/**
+ * Columna obligatoria al insertar: no nullable, sin default, sin `sequence` (la genera el motor),
+ * sin `autoincrement` (lo genera la columna) y sin `virtual` (la calcula el server).
+ */
 export function isRequiredOnInsert(c: ColumnDef, isPk: boolean): boolean {
   if (c.virtual || c.autoincrement || c.sequence || c.default !== undefined) return false;
   return isPk || c.nullable === false;

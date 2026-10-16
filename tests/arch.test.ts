@@ -3,7 +3,7 @@
  *  1. Aislamiento de dependencias por dimensión (lo que un consumidor por CDN debe tener instalado).
  *  2. Tipos/interfaces/Zod sólo en archivos `schemas.ts`.
  *  3. Cada entrada consumible (`mod.ts`) referencia el punto de entrada de docs para agentes.
- *  4. Imports relativos con extensión `.ts` (resolubles tal cual desde jsDelivr / raw GitHub).
+ *  4. Imports (internos por alias `@Jeff-Aporta/DER/` y externos) con la extensión `.ts`, resolubles tal cual desde jsDelivr / raw GitHub.
  */
 import { assert, assertEquals } from "@std/assert";
 
@@ -21,7 +21,6 @@ async function files(dir: URL, out: string[] = []): Promise<string[]> {
 
 const SRC = (await files(new URL("src/", ROOT))).map((p) => p.slice(p.indexOf("/src/") + 1));
 const read = (rel: string) => Deno.readTextFile(new URL(rel.replace(/ /g, "%20"), ROOT));
-/** Imports/exports de nivel superior (columna 0): ignora código de navegador dentro de templates HTML. */
 /** Alias de los imports internos de la librería (lo mapea el import map: el propio y el del consumidor). */
 const ALIAS = "@Jeff-Aporta/DER/";
 const isInternal = (spec: string): boolean => spec.startsWith(ALIAS) || spec.startsWith(".");

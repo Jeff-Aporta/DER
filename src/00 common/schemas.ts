@@ -1,9 +1,9 @@
 /**
- * schema.ts — TODAS las definiciones de tipos y contratos Zod del núcleo común (client + server).
+ * schemas.ts — TODAS las definiciones de tipos y contratos Zod del núcleo común (client + server).
  * Los módulos (`pojo`, `entity`, `query`, `controller`, `obj`, `zod`, `sse`) importan sus tipos de aquí;
  * aquí no hay lógica, sólo tipos, constantes de contrato y schemas Zod.
  *
- * Los tipos propios del servidor que dependen de Kysely viven en `server/schema.ts`, para que el
+ * Los tipos propios del servidor que dependen de Kysely viven en `server/schemas.ts`, para que el
  * cliente no tenga que instalar Kysely (aislamiento de dependencias por dimensión).
  *
  * Secciones:  columnas · pojo · query · entidad · controller · client · sse · obj · zod
@@ -231,10 +231,15 @@ export type Include = { [relation: string]: boolean | Include | undefined };
 export type OrderItem = string | { field: string; dir?: "asc" | "desc" | undefined };
 export type OrderBy = OrderItem | OrderItem[];
 
+/**
+ * `query()`: filtros, orden y paginación. Por GET el `QuerySpec` va como `?q=<JSON URL-encoded>` (ver `src/02 controllers/client/controller.ts`).
+ * - `orderBy`: `"campo"` asc, `"-campo"` o `"+campo"` asc, o `{ field, dir }`.
+ * - `page`: 1-based, default 1. `pageSize`: default el de la entidad (50); tope `entity.maxPageSize` (default 1000). `query({})` devuelve como mucho `pageSize` filas.
+ */
 export interface QuerySpec<P = any> {
   select?: FieldsOf<P>[] | string[];
   where?: Where<P>;
-  /** `"campo"` asc, `"-campo"` desc, o `{ field, dir }`. */
+  /** `"campo"` asc, `"-campo"` desc (forma con `+` = asc, `+campo` también), o `{ field, dir }`. */
   orderBy?: OrderBy;
   /** Página 1-based. */
   page?: number;
@@ -417,6 +422,7 @@ export type ActionOverride<P, Ctl, Ctx, A extends Action> = (
   next: (arg?: ActionArgs<P>[A]) => Promise<ActionResults<P>[A]>,
 ) => Promise<ActionResults<P>[A]> | ActionResults<P>[A];
 
+/** Overrides: SOLO las 9 acciones CRUD/colección (`Action`). NO cubren `getCfg`, `putCfg`, endpoints personalizados, streams (`/sse`) ni `doc` — esas rutas no son reemplazables por `actions`. */
 export type ActionOverrides<P, Ctl, Ctx> = { [A in Action]?: ActionOverride<P, Ctl, Ctx, A> };
 
 export interface ControllerOptions<P extends Pojo, Ctl, Ctx> {
@@ -455,11 +461,17 @@ export { type TAccionObj, type TCodigoObj, type TConsulta, type TJson, ZAccionOb
 
 // ===================================================================================== zod
 
-/** Schemas Zod generados de un schema JSON (ver `zodOf`). */
+/**
+ * Schemas Zod generados de un schema JSON (ver `zodOf`).
+ * `row` valida la forma LEÍDA (fila de get/list/query o resultado de POST/PUT/DELETE):
+ *   todo opcional, nullable según la columna.
+ * `molde` es el molde real que se pasa a `Obj.insert` para interpretar `null` y conservar
+ *   el resto del JSON.
+ */
 export interface SchemaZod {
-  /** Lectura / formularios / molde de las acciones parciales: todo opcional, nullable según la columna. */
+  /** Lectura, formularios y validación del resultado de las acciones parciales: todo opcional, nullable según la columna. */
   row: z.ZodObject;
-  /** POST: requeridos = no nullable, sin default y no autoincrement. */
+  /** POST: requeridos = no nullable, sin default, no `sequence`, no `autoincrement` y no `virtual`. */
   insert: z.ZodObject;
   /** PUT: pks requeridas, el resto opcional. */
   update: z.ZodObject;
