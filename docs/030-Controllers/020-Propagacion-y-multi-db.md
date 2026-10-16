@@ -27,7 +27,7 @@ new ServerController(PedidoEntity, {
 | `delete` | borra los detalles (en cascada) y después el padre |
 | `postList` / `putList` / `deleteList` | lo mismo por ítem, en una sola transacción |
 
-- **Todo en una transacción:** si un detalle falla, no queda nada escrito.
+- **Todo en una transacción (dentro de la misma base):** si un detalle falla, no queda nada escrito. Entre bases distintas la propagación NO es atómica (ver la tabla "Misma base / Otra base").
 - Cada detalle pasa por los `pre*` de su controller. El error se reporta con su ruta: `lineas[1]: La cantidad debe ser mayor a 0`.
 - **Solo para relaciones de pertenencia** (detalles), nunca para catálogos: un `delete` de un pedido no debe borrar su categoría.
 - **`seed()`** de un controller crea su tabla y, en cascada, las de los detalles que propaga (`getPropagation` ∪ `setPropagation`), sin ciclos. `seed({ propagate: false })` crea solo la propia. `db.seed()` y `router.seed()` crean todas.

@@ -33,7 +33,7 @@ Los POJOs normalizan lo que llega (casteos), así el resultado es idéntico en a
 
 ## `seed()`
 
-`ctrl.seed()` o `db.seed()` (todos los registrados, en orden): `CREATE TABLE IF NOT EXISTS` a partir de las columnas persistidas del POJO: tipos, `NOT NULL`, `UNIQUE`, `DEFAULT`, pk simple o compuesta y autoincrement. No crea FKs ni índices; las tablas externas de `/cfg` las crea el consumidor.
+`ctrl.seed()` o `db.seed()` (todos los registrados, en orden): `CREATE TABLE IF NOT EXISTS` a partir de las columnas persistidas del POJO: tipos, `NOT NULL`, `UNIQUE`, `DEFAULT`, pk simple o compuesta y autoincrement. **Crea también las secuencias (`seedSequence`/`nextValue`) y los índices (`ensureIndexes`).** No crea FKs (la integridad la vigila el DER por código). Las tablas externas de `/cfg` las crea el consumidor.
 
 ## Caso de identificadores
 
@@ -41,7 +41,7 @@ Los POJOs normalizan lo que llega (casteos), así el resultado es idéntico en a
 
 ## Agregar un motor (p. ej. MySQL)
 
-1. `src/02 controllers/server/mysql/engine.ts`: implementar `Engine` (`columnType`, `selectExpr`, `toDb`, `readJson`, `jsonOne`, `jsonMany`, `ilike`).
+1. `src/02 controllers/server/mysql/engine.ts`: implementar `Engine` (`columnType`, `selectExpr`, `toDb`, `readJson`, `createSequence`, `nextValue`, `jsonOne`, `jsonMany`, `ilike`).
 2. `src/02 controllers/server/mysql/mod.ts`: fábrica con el dialecto de Kysely, `export * from "../mod.ts"` y la cabecera con el enlace a `docs/README.md`.
 3. Registrar su dependencia permitida en `tests/arch.test.ts` y agregar el motor al arreglo `ENGINES` de `tests/server.test.ts`.
 
@@ -89,7 +89,7 @@ columns: {
 - Las secuencias globales se crean en `seed()` / `syncSchema()`. Si `name` se repite, la secuencia se comparte
   entre columnas o tablas.
 - Como en todo motor, una secuencia global no retrocede si la transacción falla (puede dejar huecos).
-- La secuencia por ámbito calcula el máximo dentro de la transacción. Con alta concurrencia sobre el mismo grupo,
+- La secuencia por ámbito calcula el máximo dentro de la transacción del POST (la del propio INSERT, no del controller entero). Con alta concurrencia sobre el mismo grupo,
   conviene respaldarla con un índice único (ver abajo): un choque falla en lugar de duplicar.
 
 ## Índices

@@ -79,6 +79,6 @@ deno task test
 
 ## Reglas del contrato CDN (las vigila `tests/arch.test.ts`)
 
-- Los imports relativos llevan siempre la extensión `.ts`.
+- Los **imports internos** van siempre por el alias `@Jeff-Aporta/DER/`; los **externos** (entre archivos del repo) llevan extensión `.ts`.
 - Cada carpeta importa solo las dependencias permitidas para su dimensión.
 - Cada `mod.ts` referencia `docs/README.md` en su cabecera.

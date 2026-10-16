@@ -866,7 +866,11 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     }`.execute(ctx.exec);
   }
 
-  /** ¿Existe handler SSE para la acción/endpoint? */
+  /**
+   * ¿Existe handler SSE para la acción/endpoint?
+   * La variante `/sse` de una ruta **solo se publica** si este método devuelve `true`
+   * (server config `sse[nombre]` o `endpoints[nombre].sse`).
+   */
   hasStream(name: string): boolean {
     return !!(this.config.sse?.[name as Action] ?? this.config.endpoints?.[name]?.sse);
   }

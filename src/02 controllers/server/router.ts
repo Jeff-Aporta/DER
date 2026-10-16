@@ -38,7 +38,10 @@ import type {
   ServerCtx,
 } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
-/** `?v=1` (o cualquier valor salvo `0`/`false`) pide la vista HTML del mismo endpoint `/doc`. */
+/**
+ * `?v=1` (o cualquier valor salvo `0`/`false`/`vacio`) pide la vista HTML del mismo endpoint `/doc`.
+ * NOTA: `?v=` (presente pero vacío) cuenta como truthy y devuelve la vista HTML.
+ */
 const wantsView = (url: URL): boolean => {
   const v = url.searchParams.get("v");
   return v !== null && v !== "0" && v.toLowerCase() !== "false";

@@ -20,7 +20,14 @@ src/02 controllers   controller.ts (BaseController)
       └── server/    ServerController · Database · Router · schemas.ts (tipos con Kysely)
             ├── sqlite/   motor + fábrica (node:sqlite)
             ├── pg/       motor + fábrica (pool pg del consumidor)
-            └── pglite/   fábrica PGlite (reusa el motor pg)
+            ├── pglite/   fábrica PGlite (reusa el motor pg)
+            └── hosts/    adaptadores del ServerController a runtimes serverless
+                 ├── azure/         Azure Functions
+                 └── cloudflare/    Cloudflare Workers
+      ↑
+src/03 plugins       identity (login, tokens, hooks) · permissions (permisos por acción/rol)
+      ↑
+(motores como dimensiones; server/ vive aislado del cliente por dimensión)
 ```
 
 - **Una definición, dos lados.** El schema JSON, el POJO, la entidad (singular, plural, rutas), los `pre*` compartidos y los contratos Zod son los mismos en el client y en el server. El server agrega lo propio de SQL (tabla, caso de identificadores, columnas calculadas, dónde vive `/cfg`) y el client lo propio de HTTP (`baseUrl`, headers, fetch).

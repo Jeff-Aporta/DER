@@ -62,7 +62,11 @@ Deno.test("arch: las capas no importan hacia arriba (common ← objects ← cont
     // `import type` se borra al compilar: schemas.ts puede nombrar la clase Pojo sin depender de ella en runtime.
     const src = (await read(f)).replace(/import type [^;]+;/g, "");
     for (const spec of imports(src).filter(isInternal)) {
-      if (f.startsWith("src/00 common/")) assert(!spec.includes("01 objects") && !spec.includes("02 controllers"), `${f} → ${spec}`);
+      if (f.startsWith("src/00 common/")) {
+        assert(!spec.includes("01 objects"), `${f} → ${spec}`);
+        assert(!spec.includes("02 controllers"), `${f} → ${spec}`);
+        assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
+      }
       if (f.startsWith("src/01 objects/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
       if (f.startsWith("src/02 controllers/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
       if (f.startsWith("src/01 objects/")) assert(!spec.includes("02 controllers"), `${f} → ${spec}`);

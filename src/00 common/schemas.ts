@@ -280,7 +280,11 @@ export type CfgAction = "getCfg" | "putCfg";
 /** Documentación (`plural/doc` → md autogenerado + secciones; `plural/doc?v=1` → esa doc en la vista iswc). */
 export type DocAction = "doc" | "docView";
 
-/** Resultado de un pre*: truthy = mensaje de error, falsy = OK. */
+/**
+ * Resultado de un pre*: truthy = mensaje de error, falsy = OK.
+ * - `string` no vacío: mensaje literal.
+ * - `true` o cualquier otro truthy no string: mensaje genérico `"Datos inválidos"`.
+ */
 export type Check = string | boolean | null | undefined | void | 0;
 export type CheckResult = Check | Promise<Check>;
 
@@ -321,6 +325,9 @@ export interface Hooks<P extends Pojo, Ctl = any, Ctx = any> {
  * Configuración JSON de la entidad, servida en `singular/pks.../cfg` (GET devuelve el JSON; PUT recibe un
  * JSON PARCIAL que se aplica con `Obj.insert`, así una sola llave ajusta un pedazo sin afectar el resto).
  * Sólo modifica JSON. Típicamente la columna `jconfig` del pojo.
+ *
+ * `getCfg(pojo, ctx)` y `putCfg(pojo, cambios, ctx)` pueden devolver `null` si el registro (las pks)
+ * no existe en la entidad — el cliente espera esa posibilidad.
  */
 export interface CfgDef {
   /** Columna `json` de la propia entidad que guarda la config. Si se omite, el server define dónde (otra tabla / load-save). */

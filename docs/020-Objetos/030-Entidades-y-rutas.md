@@ -53,6 +53,7 @@ export const ProductoEntity = defineEntity({
 | variante SSE | mismo método | ruta + `/sse` | igual a la acción |
 
 - **singular === plural**: el plural usa el sufijo `s` (`crisis/s`, `crisis/s/query`). Con `pluralSuffix`/`singularSuffix` se personaliza (`crisis/todas`, `crisis/una/x`).
+  - **Límite de diseño:** una pk cuyo valor es literalmente `"s"` (`GET /crisis/s` → list, no get) colisiona con el plural por defecto. Para no chocar: o el plural usa otro sufijo (`pluralSuffix`), o la pk nunca vale `"s"` (p. ej. UUID).
 - Una ruta puede tener varios segmentos (`singular: "pedido/linea"` → `pedido/linea/1/2`).
 - Al resolver una ruta, el plural tiene prioridad sobre el singular.
 - Segmentos reservados para endpoints: `query`, `sse`, `cfg`, `doc`. Un endpoint tampoco puede llamarse como una acción CRUD.

@@ -501,7 +501,7 @@ export type DocSources<Ctl> = string[] | ((this: Ctl) => string[] | Promise<stri
 
 /** Hoja de documentación ya leída. */
 export interface DocSheet {
-  /** Ruta de la hoja dentro del libro (`productos/README.md`). */
+  /** Ruta de la hoja dentro del libro (p. ej. `productos.md` o `README.md`). */
   path: string;
   content: string;
 }

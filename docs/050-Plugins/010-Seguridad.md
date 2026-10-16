@@ -71,7 +71,7 @@ Orden en cada request: autenticación (identidad) → autorización (permisos) �
 permisos_grupos        (igrupo pk, nombre)                              grupo al que pertenecen los roles
 permisos_roles         (irol pk, igrupo, nombre, bactivo)               el rol pertenece a un grupo
 permisos_rolesusuario  (iusuario pk, irol pk, finicial, ffinal, bprincipal)   vigencia y rol principal; relación `usuario` → `Usuario` (identidad)
-permisos_accionesrol   (irol pk, iaccion pk, valor json)                iaccion = id de ruta o "*"
+permisos_accionesrol   (irol pk, iaccion pk, valor json)                iaccion = id de ruta, acción personalizada o "*"
 ```
 
 ### Vector de acciones
@@ -86,10 +86,11 @@ Los ids son los de la tabla de rutas: `DELETE:/producto/{iproducto}`, `POST:/pro
 
 | Ruta | Seguridad | Qué hace |
 |---|---|---|
+
 El recurso es uno solo, `/permisos`, y el verbo HTTP decide la operación: no hay sufijos de acción en la ruta.
 
 | `GET /permisos` | pública | perfil `{ usuario, irol, igrupo, roles, perms }`; sin token, el anónimo (`perms: {}`) |
-| `PUT /permisos` | JWT + permisos | carga el DER `{ grupos, roles, rolesusuario, acciones }`: upsert en una transacción; valida que cada `iaccion` sea una ruta (o `"*"`) |
+| `PUT /permisos` | JWT + permisos | carga el DER `{ grupos, roles, rolesusuario, acciones }`: upsert en una transacción; `iaccion` puede ser el id de una ruta, una acción personalizada (`security.actions` del controller) o "\*" (todas) |
 | `GET /permisos?catalogo=1` | JWT + el permiso de `PUT /permisos` | acciones evaluables con sus rutas (para administrar acciones por rol) |
 | CRUD + list `permisos/grupo(s)`, `permisos/rol(es)`, `permisos/rolusuario` (`rolesusuario`), `permisos/accion(es)` | JWT + permisos | administración del DER |
 
