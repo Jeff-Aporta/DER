@@ -5,7 +5,7 @@
  *   zodOf(Producto).insert  POST: requeridos = no nullable, sin default y no autoincrement
  *   zodOf(Producto).update  PUT: pks requeridas, el resto opcional
  *   zodOf(Producto).pk      GET/DELETE: sólo pks requeridas
- *   zodOf(Producto).molde   molde de `Obj.push`: `null` → null si la columna es nullable; si no, se quita
+ *   zodOf(Producto).molde   molde de `Obj.insert`: `null` → null si la columna es nullable; si no, se quita
  *
  * Una columna puede refinar su tipo con `zod: z.email()`; en columnas `json` el `zod` es su molde.
  * Los tipos y schemas de contrato (`SchemaZod`, `ZQuerySpec`...) viven en `schema.ts`.

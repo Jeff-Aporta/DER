@@ -783,7 +783,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
       const actual = await this.loadCfg(pojo, tx);
       if (actual === undefined) return null;
       const molde = this.entity.cfgZod;
-      let merged = Obj.push(Obj.esPlano(actual) ? actual : {}, cambios, molde);
+      let merged = Obj.insert(Obj.esPlano(actual) ? actual : {}, cambios, molde);
       if (molde) {
         const r = molde.safeParse(merged);
         if (!r.success) throw new ValidationError(zodMessage(r.error));

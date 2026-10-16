@@ -21,7 +21,10 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
     "types": ["node", "deno"],
-    "paths": { "@Jeff-Aporta/DER/*": ["./*"] }
+    "paths": {
+      "@Jeff-Aporta/DER/*": ["./*"],
+      "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/*": ["./.iswc/*"]
+    }
   },
   "include": ["mod.ts", "src", "examples", "tests"]
 }

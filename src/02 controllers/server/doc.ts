@@ -158,7 +158,7 @@ export function entityContractMd(entity: Entity<any>, opts: { table?: string; ba
   if (entity.def.cfg) {
     const columna = entity.def.cfg.column ? ` en la columna \`${entity.def.cfg.column}\`` : "";
     const molde = entity.cfgZod ? " con molde Zod" : " de libre definición";
-    out.push(`- \`/cfg\`: JSON${columna}${molde}; el PUT es parcial (\`Obj.push\`).`);
+    out.push(`- \`/cfg\`: JSON${columna}${molde}; el PUT es parcial (\`Obj.insert\`).`);
   }
   const hooks = Object.keys(entity.hooks);
   if (hooks.length) out.push(`- Verificaciones compartidas: ${hooks.map((h) => `\`${h}\``).join(", ")}.`);

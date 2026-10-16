@@ -98,11 +98,11 @@ export class Entity<P extends Pojo = Pojo> {
   }
 
   /**
-   * Copia del pojo con un upsert parcial tipado aplicado (`Obj.push` con el molde Zod). No muta el original.
+   * Copia del pojo con un upsert parcial tipado aplicado (`Obj.insert` con el molde Zod). No muta el original.
    * Útil para armar el body de un PUT a partir de lo que se tiene.
    */
   patch(pojo: P, cambios: Patch<P>): P {
-    return this.toPojo(pojo.toJSON()).push(cambios as Patch<P>);
+    return this.toPojo(pojo.toJSON()).insert(cambios as Patch<P>);
   }
 
   /** Aplica una lista de acciones `Obj` sobre el JSON del pojo y lo valida contra el molde. */
@@ -120,7 +120,7 @@ export class Entity<P extends Pojo = Pojo> {
   /** Schema Zod de un PUT parcial de la config (cada llave opcional y `null` = quitar). */
   get cfgPatchZod(): z.ZodType | undefined {
     const m = this.cfgZod;
-    return m ? Obj.esquemaPush(m) : undefined;
+    return m ? Obj.esquemaInsert(m) : undefined;
   }
 
   get meta(): SchemaMeta {

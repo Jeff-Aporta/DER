@@ -84,6 +84,10 @@
       "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="
     }
   },
+  "remote": {
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/lib/obj.ts": "78066151a12c053c7419d085c1cda22333b5534d8c6e3a423361c040b6d549e9",
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/schemas.ts": "d2537fe6089c7eec5af83af6f31efa0d4559287b5ed93e43fe21fde6f40f6f2c"
+  },
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",

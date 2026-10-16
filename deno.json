@@ -28,6 +28,7 @@
     "@std/assert": "jsr:@std/assert@1"
   },
   "tasks": {
+    "sync": "deno run -A tools/sync-iswc.ts",
     "test": "deno test -A",
     "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "check": "deno task typecheck && deno check mod.ts \"src/02 controllers/client/mod.ts\" \"src/02 controllers/server/sqlite/mod.ts\" \"src/02 controllers/server/pg/mod.ts\" \"src/02 controllers/server/pglite/mod.ts\" \"src/02 controllers/server/hosts/azure/mod.ts\" \"src/02 controllers/server/hosts/cloudflare/mod.ts\" \"src/03 plugins/mod.ts\" \"src/03 plugins/client.ts\" examples/",

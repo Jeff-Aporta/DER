@@ -38,7 +38,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 | Arquitectura, capas y decisiones (por qué Kysely, Zod, `Obj`; qué se investigó) | [010-General/010-Arquitectura.md](010-General/010-Arquitectura.md) |
 | Consumir por CDN (jsDelivr / raw GitHub), import map y dependencias | [010-General/020-Consumo-por-CDN.md](010-General/020-Consumo-por-CDN.md) |
 | Schemas JSON, columnas, relaciones, POJOs, casteos y Zod | [020-Objetos/010-Schemas-y-POJOs.md](020-Objetos/010-Schemas-y-POJOs.md) |
-| Acciones JSON de POJOs y `Obj` (push, pushIgnore, update, delete, get, replace) | [020-Objetos/020-Obj-y-acciones-JSON.md](020-Objetos/020-Obj-y-acciones-JSON.md) |
+| Acciones JSON de POJOs y `Obj` (insert, insertIgnore, update, delete, get, replace) | [020-Objetos/020-Obj-y-acciones-JSON.md](020-Objetos/020-Obj-y-acciones-JSON.md) |
 | Entidades: singular/plural, rutas REST, endpoints, `/sse`, `/cfg` | [020-Objetos/030-Entidades-y-rutas.md](020-Objetos/030-Entidades-y-rutas.md) |
 | Controllers: flujo, `pre*`, hooks, overrides, client y server | [030-Controllers/010-Controllers.md](030-Controllers/010-Controllers.md) |
 | `query()`: filtros, operadores, relaciones, orden, paginación, include | [020-Objetos/040-Query.md](020-Objetos/040-Query.md) |

@@ -33,8 +33,8 @@ cfg: { column: "jconfig", zod: ZProductoCfg }   // zod opcional; si se omite, se
 | leer | `getCfg(pojo)` | `GET singular/pks.../cfg` | el JSON (`{}` si está vacío), `null`/404 si la entidad no existe |
 | ajustar | `putCfg(pojo, parcial)` | `PUT singular/pks.../cfg` | el JSON completo ya fusionado |
 
-- El PUT es **parcial**: se aplica con `Obj.push`, así una sola llave ajusta un pedazo sin afectar el resto, y `null` quita la llave.
-- Con molde Zod, el **fragmento** se valida en el client antes del fetch (`Obj.esquemaPush(molde)`) y el resultado se valida completo en el server. Sin molde, el JSON es de libre definición.
+- El PUT es **parcial**: se aplica con `Obj.insert`, así una sola llave ajusta un pedazo sin afectar el resto, y `null` quita la llave.
+- Con molde Zod, el **fragmento** se valida en el client antes del fetch (`Obj.esquemaInsert(molde)`) y el resultado se valida completo en el server. Sin molde, el JSON es de libre definición.
 - Hooks: `preGetCfg(pojo)` y `prePutCfg(pojo, parcial)`.
 
 ### Dónde vive en el server (`ServerController.cfg`)

@@ -34,6 +34,9 @@ const imports = (s: string): string[] => [
   ...[...s.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g)].flatMap((m) => (m[1] ? [m[1]] : [])),
 ];
 
+/** `Obj` y sus contratos vienen de iswc por URL (permitido en toda la librería). */
+const ISWC = "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/";
+
 /** Paquetes externos permitidos por carpeta (el resto de imports deben ser relativos). */
 const ALLOWED: [string, string[]][] = [
   ["src/02 controllers/server/pglite/", ["zod", "kysely", "@electric-sql/pglite"]],
@@ -49,7 +52,7 @@ Deno.test("arch: cada dimensión sólo importa sus dependencias", async () => {
   for (const f of SRC) {
     const allowed = ALLOWED.find(([p]) => f.startsWith(p))![1];
     for (const spec of imports(await read(f))) {
-      if (isInternal(spec)) continue;
+      if (isInternal(spec) || spec.startsWith(ISWC)) continue;
       assert(allowed.includes(spec), `${f} importa "${spec}" (permitidos: ${allowed.join(", ")})`);
     }
   }
@@ -159,7 +162,7 @@ Deno.test("arch: las entradas de cliente no alcanzan nada del servidor (ni kysel
       assert(!file.includes("02 controllers/server/"), `${entry} alcanza ${file}`);
       assert(!/Controladores\/(server|crypto|rules)\.ts$/.test(file), `${entry} alcanza ${file}`);
       assert(file !== "src/03 plugins/schemas.ts", `${entry} alcanza los contratos de servidor (${file})`);
-      for (const ext of externos) assertEquals(ext, "zod", `${entry} → ${file} importa "${ext}"`);
+      for (const ext of externos) if (!ext.startsWith(ISWC)) assertEquals(ext, "zod", `${entry} → ${file} importa "${ext}"`);
     }
   }
 });

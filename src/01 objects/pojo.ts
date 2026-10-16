@@ -20,8 +20,8 @@
  *    ```
  *
  * Acciones JSON parciales y tipadas (con el molde Zod del schema; el resultado se valida y nunca sale del molde):
- *   p.push(cambios)        upsert profundo: lo no mencionado se conserva; `null` → null si la columna lo admite
- *   p.pushIgnore(cambios)  sólo agrega lo que no está definido (nunca pisa)
+ *   p.insert(cambios)       upsert profundo: lo no mencionado se conserva; `null` → null si la columna lo admite
+ *   p.insertIgnore(cambios) sólo agrega lo que no está definido (nunca pisa)
  *   p.update(cambios)      sólo cambia lo que ya está definido
  *   p.delete(query)        quita (deja sin definir) lo marcado; en json con molde quita dentro del json
  *   p.get(query)           JSON con sólo lo marcado (estructura desde la raíz)
@@ -52,8 +52,8 @@ const RESERVED = new Set([
   "pkValues",
   "pkOnly",
   "constructor",
-  "push",
-  "pushIgnore",
+  "insert",
+  "insertIgnore",
   "update",
   "delete",
   "get",
@@ -136,12 +136,12 @@ export abstract class Pojo {
 
   // ------------------------------------------------------------------ acciones JSON (Obj + Zod)
 
-  push(cambios: Patch<this>): this {
-    return this.#partial("push", cambios);
+  insert(cambios: Patch<this>): this {
+    return this.#partial("insert", cambios);
   }
 
-  pushIgnore(cambios: Patch<this>): this {
-    return this.#partial("pushIgnore", cambios);
+  insertIgnore(cambios: Patch<this>): this {
+    return this.#partial("insertIgnore", cambios);
   }
 
   update(cambios: Patch<this>): this {
@@ -164,16 +164,16 @@ export abstract class Pojo {
   #partial(op: PojoPartialOp, cambios: Record<string, unknown>): this {
     const base = this.toJSON();
     const z = schemaZod(this.$meta.schema);
-    const next = (op === "push"
-      ? Obj.push(base, cambios, z.molde)
-      : op === "pushIgnore"
-      ? Obj.pushIgnore(base, cambios)
+    const next = (op === "insert"
+      ? Obj.insert(base, cambios, z.molde)
+      : op === "insertIgnore"
+      ? Obj.insertIgnore(base, cambios)
       : Obj.update(base, cambios)) as Record<string, unknown>;
     // json sin molde → reemplazo directo
     for (const [k, c] of Object.entries(this.$meta.columns)) {
       if (c.type !== "json" || c.zod || cambios[k] === undefined) continue;
       const existe = base[k] !== undefined;
-      if (op === "push" || (op === "pushIgnore" && !existe) || (op === "update" && existe)) next[k] = cambios[k];
+      if (op === "insert" || (op === "insertIgnore" && !existe) || (op === "update" && existe)) next[k] = cambios[k];
     }
     return this.#commit(next);
   }

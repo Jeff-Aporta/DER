@@ -66,8 +66,8 @@ export class Producto extends pojoOf(ProductoSchema) {
 - `pojoOf(schema)` genera un getter/setter casteado por columna y relación. Los datos viven en `this.f`.
 - También se puede escribir a mano (`class X extends Pojo { static override schema = S; get/set ... }`), con los casteos de `cast.ts`.
 - `undefined` significa "no definido": `toJSON()` lo omite y un PUT no lo toca. `null` es un valor.
-- API: `fromJSON`, `fromList`, `assign`, `toJSON`, `pkValues`, `pkOnly`, más las acciones JSON ([obj.md](020-Obj-y-acciones-JSON.md)): `push`, `pushIgnore`, `update`, `delete`, `get`, `replace`.
-- Nombres reservados (no pueden ser columnas): `f`, `assign`, `toJSON`, `pkValues`, `pkOnly`, `push`, `pushIgnore`, `update`, `delete`, `get`, `replace`.
+- API: `fromJSON`, `fromList`, `assign`, `toJSON`, `pkValues`, `pkOnly`, más las acciones JSON ([obj.md](020-Obj-y-acciones-JSON.md)): `insert`, `insertIgnore`, `update`, `delete`, `get`, `replace`.
+- Nombres reservados (no pueden ser columnas): `f`, `assign`, `toJSON`, `pkValues`, `pkOnly`, `insert`, `insertIgnore`, `update`, `delete`, `get`, `replace`.
 
 ## Zod generado
 
@@ -79,6 +79,6 @@ export class Producto extends pojoOf(ProductoSchema) {
 | `insert` | POST: requeridos = no nullable, sin default y no autoincrement |
 | `update` | PUT: pk requeridas, el resto opcional |
 | `pk` | GET y DELETE |
-| `molde` | molde de `Obj.push`: `null` → null si la columna admite null; si no, se quita |
+| `molde` | molde de `Obj.insert`: `null` → null si la columna admite null; si no, se quita |
 
 Los mensajes de error salen en español (`Falta el campo requerido "x"`, `"x" no puede ser nulo`, `"x" debe ser uno de: …`, `"x" supera N caracteres`). `ZQuerySpec`, `ZInclude`, `ZConsulta`, `ZJson`, `ZAccionObj` y `ZRefObj` están en `src/00 common/schemas.ts`. `z` se reexporta para que la app use la misma instancia.

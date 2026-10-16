@@ -55,7 +55,7 @@ export interface ColumnDef {
   sequence?: true | SequenceDef;
   /**
    * Zod del valor (no nulo). Refina el tipo (`z.email()`) y, en columnas `json`, define su molde:
-   * con molde las acciones parciales (push/pushIgnore/update/delete) entran al JSON; sin molde se reemplaza.
+   * con molde las acciones parciales (insert/insertIgnore/update/delete) entran al JSON; sin molde se reemplaza.
    */
   zod?: z.ZodType;
 }
@@ -166,9 +166,9 @@ type PatchValue<V> = V extends Date ? V | string | null
   : V | null;
 
 /** Acción parcial de un POJO sobre su JSON. */
-export type PojoPartialOp = "push" | "pushIgnore" | "update";
+export type PojoPartialOp = "insert" | "insertIgnore" | "update";
 
-/** Cambios parciales tipados para `pojo.push/pushIgnore/update` (`null` = quitar, según el molde). */
+/** Cambios parciales tipados para `pojo.insert/insertIgnore/update` (`null` = quitar, según el molde). */
 export type Patch<P> = { [K in FieldsOf<P>]?: PatchValue<NonNullable<P[K]>> } & Record<string, unknown>;
 
 /** Consulta tipada (`true` marca la hoja; objetos descienden; `"*"` y `"[campo=valor]"` de Obj). */
@@ -314,7 +314,7 @@ export interface Hooks<P extends Pojo, Ctl = any, Ctx = any> {
 
 /**
  * Configuración JSON de la entidad, servida en `singular/pks.../cfg` (GET devuelve el JSON; PUT recibe un
- * JSON PARCIAL que se aplica con `Obj.push`, así una sola llave ajusta un pedazo sin afectar el resto).
+ * JSON PARCIAL que se aplica con `Obj.insert`, así una sola llave ajusta un pedazo sin afectar el resto).
  * Sólo modifica JSON. Típicamente la columna `jconfig` del pojo.
  */
 export interface CfgDef {
@@ -449,76 +449,9 @@ export interface SseEvent {
 }
 
 // ===================================================================================== obj
-// Contratos de `Obj` (origen: Jeff-Aporta/is-webcomponents shared/schemas.ts § obj, con la nomenclatura
-// de acciones ajustada: push · pushIgnore · update · delete · get · getValue · replace).
-
-/**
- * Consulta (`query`): copia la forma del dato y marca con TRUTHY lo pedido. Además de claves normales:
- *   - `"*"`: todas las claves de un objeto o todos los elementos de un arreglo;
- *   - `"[campo=valor]"`: el primer elemento cuyo `campo` vale `valor` (comparación como texto).
- */
-export type TConsulta = boolean | number | string | null | undefined | { [k: string]: TConsulta };
-export const ZConsulta: z.ZodType<TConsulta> = z.lazy(() =>
-  z.union([z.boolean(), z.number(), z.string(), z.null(), z.undefined(), z.record(z.string(), ZConsulta)])
-);
-
-/** Valor JSON. */
-export type TJson = string | number | boolean | null | TJson[] | { [k: string]: TJson };
-export const ZJson: z.ZodType<TJson> = z.lazy(() =>
-  z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(ZJson), z.record(z.string(), ZJson)])
-);
-
-/**
- * Acciones en orden (`Obj.aplicar`):
- *   - `push`: upsert profundo (lo no mencionado se conserva; `null` quita según el molde);
- *   - `pushIgnore`: agrega sólo lo que NO existe (nunca pisa) — antes `insert`, que se conserva como alias;
- *   - `update`: cambia sólo lo que YA existe (no crea);
- *   - `delete`: quita lo que marque la consulta;
- *   - `get`: la estructura desde la raíz con sólo lo marcado;
- *   - `getValue`: el valor exacto de la única hoja marcada (`null` si no existe);
- *   - `replace`: reemplazo directo (lo que se usa cuando no hay molde Zod).
- */
-export type TAccionObj =
-  | { op: "push" | "pushIgnore" | "insert" | "update" | "replace"; valor: TJson }
-  | { op: "delete" | "get" | "getValue"; query: TConsulta };
-export const ZAccionObj: z.ZodType<TAccionObj> = z.discriminatedUnion("op", [
-  z.object({ op: z.literal("push"), valor: ZJson }),
-  z.object({ op: z.literal("pushIgnore"), valor: ZJson }),
-  z.object({ op: z.literal("insert"), valor: ZJson }),
-  z.object({ op: z.literal("update"), valor: ZJson }),
-  z.object({ op: z.literal("replace"), valor: ZJson }),
-  z.object({ op: z.literal("delete"), query: ZConsulta }),
-  z.object({ op: z.literal("get"), query: ZConsulta }),
-  z.object({ op: z.literal("getValue"), query: ZConsulta }),
-]);
-
-/** Referencia a un valor de otro JSON: `path` relativo, `query` (un getValue) y `actions` opcionales. */
-export interface TRefObj {
-  path: string;
-  query: TConsulta;
-  actions?: TAccionObj[] | undefined;
-}
-export const ZRefObj: z.ZodType<TRefObj> = z.object({
-  path: z.string().min(1),
-  query: ZConsulta,
-  actions: z.array(ZAccionObj).optional(),
-});
-
-/** Cómo leer un `path` (fetch en el navegador, fs en Node/Deno). */
-export type TCargarJson = (url: string) => Promise<unknown>;
-
-export interface TOpcionesResolver {
-  /** Lector del JSON de cada `path` (ya resuelto contra `base`). */
-  cargar: TCargarJson;
-  /** URL o ruta del documento que contiene las referencias. */
-  base: string;
-  /** Avisos no fatales. Por defecto, console.warn. */
-  avisar?: ((mensaje: string) => void) | undefined;
-  /** Tope de anidamiento de referencias (contra ciclos). Por defecto 16. */
-  profundidad?: number | undefined;
-}
-
-export type TCodigoObj = "consulta" | "no-existe" | "varios" | "ninguno" | "ref" | "ciclo" | "carga" | "accion";
+// Contratos de `Obj` (operaciones VIRTUALES): vienen de iswc por URL (`deno task sync` trae lo último).
+import type { TConsulta } from "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/schemas.ts";
+export { type TAccionObj, type TCodigoObj, type TConsulta, type TJson, ZAccionObj, ZConsulta, ZJson } from "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/schemas.ts";
 
 // ===================================================================================== zod
 
@@ -532,7 +465,7 @@ export interface SchemaZod {
   update: z.ZodObject;
   /** GET/DELETE: sólo pks. */
   pk: z.ZodObject;
-  /** Molde de `Obj.push` en las acciones parciales del POJO: `null` → null si la columna es nullable; si no, se quita. */
+  /** Molde de `Obj.insert` en las acciones parciales del POJO: `null` → null si la columna es nullable; si no, se quita. */
   molde: z.ZodObject;
 }
 
