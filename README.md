@@ -10,3 +10,7 @@ deno task check     # tipos de todas las entradas
 deno task test      # unit + SQLite + PostgreSQL (PGlite) + HTTP + guardianes de arquitectura
 deno task example   # servidor de ejemplo en :8000/api
 ```
+
+## Norma
+
+[ESTANDAR — ecosistema VPS](https://github.com/Jeff-Aporta/dev-vps/blob/main/ESTANDAR.md): norma única; gana sobre este repo si hay conflicto.
