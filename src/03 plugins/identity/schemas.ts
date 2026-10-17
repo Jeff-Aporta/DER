@@ -22,8 +22,21 @@ export interface IdentityConfig {
   admin?: { usuario: string; password: string; nombre?: string | undefined } | undefined;
   /** Endurecimiento del login (bloqueo, dispositivo nuevo, viaje imposible, política de contraseña). */
   security?: IdentitySecurityConfig | undefined;
+  /** Modo de firma del JWT (HS384 simétrico por defecto; ES256 asimétrico + JWKS). */
+  jwt?: IdentityJwtConfig | undefined;
   /** Proxies de confianza para derivar la IP real: toma el ÚLTIMO salto de confianza, no el primero. Default 0 (legacy: primer salto). */
   trustProxy?: number | undefined;
+}
+
+/** Modo de firma del JWT. */
+export interface IdentityJwtConfig {
+  alg?: "HS384" | "ES256" | undefined;
+  /** kid del JWT (ES256). */
+  kid?: string | undefined;
+  /** Llave privada JWK (solo el firmante; ej. usrs). */
+  privateJwk?: Record<string, unknown> | undefined;
+  /** Llave pública JWK (verificadores y para publicar el JWKS). */
+  publicJwk?: Record<string, unknown> | undefined;
 }
 
 /** Política de contraseña (mínimos). */
@@ -82,6 +95,12 @@ export const ZIdentityConfig: z.ZodType<IdentityConfig> = z.object({
     .optional(),
   security: ZIdentitySecurityConfig.optional(),
   trustProxy: z.number().int().min(0).max(10).optional(),
+  jwt: z.object({
+    alg: z.enum(["HS384", "ES256"]).optional(),
+    kid: z.string().min(1).optional(),
+    privateJwk: z.record(z.string(), z.unknown()).optional(),
+    publicJwk: z.record(z.string(), z.unknown()).optional(),
+  }).strict().optional(),
 }).strict();
 
 /** Claims del JWT (identidad, nunca permisos: el rol se lee en cada request). */

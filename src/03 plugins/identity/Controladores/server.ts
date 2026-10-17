@@ -17,6 +17,7 @@ import {
   type AuditQuery,
   type DeviceInfo,
   type IdentityConfig,
+  type JwtClaims,
   type LoginResult,
   type SessionInfo,
   ZAuditQuery,
@@ -24,7 +25,7 @@ import {
   ZPasswordChangeInput,
 } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
 import type { IdentityPlugin } from "@Jeff-Aporta/DER/src/03 plugins/schemas.ts";
-import { hashPassword, randomId, signJwt, verifyJwt, verifyPassword } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/crypto.ts";
+import { generateEs256KeyPair, hashPassword, importEs256PrivateKey, importEs256PublicKey, randomId, signJwt, signJwtEs256, verifyJwt, verifyJwtEs256, verifyPassword } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/crypto.ts";
 import { deviceInfo } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/device.ts";
 import {
   EventoEntity,
@@ -59,6 +60,37 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   if (secret.length < 32) throw new Error("identity.secret debe tener al menos 32 caracteres");
   const pepper = cfg.pepper ?? secret;
   const trustProxy = cfg.trustProxy ?? 0;
+
+  // Firma: HS384 (simétrico) o ES256 (asimétrico + JWKS). Las llaves se cargan una vez (perezoso).
+  const alg = cfg.jwt?.alg ?? "HS384";
+  let es256KeysPromise: Promise<CryptoKeyPair> | undefined;
+  async function es256Keys(): Promise<CryptoKeyPair> {
+    es256KeysPromise ??= (async () => {
+      if (cfg.jwt?.privateJwk) {
+        const privateKey = await importEs256PrivateKey(cfg.jwt.privateJwk as JsonWebKey);
+        const publicKey = cfg.jwt.publicJwk
+          ? await importEs256PublicKey(cfg.jwt.publicJwk as JsonWebKey)
+          : await importEs256PublicKey(await crypto.subtle.exportKey("jwk", privateKey));
+        return { privateKey, publicKey };
+      }
+      const kp = await generateEs256KeyPair();
+      const pub = await crypto.subtle.exportKey("jwk", kp.publicKey);
+      console.warn("identity ES256 sin llave persistida: par efímero. Guarda el JWK público: " + JSON.stringify(pub));
+      return kp;
+    })();
+    return es256KeysPromise;
+  }
+  async function firmar(claims: JwtClaims): Promise<string> {
+    if (alg === "ES256") return signJwtEs256(claims, (await es256Keys()).privateKey, cfg.jwt?.kid);
+    return signJwt(claims, secret);
+  }
+  async function verificarToken(token: string): Promise<JwtClaims> {
+    if (alg === "ES256") return verifyJwtEs256(token, (await es256Keys()).publicKey, { issuer: cfg.issuer });
+    return verifyJwt(token, secret, { issuer: cfg.issuer });
+  }
+  async function publicJwk(): Promise<JsonWebKey> {
+    return await crypto.subtle.exportKey("jwk", (await es256Keys()).publicKey);
+  }
   const iterations = cfg.iterations ?? 100_000;
   const expiresIn = cfg.expiresIn ?? 86_400;
 
@@ -263,14 +295,14 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
       huella: dev.huella,
       ultimo_acceso: new Date(ahora),
     });
-    const token = await signJwt({
+    const token = await firmar({
       sub: iusuario,
       jti,
       iat: now,
       exp,
       ...(cfg.issuer ? { iss: cfg.issuer } : {}),
       ...(u.nombre ? { nombre: u.nombre } : {}),
-    }, secret);
+    });
 
     await registrarIntento("ok", null, dev, usuario);
     await registrarEvento("login", dev, { iusuario, jdata: { jti, dispositivoNuevo: nuevo } });
@@ -286,7 +318,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   // ============================================================ verificación
 
   async function verify(token: string): Promise<Identity> {
-    const claims = await verifyJwt(token, secret, { issuer: cfg.issuer });
+    const claims = await verificarToken(token);
     const sesion = await sesiones.get({ jti: claims.jti });
     if (!sesion || sesion.brevocado || sesion.iusuario !== claims.sub) {
       throw new HttpError(401, "Sesión cerrada o inexistente");
@@ -410,6 +442,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
     events,
     verify,
     routes: [
+      { method: "GET", path: ".well-known/jwks.json", handler: async () => ({ keys: alg === "ES256" ? [{ ...await publicJwk(), kid: cfg.jwt?.kid, alg: "ES256", use: "sig" }] : [] }) },
       { method: "POST", path: "login", handler: ({ body, request }) => login(body, request) },
       {
         method: "DELETE",
