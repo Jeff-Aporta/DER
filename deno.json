@@ -15,6 +15,7 @@
     "./plugins": "./src/03 plugins/mod.ts",
     "./plugins/identity": "./src/03 plugins/identity/mod.ts",
     "./plugins/permissions": "./src/03 plugins/permissions/mod.ts",
+    "./plugins/patches": "./src/03 plugins/patches/mod.ts",
     "./plugins/client": "./src/03 plugins/client.ts",
     "./plugins/identity/client": "./src/03 plugins/identity/client.ts",
     "./plugins/permissions/client": "./src/03 plugins/permissions/client.ts"
@@ -29,6 +30,7 @@
   },
   "tasks": {
     "sync": "deno run -A tools/sync-iswc.ts",
+    "patch": "deno run -A tools/patch.ts",
     "test": "deno test -A",
     "typecheck": "node node_modules/typescript/bin/tsc -p tsconfig.json",
     "check": "deno task typecheck && deno check mod.ts \"src/02 controllers/client/mod.ts\" \"src/02 controllers/server/sqlite/mod.ts\" \"src/02 controllers/server/pg/mod.ts\" \"src/02 controllers/server/pglite/mod.ts\" \"src/02 controllers/server/hosts/azure/mod.ts\" \"src/02 controllers/server/hosts/cloudflare/mod.ts\" \"src/03 plugins/mod.ts\" \"src/03 plugins/client.ts\" examples/",

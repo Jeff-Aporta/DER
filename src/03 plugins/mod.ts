@@ -22,6 +22,7 @@ import { permissionsPlugin } from "@Jeff-Aporta/DER/src/03 plugins/permissions/C
 export * from "@Jeff-Aporta/DER/src/03 plugins/schemas.ts";
 export * from "@Jeff-Aporta/DER/src/03 plugins/identity/mod.ts";
 export * from "@Jeff-Aporta/DER/src/03 plugins/permissions/mod.ts";
+export * from "@Jeff-Aporta/DER/src/03 plugins/patches/mod.ts";
 
 /** Lee `"env:NOMBRE"` del `env` dado o del entorno del proceso (Deno / Node). */
 export function resolveEnv(value: string, env?: Record<string, string | undefined>): string {
