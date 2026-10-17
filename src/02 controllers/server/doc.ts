@@ -10,7 +10,8 @@
  */
 import type { Entity } from "@Jeff-Aporta/DER/src/01 objects/entity.ts";
 import { resolvePojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
-import type { ColumnDef } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import type { ColumnDef, PropagationSpec } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
+import { diagramPayloads, erDiagramPayload } from "@Jeff-Aporta/DER/src/01 objects/diagram.ts";
 import type { DocSheet, DocViewOptions } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 
 /** Pin del kit iswc (el mismo que usa ISS en su `docs/index.html`). */
@@ -83,7 +84,16 @@ function columnNotes(c: ColumnDef): string {
 }
 
 /** Markdown del contrato de una entidad, generado desde la definición compartida. */
-export function entityContractMd(entity: Entity<any>, opts: { table?: string; basePath?: string } = {}): string {
+export function entityContractMd(
+  entity: Entity<any>,
+  opts: {
+    table?: string;
+    basePath?: string;
+    entities?: Entity<any>[];
+    propagations?: PropagationSpec;
+    diagram?: boolean;
+  } = {},
+): string {
   const meta = entity.meta;
   const base = (opts.basePath ?? "").replace(/\/+$/, "");
   const S = `${base}/${entity.singularPath.join("/")}`;
@@ -138,6 +148,7 @@ export function entityContractMd(entity: Entity<any>, opts: { table?: string; ba
   out.push("");
 
   const rels = Object.entries(meta.relations);
+  const relationTargets = new Set<string>([entity.name]);
   if (rels.length) {
     out.push("## Relaciones", "", "| relación | tipo | destino | on |", "| --- | --- | --- | --- |");
     for (const [k, r] of rels) {
@@ -145,10 +156,30 @@ export function entityContractMd(entity: Entity<any>, opts: { table?: string; ba
       try {
         target ||= resolvePojo(r.target).name;
       } catch { /* sin resolver */ }
+      if (target) relationTargets.add(target);
       const on = Object.entries(r.on).map(([a, b]) => `${a} = ${b}`).join(", ");
       out.push(`| ${[k, r.kind === "many" ? "1:N (arreglo)" : "1:1 (objeto)", target, on].map(cell).join(" | ")} |`);
     }
     out.push("", "Se incluyen con `include` (JData): `true`, objeto anidado o `\"*\"` para todas.", "");
+  }
+
+  if (opts.diagram !== false) {
+    const pool = opts.entities ?? [entity];
+    const sub = pool.filter((e) => relationTargets.has(e.name));
+    const payload = erDiagramPayload(sub.length ? sub : [entity], {
+      title: entity.singular,
+      ...(opts.propagations !== undefined ? { propagations: opts.propagations } : {}),
+    });
+    out.push(
+      "## Diagrama",
+      "",
+      "Payload declarativo para `<iswc-er-diagram>` (JSON dentro de `<script type=\"application/json\">`):",
+      "",
+      "```json",
+      prettyJson(payload),
+      "```",
+      "",
+    );
   }
 
   out.push("## Consulta", "");
@@ -168,6 +199,9 @@ export function entityContractMd(entity: Entity<any>, opts: { table?: string; ba
 
 const json = (v: unknown): string =>
   JSON.stringify(v).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+
+/** JSON indentado y seguro para incrustar en markdown. */
+const prettyJson = (v: unknown): string => JSON.stringify(v, null, 2).replace(/</g, "\\u003c");
 
 const escapeHtml = (s: string): string =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
@@ -261,7 +295,11 @@ export function vaultHtml(sheets: DocSheet[], title: string, view: DocViewOption
 }
 
 /** Índice general del API: una línea por entidad con sus rutas de documentación y su contrato. */
-export function apiIndexMd(entities: Entity<any>[], basePath = ""): string {
+export function apiIndexMd(
+  entities: Entity<any>[],
+  basePath = "",
+  opts: { title?: string; propagations?: PropagationSpec; diagram?: boolean } = {},
+): string {
   const base = basePath.replace(/\/+$/, "");
   const out: string[] = ["# API · Documentación", ""];
   out.push(
@@ -278,6 +316,30 @@ export function apiIndexMd(entities: Entity<any>[], basePath = ""): string {
     );
   }
   out.push("");
+  if (opts.diagram !== false) {
+    const { er, class: cls } = diagramPayloads(entities, {
+      ...(opts.title !== undefined ? { title: opts.title } : {}),
+      ...(opts.propagations !== undefined ? { propagations: opts.propagations } : {}),
+    });
+    out.push(
+      "## Diagrama ER",
+      "",
+      "Payload declarativo para `<iswc-er-diagram>`:",
+      "",
+      "```json",
+      prettyJson(er),
+      "```",
+      "",
+      "## Diagrama de clases",
+      "",
+      "Payload declarativo para `<iswc-class-diagram>`:",
+      "",
+      "```json",
+      prettyJson(cls),
+      "```",
+      "",
+    );
+  }
   return out.join("\n");
 }
 

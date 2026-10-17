@@ -45,6 +45,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 | Motores SQL: PG, SQLite, PGlite, `seed()`, `syncSchema()` (migraciones), secuencias, índices, caso de identificadores, nuevo motor | [040-Servidor/010-Motores-seed-y-sync.md](040-Servidor/010-Motores-seed-y-sync.md) |
 | Server-Sent Events y configuración JSON | [030-Controllers/030-SSE-y-cfg.md](030-Controllers/030-SSE-y-cfg.md) |
 | Documentación servida: md autogenerado + secciones en `/doc`, vista iswc en `/doc?v=1` | [030-Controllers/040-Documentacion-servida.md](030-Controllers/040-Documentacion-servida.md) |
+| Diagramas DER: payload `erDiagram` / `classDiagram` para ISWC desde las entidades | [030-Controllers/040-Documentacion-servida.md](030-Controllers/040-Documentacion-servida.md#diagramas-del-der-payload-para-iswc) |
 | Hosts: tabla de rutas, Azure Functions, Cloudflare Workers, rutas irregulares, CORS, guard | [040-Servidor/020-Hosts.md](040-Servidor/020-Hosts.md) |
 | Seguridad: plugins de identidad (usuarios, hash, JWT, login/logout) y permisos (DER, vector de acciones) | [050-Plugins/010-Seguridad.md](050-Plugins/010-Seguridad.md) |
 | Propagación de detalles (`getPropagation` / `setPropagation`), seed en cascada y controllers en bases/motores distintos | [030-Controllers/020-Propagacion-y-multi-db.md](030-Controllers/020-Propagacion-y-multi-db.md) |

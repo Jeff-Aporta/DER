@@ -10,3 +10,4 @@ export * from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
 export * from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
 export * from "@Jeff-Aporta/DER/src/01 objects/query.ts";
 export * from "@Jeff-Aporta/DER/src/01 objects/entity.ts";
+export * from "@Jeff-Aporta/DER/src/01 objects/diagram.ts";

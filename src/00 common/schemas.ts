@@ -516,3 +516,109 @@ export const ZQuerySpec: z.ZodType<QuerySpecShape> = z.object({
   pageSize: z.number().int().min(1, "pageSize debe ser un entero >= 1").optional(),
   include: ZInclude.optional(),
 }).strict();
+
+// ===================================================================================== diagramas
+
+/** Cardinalidad de un extremo en el diagrama ER. */
+export type ErCardinality = "one" | "many" | "zeroOrOne" | "zeroOrMany";
+
+/** Grupo visual (cajón) de un diagrama. */
+export interface DiagramGroup {
+  id: string;
+  name: string;
+  hue?: number;
+}
+
+/** Atributo de una caja ER. */
+export interface DiagramAttribute {
+  name: string;
+  type: string;
+  key?: "PK" | "FK";
+}
+
+/** Caja de entidad del diagrama ER. */
+export interface ErEntityBox {
+  id: string;
+  name: string;
+  group?: string;
+  attributes: DiagramAttribute[];
+}
+
+/** Arista del diagrama ER. */
+export interface ErRelation {
+  from: string;
+  to: string;
+  fromCard: ErCardinality;
+  toCard: ErCardinality;
+  label?: string;
+  dashStyle?: "solid" | "dashed" | "dotted";
+  identifying?: boolean;
+}
+
+/** Cuerpo de { "erDiagram": … }. */
+export interface ErDiagram {
+  title?: string;
+  direction?: "LR" | "TB";
+  groups?: DiagramGroup[];
+  entities: ErEntityBox[];
+  relations: ErRelation[];
+}
+
+/** Payload listo para <iswc-er-diagram>. */
+export interface ErPayload {
+  erDiagram: ErDiagram;
+}
+
+/** Clase del diagrama de clases. */
+export interface ClassBox {
+  id: string;
+  name: string;
+  stereotype?: string;
+  group?: string;
+  attributes: string[];
+  methods?: string[];
+}
+
+/** Arista del diagrama de clases. */
+export interface ClassRelation {
+  from: string;
+  to: string;
+  kind: "association" | "dependency";
+  label?: string;
+}
+
+/** Cuerpo de { "classDiagram": … }. */
+export interface ClassDiagram {
+  title?: string;
+  direction?: "LR" | "TB";
+  groups?: DiagramGroup[];
+  classes: ClassBox[];
+  relations: ClassRelation[];
+}
+
+/** Payload listo para <iswc-class-diagram>. */
+export interface ClassPayload {
+  classDiagram: ClassDiagram;
+}
+
+/**
+ * Relaciones que se propagan por entidad: { pedido: ["lineas"] }.
+ * Se toma de getPropagation / setPropagation del controller.
+ */
+export type PropagationSpec = Record<string, readonly string[]>;
+
+/** Opciones comunes a los payloads de diagrama. */
+export interface DiagramOptions {
+  /** Título que muestra el componente. */
+  title?: string;
+  /** Dirección del layout (default del componente si se omite). */
+  direction?: "LR" | "TB";
+  /** Grupos (cajones) declarados a mano. */
+  groups?: DiagramGroup[];
+  /** Asigna cada entidad a un grupo (recibe la entidad; basta su name). */
+  groupOf?: (entity: { readonly name: string }) => string | undefined;
+  /** Relaciones marcadas como propagación → arista punteada. */
+  propagations?: PropagationSpec;
+  /** FK nullable → zeroOrOne / zeroOrMany (default: one / many). */
+  nullableCards?: boolean;
+}

@@ -46,3 +46,39 @@ createRouter(ctrls, { basePath: "/api", doc: ["docs/README.md"], docView: { titl
 ## Client
 
 `await ctrl.doc()` hace `GET plural/doc` y devuelve el texto.
+
+## Diagramas del DER (payload para ISWC)
+
+Cada `/doc` incluye un **payload declarativo** derivado de la definición compartida de las entidades
+(columnas, relaciones, cardinalidades y propagación). No dibuja: sólo produce el JSON que consumen
+`<iswc-er-diagram>` y `<iswc-class-diagram>` del kit is-webcomponents.
+
+| Función | Salida |
+| --- | --- |
+| `erDiagramPayload(entities, opts)` | `{ "erDiagram": { entities, relations } }` |
+| `classDiagramPayload(entities, opts)` | `{ "classDiagram": { classes, relations } }` |
+| `diagramPayloads(entities, opts)` | `{ er, class }` (los dos) |
+
+Reglas de la traducción:
+
+| Definición DER | Payload |
+| --- | --- |
+| `kind: "one"` (N:1) | `fromCard: "many"`, `toCard: "one"` |
+| `kind: "many"` (1:N) | `fromCard: "one"`, `toCard: "many"` |
+| columna `pk: true` | atributo con `key: "PK"` |
+| columna local de `on` | atributo con `key: "FK"` |
+| relación en `propagations` | `dashStyle: "dashed"` (ER) y `kind: "dependency"` (clases), etiqueta «propaga» |
+| `nullableCards: true` + FK nullable | `zeroOrOne` / `zeroOrMany` |
+
+```ts
+import { diagramPayloads } from "@Jeff-Aporta/DER/src/01 objects/diagram.ts";
+const { er, class: cls } = diagramPayloads([ProductoEntity, PedidoEntity, LineaEntity], {
+  title: "Dominio",
+  propagations: { pedido: ["lineas"] },
+});
+```
+
+En el markdown de `/doc` va como bloque `json` (para agentes); en `/doc?v=1` se puede incrustar
+dentro de `<script type="application/json">` del componente. `entityContractMd` incluye el subgrafo
+de la entidad (ella y sus destinos directos); `apiIndexMd` incluye los dos diagramas completos.
+Se desactivan con `{ diagram: false }`.
