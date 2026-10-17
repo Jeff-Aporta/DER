@@ -104,3 +104,62 @@ export async function verifyJwt(
   if (claims.data.exp * 1000 <= (opts.now ?? Date.now())) throw new HttpError(401, "Token vencido");
   return claims.data;
 }
+
+/* ── ES256 (ECDSA P-256) + JWK: firma asimétrica para que usrs firme y las demás verifiquen ──
+ * WebCrypto de Deno/Node devuelve la firma ECDSA en formato raw r‖s (64 bytes), que es exactamente
+ * lo que JWT ES256 usa: no hay que convertir DER. */
+
+/** Genera un par ECDSA P-256 (extraíble). */
+export async function generateEs256KeyPair(): Promise<CryptoKeyPair> {
+  return await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+}
+
+export async function importEs256PrivateKey(jwk: JsonWebKey): Promise<CryptoKey> {
+  return await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
+}
+
+export async function importEs256PublicKey(jwk: JsonWebKey): Promise<CryptoKey> {
+  return await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["verify"]);
+}
+
+/** Firma un JWT con ES256 (firma raw r‖s). */
+export async function signJwtEs256(claims: JwtClaims, privateKey: CryptoKey, kid?: string): Promise<string> {
+  const header = b64urlEncode(enc.encode(JSON.stringify({ alg: "ES256", typ: "JWT", ...(kid ? { kid } : {}) })));
+  const body = `${header}.${b64urlEncode(enc.encode(JSON.stringify(claims)))}`;
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, privateKey, enc.encode(body));
+  return `${body}.${b64urlEncode(new Uint8Array(sig))}`;
+}
+
+/** Verifica un JWT ES256 contra la llave pública. */
+export async function verifyJwtEs256(
+  token: string,
+  publicKey: CryptoKey,
+  opts: { issuer?: string | undefined; now?: number } = {},
+): Promise<JwtClaims> {
+  const parts = token.split(".");
+  const [h, p, s] = parts;
+  if (parts.length !== 3 || !h || !p || !s) throw invalid("formato");
+  let header: unknown;
+  let payload: unknown;
+  try {
+    header = JSON.parse(dec.decode(b64urlDecode(h)));
+    payload = JSON.parse(dec.decode(b64urlDecode(p)));
+  } catch {
+    throw invalid("no es JSON");
+  }
+  if (!header || typeof header !== "object" || (header as Record<string, unknown>)["alg"] !== "ES256") {
+    throw invalid("algoritmo no admitido");
+  }
+  const ok = await crypto.subtle.verify(
+    { name: "ECDSA", hash: "SHA-256" },
+    publicKey,
+    b64urlDecode(s),
+    enc.encode(`${h}.${p}`),
+  );
+  if (!ok) throw invalid("firma");
+  const claims = ZJwtClaims.safeParse(payload);
+  if (!claims.success) throw invalid("claims");
+  if (opts.issuer !== undefined && claims.data.iss !== opts.issuer) throw invalid("emisor");
+  if (claims.data.exp * 1000 <= (opts.now ?? Date.now())) throw new HttpError(401, "Token vencido");
+  return claims.data;
+}
