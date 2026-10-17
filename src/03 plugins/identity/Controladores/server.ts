@@ -58,6 +58,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   const { db, secret } = cfg;
   if (secret.length < 32) throw new Error("identity.secret debe tener al menos 32 caracteres");
   const pepper = cfg.pepper ?? secret;
+  const trustProxy = cfg.trustProxy ?? 0;
   const iterations = cfg.iterations ?? 100_000;
   const expiresIn = cfg.expiresIn ?? 86_400;
 
@@ -202,7 +203,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
     if (!parsed.success) throw new ValidationError(parsed.error.issues[0]?.message ?? "Credenciales inválidas");
     const { usuario, password } = parsed.data;
     const dev = req
-      ? await deviceInfo(req)
+      ? await deviceInfo(req, trustProxy)
       : { ip: "desconocido", userAgent: "", dispositivo: "desconocido", so: "desconocido", navegador: "desconocido", huella: randomId(8) };
 
     const restante = await bloqueoRestante(dev, usuario);
@@ -428,7 +429,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
         async handler(input, ctx) {
           const identity = ctx.state["identity"] as Identity | null | undefined;
           if (!identity) throw new HttpError(401, "Requiere autenticación");
-          const revocadas = await logoutAll(identity, await deviceInfo(input.request));
+          const revocadas = await logoutAll(identity, await deviceInfo(input.request, trustProxy));
           return { revocadas };
         },
       },
@@ -449,7 +450,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
         async handler({ body, request }, ctx) {
           const identity = ctx.state["identity"] as Identity | null | undefined;
           if (!identity) throw new HttpError(401, "Requiere autenticación");
-          const revocadas = await changePassword(identity, body, await deviceInfo(request));
+          const revocadas = await changePassword(identity, body, await deviceInfo(request, trustProxy));
           return { revocadas };
         },
       },

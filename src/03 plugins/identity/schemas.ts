@@ -22,6 +22,8 @@ export interface IdentityConfig {
   admin?: { usuario: string; password: string; nombre?: string | undefined } | undefined;
   /** Endurecimiento del login (bloqueo, dispositivo nuevo, viaje imposible, política de contraseña). */
   security?: IdentitySecurityConfig | undefined;
+  /** Proxies de confianza para derivar la IP real: toma el ÚLTIMO salto de confianza, no el primero. Default 0 (legacy: primer salto). */
+  trustProxy?: number | undefined;
 }
 
 /** Política de contraseña (mínimos). */
@@ -79,6 +81,7 @@ export const ZIdentityConfig: z.ZodType<IdentityConfig> = z.object({
   admin: z.object({ usuario: z.string().min(1), password: z.string().min(8), nombre: z.string().optional() }).strict()
     .optional(),
   security: ZIdentitySecurityConfig.optional(),
+  trustProxy: z.number().int().min(0).max(10).optional(),
 }).strict();
 
 /** Claims del JWT (identidad, nunca permisos: el rol se lee en cada request). */

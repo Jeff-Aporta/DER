@@ -8,12 +8,16 @@ import { b64urlEncode } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controlad
 const UNKNOWN = "desconocido";
 const enc = new TextEncoder();
 
-/** IP real: primer salto de `X-Forwarded-For`, luego `X-Real-IP`; sin socket en la API Web. */
-export function clientIp(req: Request): string {
+/** IP real: con `trustProxy` toma el ÚLTIMO salto de confianza de `X-Forwarded-For` (el cliente es el anterior a los últimos `trustProxy` proxies); sin él, legado = primer salto (el proxy debe SOBRESCRIBIR el header). */
+export function clientIp(req: Request, trustProxy = 0): string {
   const fwd = req.headers.get("x-forwarded-for");
   if (fwd) {
-    const first = fwd.split(",")[0]?.trim();
-    if (first) return first;
+    const ips = fwd.split(",").map((s) => s.trim()).filter(Boolean);
+    if (trustProxy > 0) {
+      const idx = ips.length - 1 - trustProxy;
+      return ips[idx] ?? ips[0] ?? UNKNOWN;
+    }
+    return ips[0] ?? UNKNOWN;
   }
   return req.headers.get("x-real-ip")?.trim() || UNKNOWN;
 }
@@ -51,10 +55,10 @@ export async function huellaOf(ua: string): Promise<string> {
 }
 
 /** Datos de auditoría del request (IP, user-agent, SO, navegador, tipo de equipo y huella). */
-export async function deviceInfo(req: Request): Promise<DeviceInfo> {
+export async function deviceInfo(req: Request, trustProxy = 0): Promise<DeviceInfo> {
   const userAgent = req.headers.get("user-agent")?.slice(0, 400) ?? "";
   return {
-    ip: clientIp(req),
+    ip: clientIp(req, trustProxy),
     userAgent,
     dispositivo: dispositivoOf(userAgent),
     so: soOf(userAgent),
