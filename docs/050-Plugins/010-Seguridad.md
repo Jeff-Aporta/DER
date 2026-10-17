@@ -55,6 +55,10 @@ Orden en cada request: autenticación (identidad) → autorización (permisos) �
 |---|---|---|
 | `POST /login` `{ usuario, password }` | pública | `{ token, tipo: "Bearer", expira, usuario }` · 401 «Usuario o contraseña inválidos» |
 | `DELETE /logout` | JWT | revoca la sesión del token (204); el mismo token responde 401 después |
+| `DELETE /logout/all` | JWT | revoca **todas** las sesiones del usuario y devuelve `{ revocadas }` |
+| `GET /sessions` | JWT | sesiones vigentes con IP, dispositivo, SO, navegador, último acceso y `actual` |
+| `PUT /password` `{ actual, nueva }` | JWT | exige la actual, aplica la política, revoca las demás sesiones |
+| `GET /events` | JWT | auditoría filtrable por `iusuario`, `accion`, `desde`, `hasta`, `limit`, `offset` |
 | CRUD + list `usuario` / `usuarios` | JWT + permisos | alta/edición de usuarios; `password` se recibe y nunca se guarda ni devuelve |
 
 - **Usuarios:** `permisos_usuarios (iusuario string pk, nombre, email, bactivo, jdata, creado, hash)`. `hash` es una columna `hidden`: no se selecciona, no se retorna y no se puede pedir ni filtrar en `query()` (400).
@@ -167,3 +171,45 @@ await permisos.roles.query({ include: { acciones: true } });    // CRUD/list del
 await auth.usuarios.post({ iusuario: "beto", password: "..." });
 await auth.logout();                                            // DELETE /logout y olvida el token
 ```
+
+## Endurecimiento del login (`identity.security`)
+
+Configuración opcional, validada con `ZIdentitySecurityConfig` (`.strict()`). Sin ella el plugin se comporta
+como antes (sólo JWT y revocación), salvo que la auditoría de intentos y eventos **siempre** se escribe.
+
+```ts
+identity: {
+  secret: "env:JWT_SECRET",
+  security: {
+    maxAttempts: 5,        // fallos por IP o usuario antes de bloquear (1..100)
+    windowSeconds: 900,    // ventana de conteo
+    lockSeconds: 900,      // duración del bloqueo
+    blockNewDevice: false, // true: rechaza un equipo no visto antes
+    travel: { enabled: true, minMinutes: 5, block: false }, // cambio de IP en ventana corta
+    password: { minLength: 12 }, // mínimo real: 8
+  },
+}
+```
+
+### Tablas de auditoría
+
+| Tabla | Contenido |
+|---|---|
+| `permisos_intentos` | un renglón por intento: `ip`, `user_agent`, `dispositivo`, `so`, `navegador`, `resultado` (`ok`/`fallo`/`bloqueado`), `motivo`, `creado` |
+| `permisos_eventos` | `login`, `logout_all`, `password`, `bloqueo`, `dispositivo_nuevo`, `viaje_imposible` con `ip`, `user_agent`, `dispositivo` y `jdata` libre |
+| `permisos_sesiones` | amplía con `ip`, `user_agent`, `dispositivo`, `so`, `navegador`, `huella` y `ultimo_acceso` (throttle de 60 s) |
+
+> **Migración:** `router.seed()` usa `CREATE TABLE IF NOT EXISTS`; en una base existente las columnas nuevas de
+> `permisos_sesiones` se crean con `syncSchema()` (o recreando la tabla). Las tablas nuevas sí se crean solas.
+
+### Decisiones
+
+1. **IP real:** primer salto de `X-Forwarded-For`, luego `X-Real-IP`; sin socket en la API Web.
+2. **Dispositivo:** se deriva del `user-agent` (sin dependencias) y se identifica con `huella` = SHA-256 del UA.
+3. **Bloqueo:** cuenta fallos por **IP o usuario** dentro de `max(`windowSeconds`, `lockSeconds`)`; al alcanzar
+   `maxAttempts` responde **429** «Demasiados intentos fallidos» incluso con la contraseña correcta, y expira solo.
+4. **Dispositivo nuevo:** el primer login de un usuario nunca es «nuevo»; se compara la `huella` contra sus sesiones.
+5. **Viaje imposible (básico):** sin geolocalización; cambia la IP y pasan menos de `travel.minMinutes` desde el
+   último login correcto. Con `block: true` responde 403; si no, sólo se audita.
+6. **Cambio de contraseña:** exige la actual, aplica `password.minLength`, prohíbe reutilizar la misma y revoca
+   todas las demás sesiones (la actual sigue viva). Registra el evento `password`.
