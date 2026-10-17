@@ -57,6 +57,7 @@ function iso(value: unknown): string | null {
 export function identityPlugin(cfg: IdentityConfig & { db: Database }): IdentityPlugin {
   const { db, secret } = cfg;
   if (secret.length < 32) throw new Error("identity.secret debe tener al menos 32 caracteres");
+  const pepper = cfg.pepper ?? secret;
   const iterations = cfg.iterations ?? 100_000;
   const expiresIn = cfg.expiresIn ?? 86_400;
 
@@ -75,7 +76,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   /** Reemplaza `password` (virtual) por su hash antes de guardar. */
   const withHash = async (u: Usuario): Promise<Usuario> => {
     if (u.password) {
-      u.hash = await hashPassword(u.password, secret, iterations);
+      u.hash = await hashPassword(u.password, pepper, iterations);
       u.password = undefined;
     }
     return u;
@@ -212,7 +213,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
     }
 
     const [u] = await usuarios.select({ fields: ["iusuario", "nombre", "hash", "bactivo"], where: { iusuario: usuario } });
-    const valido = u?.hash ? await verifyPassword(password, u.hash, secret) : false;
+    const valido = u?.hash ? await verifyPassword(password, u.hash, pepper) : false;
     if (!u) {
       await registrarIntento("fallo", "usuario_inexistente", dev, usuario);
       throw new HttpError(401, CREDENCIALES);
@@ -351,7 +352,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
     if (!u?.hash || !(await verifyPassword(actual, u.hash, secret))) {
       throw new HttpError(401, "La contraseña actual no coincide");
     }
-    await usuarios.put({ iusuario: identity.id, hash: await hashPassword(nueva, secret, iterations) });
+    await usuarios.put({ iusuario: identity.id, hash: await hashPassword(nueva, pepper, iterations) });
     const jtiActual = claimsJti(identity);
     const otras = await sesiones.select({ fields: ["jti"], where: { iusuario: identity.id, brevocado: false } });
     let revocadas = 0;

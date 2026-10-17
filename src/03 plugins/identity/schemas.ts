@@ -8,8 +8,10 @@ import { z } from "zod";
 export interface IdentityConfig {
   /** Default true cuando la sección existe. */
   enabled?: boolean | undefined;
-  /** Secret key: firma de JWT y pepper del hash. Admite `"env:NOMBRE"` (se lee de `env`). Mínimo 32 caracteres. */
+  /** Secret key: firma del JWT (HS384). Admite `"env:NOMBRE"` (se lee de `env`). Mínimo 32 caracteres. */
   secret: string;
+  /** Pepper del hash de contraseñas, SEPARADO del JWT. Si falta, se usa `secret` (compat). Rotar el JWT ya no rompe las contraseñas. */
+  pepper?: string | undefined;
   /** Vigencia del token en segundos (default 86400 = 24 h). */
   expiresIn?: number | undefined;
   /** Claim `iss` (opcional; si se define, también se exige al verificar). */
@@ -70,6 +72,7 @@ export const ZIdentitySecurityConfig: z.ZodType<IdentitySecurityConfig> = z.obje
 export const ZIdentityConfig: z.ZodType<IdentityConfig> = z.object({
   enabled: z.boolean().optional(),
   secret: z.string().min(1, "identity.secret es obligatorio"),
+  pepper: z.string().min(32, "identity.pepper debe tener al menos 32 caracteres").optional(),
   expiresIn: z.number().int().positive().optional(),
   issuer: z.string().optional(),
   iterations: z.number().int().min(10000).max(100000).optional(),
