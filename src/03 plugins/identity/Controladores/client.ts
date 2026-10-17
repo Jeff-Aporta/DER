@@ -12,7 +12,17 @@
 import { ValidationError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
 import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/controller.ts";
 import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
-import { type IdentityClientConfig, type LoginInput, type LoginResult, ZLoginInput } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
+import {
+  type AuditEventInfo,
+  type AuditQuery,
+  type IdentityClientConfig,
+  type LoginInput,
+  type LoginResult,
+  type SessionInfo,
+  ZAuditQuery,
+  ZLoginInput,
+  ZPasswordChangeInput,
+} from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
 import { type Usuario, UsuarioEntity } from "@Jeff-Aporta/DER/src/03 plugins/identity/Objetos/mod.ts";
 
 export class IdentityClient {
@@ -60,5 +70,44 @@ export class IdentityClient {
     } finally {
       this.setToken(null);
     }
+  }
+
+  /** `DELETE /logout/all`: cierra la cuenta en todos los dispositivos y olvida el token. */
+  async logoutAll(): Promise<number> {
+    try {
+      const res = await this.usuarios.request("DELETE", "logout/all");
+      const data = await res.json() as { revocadas?: number } | undefined;
+      return data?.revocadas ?? 0;
+    } finally {
+      this.setToken(null);
+    }
+  }
+
+  /** `GET /sessions`: sesiones vigentes con IP, dispositivo y último acceso (marca la actual). */
+  async sessions(): Promise<SessionInfo[]> {
+    const res = await this.usuarios.request("GET", "sessions");
+    return await res.json() as SessionInfo[];
+  }
+
+  /** `PUT /password`: cambia la contraseña (exige la actual) y cierra las demás sesiones. */
+  async changePassword(actual: string, nueva: string): Promise<number> {
+    const parsed = ZPasswordChangeInput.safeParse({ actual, nueva });
+    if (!parsed.success) throw new ValidationError(zodMessage(parsed.error));
+    const res = await this.usuarios.request("PUT", "password", parsed.data);
+    const data = await res.json() as { revocadas?: number } | undefined;
+    return data?.revocadas ?? 0;
+  }
+
+  /** `GET /events`: auditoría filtrable por usuario, acción y rango de fechas. */
+  async events(query: AuditQuery = {}): Promise<AuditEventInfo[]> {
+    const parsed = ZAuditQuery.safeParse(query);
+    if (!parsed.success) throw new ValidationError(zodMessage(parsed.error));
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(parsed.data)) {
+      if (v !== undefined) params.set(k, String(v));
+    }
+    const qs = params.toString();
+    const res = await this.usuarios.request("GET", qs ? `events?${qs}` : "events");
+    return await res.json() as AuditEventInfo[];
   }
 }

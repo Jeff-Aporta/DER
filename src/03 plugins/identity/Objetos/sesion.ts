@@ -9,6 +9,16 @@ export const SesionSchema = defineSchema({
     emitido: { type: "datetime" },
     expira: { type: "datetime" },
     brevocado: { type: "bool", default: false },
+    /** Auditoría del equipo y la red desde donde se emitió y se usó la sesión. */
+    ip: { type: "string", length: 64 },
+    user_agent: { type: "string", length: 400 },
+    dispositivo: { type: "string", length: 40 },
+    so: { type: "string", length: 60 },
+    navegador: { type: "string", length: 60 },
+    /** Huella estable del equipo (hash del user-agent): detecta dispositivos nuevos. */
+    huella: { type: "string", length: 40 },
+    /** Último request autenticado con esta sesión (se actualiza con throttle). */
+    ultimo_acceso: { type: "datetime" },
   },
 });
 

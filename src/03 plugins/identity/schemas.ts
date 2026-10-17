@@ -18,7 +18,54 @@ export interface IdentityConfig {
   iterations?: number | undefined;
   /** Usuario administrador que se crea en `router.seed()` si no existe. */
   admin?: { usuario: string; password: string; nombre?: string | undefined } | undefined;
+  /** Endurecimiento del login (bloqueo, dispositivo nuevo, viaje imposible, política de contraseña). */
+  security?: IdentitySecurityConfig | undefined;
 }
+
+/** Política de contraseña (mínimos). */
+export interface IdentityPasswordPolicy {
+  /** Longitud mínima (default 8; nunca menos de 8). */
+  minLength?: number | undefined;
+}
+
+/** Viaje imposible básico: sin geolocalización, un cambio de IP en una ventana corta es sospechoso. */
+export interface IdentityTravelConfig {
+  /** Default false. */
+  enabled?: boolean | undefined;
+  /** Minutos mínimos entre dos logins desde IP distinta (default 5). */
+  minMinutes?: number | undefined;
+  /** Bloquea el login además de auditarlo (default false). */
+  block?: boolean | undefined;
+}
+
+/** Endurecimiento del login (sección `identity.security` del JSON de plugins). */
+export interface IdentitySecurityConfig {
+  /** Fallos permitidos por IP o por usuario dentro de `windowSeconds` antes de bloquear (default 5). */
+  maxAttempts?: number | undefined;
+  /** Ventana de conteo, en segundos (default 900). */
+  windowSeconds?: number | undefined;
+  /** Duración del bloqueo, en segundos (default 900). */
+  lockSeconds?: number | undefined;
+  /** Bloquea el login desde un dispositivo no visto antes (default false: sólo audita). */
+  blockNewDevice?: boolean | undefined;
+  /** Viaje imposible básico (default: desactivado). */
+  travel?: IdentityTravelConfig | undefined;
+  /** Política mínima de contraseña. */
+  password?: IdentityPasswordPolicy | undefined;
+}
+
+export const ZIdentitySecurityConfig: z.ZodType<IdentitySecurityConfig> = z.object({
+  maxAttempts: z.number().int().min(1).max(100).optional(),
+  windowSeconds: z.number().int().min(1).max(86_400).optional(),
+  lockSeconds: z.number().int().min(1).max(86_400).optional(),
+  blockNewDevice: z.boolean().optional(),
+  travel: z.object({
+    enabled: z.boolean().optional(),
+    minMinutes: z.number().int().min(0).max(1440).optional(),
+    block: z.boolean().optional(),
+  }).strict().optional(),
+  password: z.object({ minLength: z.number().int().min(8).max(256).optional() }).strict().optional(),
+}).strict();
 
 export const ZIdentityConfig: z.ZodType<IdentityConfig> = z.object({
   enabled: z.boolean().optional(),
@@ -28,6 +75,7 @@ export const ZIdentityConfig: z.ZodType<IdentityConfig> = z.object({
   iterations: z.number().int().min(10000).max(100000).optional(),
   admin: z.object({ usuario: z.string().min(1), password: z.string().min(8), nombre: z.string().optional() }).strict()
     .optional(),
+  security: ZIdentitySecurityConfig.optional(),
 }).strict();
 
 /** Claims del JWT (identidad, nunca permisos: el rol se lee en cada request). */
@@ -70,6 +118,102 @@ export interface LoginResult {
   expira: string;
   usuario: { iusuario: string; nombre: string | null };
 }
+
+
+/** Resultado de un intento de login (auditoría). */
+export type LoginOutcome = "ok" | "fallo" | "bloqueado";
+
+/** Motivo del intento: qué se decidió y por qué. */
+export type LoginReason =
+  | "credenciales"
+  | "usuario_inexistente"
+  | "usuario_inactivo"
+  | "bloqueo"
+  | "dispositivo_nuevo"
+  | "viaje_imposible"
+  | "politica_password";
+
+/** Datos del cliente derivados del request (auditoría y detección). */
+export interface DeviceInfo {
+  /** IP real (primer salto de `X-Forwarded-For`). */
+  ip: string;
+  userAgent: string;
+  /** `escritorio` | `movil` | `tablet` | `bot` | `desconocido`. */
+  dispositivo: string;
+  /** Sistema operativo deducido del user-agent. */
+  so: string;
+  /** Navegador deducido del user-agent. */
+  navegador: string;
+  /** Huella estable del dispositivo (hash de user-agent), para detectar equipos nuevos. */
+  huella: string;
+}
+
+/** Sesión activa tal como la ve `GET /sessions` (sin token). */
+export interface SessionInfo {
+  jti: string;
+  emitido: string | null;
+  expira: string | null;
+  ultimoAcceso: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  dispositivo: string | null;
+  so: string | null;
+  navegador: string | null;
+  /** `true` en la sesión que hace la consulta. */
+  actual: boolean;
+}
+
+/** Evento de auditoría tal como lo ve `GET /events`. */
+export interface AuditEventInfo {
+  ievento: string;
+  iusuario: string | null;
+  accion: string;
+  entidad: string | null;
+  entidadId: string | null;
+  ip: string | null;
+  userAgent: string | null;
+  dispositivo: string | null;
+  jdata: unknown;
+  creado: string | null;
+}
+
+/** Filtros de `GET /events`. */
+export interface AuditQuery {
+  iusuario?: string | undefined;
+  accion?: string | undefined;
+  desde?: string | undefined;
+  hasta?: string | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+}
+
+export const ZAuditQuery: z.ZodType<AuditQuery> = z.object({
+  iusuario: z.string().min(1).optional(),
+  accion: z.string().min(1).optional(),
+  desde: z.string().min(1).optional(),
+  hasta: z.string().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+}).strict()
+  .refine((q) => q.desde === undefined || !Number.isNaN(new Date(q.desde).getTime()), {
+    message: "desde no es una fecha válida",
+    path: ["desde"],
+  })
+  .refine((q) => q.hasta === undefined || !Number.isNaN(new Date(q.hasta).getTime()), {
+    message: "hasta no es una fecha válida",
+    path: ["hasta"],
+  });
+
+/** Body de `PUT /password`. */
+export interface PasswordChangeInput {
+  actual: string;
+  nueva: string;
+}
+
+export const ZPasswordChangeInput: z.ZodType<PasswordChangeInput> = z.object({
+  actual: z.string().min(1, "Falta la contraseña actual"),
+  nueva: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+}).strict();
 
 /** Configuración de `IdentityClient` (el lado cliente del plugin). */
 export interface IdentityClientConfig {
