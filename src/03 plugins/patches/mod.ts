@@ -15,7 +15,7 @@
  */
 import type { Kysely } from "kysely";
 import type { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
-import type { Patch, PatchContext, PatchEstado, PatchReport, RunPatchesOptions } from "@Jeff-Aporta/DER/src/03 plugins/patches/schemas.ts";
+import type { Patch, PatchReport, RunPatchesOptions } from "@Jeff-Aporta/DER/src/03 plugins/patches/schemas.ts";
 
 const TABLA = "_patches";
 

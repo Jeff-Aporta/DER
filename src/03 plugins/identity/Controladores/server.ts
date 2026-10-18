@@ -61,7 +61,7 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   if (secret.length < 32) throw new Error("identity.secret debe tener al menos 32 caracteres");
   const pepper = cfg.pepper ?? secret;
   const trustProxy = cfg.trustProxy ?? 0;
-  const trustedIssuers: Array<{ name: string; jwksUrl: string; issuer?: string }> = Array.isArray(cfg.trustedIssuers) ? cfg.trustedIssuers : [];
+  const trustedIssuers: Array<{ name: string; jwksUrl: string; issuer?: string | undefined }> = Array.isArray(cfg.trustedIssuers) ? cfg.trustedIssuers : [];
   /** Caché simple de JWKS por URL (TTL 5 min). */
   const jwksCache = new Map<string, JwksCacheEntry>();
   async function getJwks(url: string): Promise<{ keys: JsonWebKey[] } | null> {
@@ -547,8 +547,17 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
       if (!header) return null;
       const token = BEARER.exec(header)?.[1];
       if (!token) throw new HttpError(401, "Token inválido: se espera `Authorization: Bearer <token>`");
-      const ext = await verifyExternal(token);
-      if (ext) return ext;
+      // 1) Verificación local (HS384 o ES256 con la misma llave configurada en este server)
+      try { return await verify(token); }
+      catch (e) {
+        const msg = (e instanceof HttpError) ? e.message : String((e as any)?.message ?? "");
+        // Si no arranca con "Token inválido" (p. ej. "Sesión cerrada", "Usuario inactivo") re-lanzar tal cual
+        if (!msg.startsWith("Token inválido")) throw e;
+        // 2) Si hay emisores de confianza (trustedIssuers), intentar verificación externa
+        if (trustedIssuers.length === 0) throw e;
+      }
+      const ext: Identity | null = await verifyExternal(token);
+      if (ext) return ext as Identity;
       throw new HttpError(401, "Token inválido o no verificable");
     },
     async seed() {
