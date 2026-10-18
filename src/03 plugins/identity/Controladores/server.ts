@@ -62,7 +62,6 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   const pepper = cfg.pepper ?? secret;
   const trustProxy = cfg.trustProxy ?? 0;
   const trustedIssuers: Array<{ name: string; jwksUrl: string; issuer?: string }> = Array.isArray(cfg.trustedIssuers) ? cfg.trustedIssuers : [];
-  console.log('[identity DEBUG] trustedIssuers length:', trustedIssuers.length, JSON.stringify(trustedIssuers.map(i=>i.name)));
   /** Caché simple de JWKS por URL (TTL 5 min). */
   const jwksCache = new Map<string, JwksCacheEntry>();
   async function getJwks(url: string): Promise<{ keys: JsonWebKey[] } | null> {
@@ -548,8 +547,6 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
       if (!header) return null;
       const token = BEARER.exec(header)?.[1];
       if (!token) throw new HttpError(401, "Token inválido: se espera `Authorization: Bearer <token>`");
-      console.log('[identity DEBUG] authenticate: alg guess from header (ES256 if 2nd field), trustedIssuers=', trustedIssuers.length);
-      try { return await verify(token); } catch (e) { const m = String((e as any)?.message ?? ""); console.log('[identity DEBUG] verify threw:', m, 'startsInv=', m.startsWith("Token inválido"), 'len=', trustedIssuers.length); if (!m.startsWith("Token inválido")) throw e; if (trustedIssuers.length === 0) throw e; /* firma/formato y hay emisores externos: probar */ }
       const ext = await verifyExternal(token);
       if (ext) return ext;
       throw new HttpError(401, "Token inválido o no verificable");

@@ -42,10 +42,6 @@ export function pluginsFromConfig(config: unknown, runtime: PluginsRuntime): Plu
   const parsed = ZPluginsConfig.safeParse(config);
   if (!parsed.success) throw new Error(`Configuración de plugins inválida: ${zodMessage(parsed.error)}`);
   const cfg: PluginsConfig = parsed.data;
-  const _raw = (config as any)?.identity ?? {};
-  const _parsed = cfg.identity as any;
-  console.log('[plugins DEBUG] RAW input identity keys:', Object.keys(_raw), 'trustedIssuers present:', 'trustedIssuers' in _raw, 'value type:', Array.isArray(_raw.trustedIssuers) ? 'array len=' + _raw.trustedIssuers.length : typeof _raw.trustedIssuers);
-  console.log('[plugins DEBUG] PARSED identity keys:', _parsed ? Object.keys(_parsed) : null, 'trustedIssuers present:', _parsed ? 'trustedIssuers' in _parsed : false);
   const { db, env } = runtime;
   const plugins: Plugin[] = [];
   const identity = cfg.identity;
