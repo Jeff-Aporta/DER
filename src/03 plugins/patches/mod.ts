@@ -4,42 +4,26 @@
  *   patches/NNNN-<nombre>.sql.ts
  *     export const id = "NNNN-<nombre>";
  *     export const descripcion = "...";
- *     export async function up(ctx) { /* usa controllers DER o SQL crudo *​/ }
+ *     export async function up(ctx) { (usa controllers DER o SQL crudo) }
  *
  * Tabla `_patches (id PK, hash, aplicado, por)`. `runPatches` aplica los pendientes EN ORDEN, cada uno
  * en transacción; si un patch ya aplicado fue EDITADO, lo reporta como `modificado` (no se re-aplica:
  * hay que agregar un patch nuevo). Las APIs NO ejecutan patches: `checkPatches` les dice cuáles faltan
  * para que avisen al agente; el agente los corre con `deno task patch` (backup antes).
+ *
+ * Entry point: ver https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  */
-import { createHash } from "node:crypto";
 import type { Kysely } from "kysely";
 import type { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
-
-export interface Patch {
-  id: string;
-  descripcion: string;
-  up(ctx: PatchContext): Promise<void>;
-}
-
-export interface PatchContext {
-  /** Kysely (transacción): `ctx.exec.schema.*`, `ctx.exec.insertInto(...)`, `ctx.exec.executeQuery(sql\`..\`)`. */
-  exec: Kysely<any>;
-}
-
-export type PatchEstado = "aplicado" | "pendiente" | "modificado";
-
-export interface PatchReport {
-  id: string;
-  estado: PatchEstado;
-  hash: string;
-  error?: string;
-}
+import type { Patch, PatchContext, PatchEstado, PatchReport, RunPatchesOptions } from "@Jeff-Aporta/DER/src/03 plugins/patches/schemas.ts";
 
 const TABLA = "_patches";
 
 /** Hash del patch (id + descripción + fuente de `up`): detecta ediciones de un patch ya aplicado. */
-export function patchHash(p: Patch): string {
-  return createHash("sha256").update(`${p.id}\n${p.descripcion}\n${p.up.toString()}`).digest("hex");
+export async function patchHash(p: Patch): Promise<string> {
+  const data = new TextEncoder().encode(`${p.id}\n${p.descripcion}\n${p.up.toString()}`);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 async function ensureTable(db: Database): Promise<void> {
@@ -58,13 +42,6 @@ async function aplicados(db: Database): Promise<Map<string, string>> {
   return new Map(rows.map((r) => [r.id as string, r.hash as string]));
 }
 
-export interface RunPatchesOptions {
-  /** Quién aplica (auditoría en `_patches.por`). Default "agente". */
-  por?: string;
-  /** Solo reporta; no toca la base. */
-  dryRun?: boolean;
-}
-
 /** Aplica los patches pendientes, en orden, cada uno en su transacción. */
 export async function runPatches(db: Database, patches: Patch[], opts: RunPatchesOptions = {}): Promise<PatchReport[]> {
   await ensureTable(db);
@@ -72,7 +49,7 @@ export async function runPatches(db: Database, patches: Patch[], opts: RunPatche
   const aplicadas = await aplicados(db);
   const report: PatchReport[] = [];
   for (const p of patches) {
-    const h = patchHash(p);
+    const h = await patchHash(p);
     if (aplicadas.has(p.id)) {
       const prev = aplicadas.get(p.id);
       if (prev !== h) {
@@ -100,5 +77,9 @@ export async function runPatches(db: Database, patches: Patch[], opts: RunPatche
 export async function checkPatches(db: Database, patches: Patch[]): Promise<Patch[]> {
   await ensureTable(db);
   const aplicadas = await aplicados(db);
-  return patches.filter((p) => aplicadas.get(p.id) !== patchHash(p));
+  const out: Patch[] = [];
+  for (const p of patches) {
+    if (aplicadas.get(p.id) !== await patchHash(p)) out.push(p);
+  }
+  return out;
 }
