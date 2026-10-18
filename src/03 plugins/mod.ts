@@ -42,6 +42,7 @@ export function pluginsFromConfig(config: unknown, runtime: PluginsRuntime): Plu
   const parsed = ZPluginsConfig.safeParse(config);
   if (!parsed.success) throw new Error(`Configuración de plugins inválida: ${zodMessage(parsed.error)}`);
   const cfg: PluginsConfig = parsed.data;
+  console.log('[plugins DEBUG] identity config:', JSON.stringify({ hasIdentity: !!cfg.identity, trustedIssuers: cfg.identity?.trustedIssuers }));
   const { db, env } = runtime;
   const plugins: Plugin[] = [];
   const identity = cfg.identity;
