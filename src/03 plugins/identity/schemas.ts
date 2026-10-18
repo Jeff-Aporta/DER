@@ -101,6 +101,7 @@ export const ZIdentityConfig: z.ZodType<IdentityConfig> = z.object({
     .optional(),
   security: ZIdentitySecurityConfig.optional(),
   trustProxy: z.number().int().min(0).max(10).optional(),
+  trustedIssuers: z.array(z.object({ name: z.string().min(1), jwksUrl: z.string().url(), issuer: z.string().optional() }).strict()).optional(),
   jwt: z.object({
     alg: z.enum(["HS384", "ES256"]).optional(),
     kid: z.string().min(1).optional(),
