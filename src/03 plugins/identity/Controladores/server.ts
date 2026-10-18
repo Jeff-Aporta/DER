@@ -25,7 +25,8 @@ import {
   ZPasswordChangeInput,
 } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
 import type { IdentityPlugin } from "@Jeff-Aporta/DER/src/03 plugins/schemas.ts";
-import { generateEs256KeyPair, hashPassword, importEs256PrivateKey, importEs256PublicKey, randomId, signJwt, signJwtEs256, verifyJwt, verifyJwtEs256, verifyPassword } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/crypto.ts";
+import { generateEs256KeyPair, hashPassword, importEs256PrivateKey, importEs256PublicKey, randomId, signJwt, signJwtEs256, verifyJwt, verifyJwtEs256, verifyPassword, b64urlDecode } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/crypto.ts";
+import type { JwksCacheEntry } from "@Jeff-Aporta/DER/src/03 plugins/identity/schemas.ts";
 import { deviceInfo } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/device.ts";
 import {
   EventoEntity,
@@ -60,6 +61,21 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   if (secret.length < 32) throw new Error("identity.secret debe tener al menos 32 caracteres");
   const pepper = cfg.pepper ?? secret;
   const trustProxy = cfg.trustProxy ?? 0;
+  const trustedIssuers: Array<{ name: string; jwksUrl: string; issuer?: string }> = Array.isArray(cfg.trustedIssuers) ? cfg.trustedIssuers : [];
+  /** Caché simple de JWKS por URL (TTL 5 min). */
+  const jwksCache = new Map<string, JwksCacheEntry>();
+  async function getJwks(url: string): Promise<{ keys: JsonWebKey[] } | null> {
+    const now = Date.now();
+    const hit = jwksCache.get(url);
+    if (hit && hit.exp > now) return hit.jwks;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      const jwks = await r.json() as { keys: Record<string, unknown>[] };
+      jwksCache.set(url, { jwks, exp: now + 5 * 60_000 });
+      return jwks;
+    } catch { return null; }
+  }
 
   // Firma: HS384 (simétrico) o ES256 (asimétrico + JWKS). Las llaves se cargan una vez (perezoso).
   const alg = cfg.jwt?.alg ?? "HS384";
@@ -87,6 +103,27 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
   async function verificarToken(token: string): Promise<JwtClaims> {
     if (alg === "ES256") return verifyJwtEs256(token, (await es256Keys()).publicKey, { issuer: cfg.issuer });
     return verifyJwt(token, secret, { issuer: cfg.issuer });
+  }
+  /** Verifica un token ES256 contra los emisores de confianza (trusted issuers).
+   *  Devuelve la identidad externa o null si ninguno la valida. */
+  async function verifyExternal(token: string): Promise<{ id: string; claims: JwtClaims & { __external: string } } | null> {
+    if (trustedIssuers.length === 0) return null;
+    let header: { alg?: string; kid?: string } | null = null;
+    try { const p = token.split("."); header = JSON.parse(new TextDecoder().decode(b64urlDecode(p[0]!))); } catch { return null; }
+    if (!header || header.alg !== "ES256") return null;
+    const kid = header.kid;
+    for (const iss of trustedIssuers) {
+      const jwks = await getJwks(iss.jwksUrl);
+      if (!jwks) continue;
+      const key = kid ? jwks.keys.find((k) => (k as any).kid === kid) : jwks.keys[0];
+      if (!key) continue;
+      try {
+        const pub = await importEs256PublicKey(key as JsonWebKey);
+        const claims = await verifyJwtEs256(token, pub, iss.issuer ? { issuer: iss.issuer } : {});
+        return { id: claims.sub, claims: { ...claims, __external: iss.name } };
+      } catch { continue; }
+    }
+    return null;
   }
   async function publicJwk(): Promise<JsonWebKey> {
     return await crypto.subtle.exportKey("jwk", (await es256Keys()).publicKey);
@@ -510,7 +547,10 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
       if (!header) return null;
       const token = BEARER.exec(header)?.[1];
       if (!token) throw new HttpError(401, "Token inválido: se espera `Authorization: Bearer <token>`");
-      return await verify(token);
+      try { return await verify(token); } catch (e) { const m = String((e as any)?.message ?? ""); if (!m.startsWith("Token inválido")) throw e; if (trustedIssuers.length === 0) throw e; /* firma/formato y hay emisores externos: probar */ }
+      const ext = await verifyExternal(token);
+      if (ext) return ext;
+      throw new HttpError(401, "Token inválido o no verificable");
     },
     async seed() {
       const admin = cfg.admin;

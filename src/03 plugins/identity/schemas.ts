@@ -26,7 +26,13 @@ export interface IdentityConfig {
   jwt?: IdentityJwtConfig | undefined;
   /** Proxies de confianza para derivar la IP real: toma el ÚLTIMO salto de confianza, no el primero. Default 0 (legacy: primer salto). */
   trustProxy?: number | undefined;
+  /** Emisores de confianza: tokens firmados (ES256) por estas llaves se aceptan.
+   *  Cada uno declara la URL del JWKS y, opcionalmente, el `iss` esperado. */
+  trustedIssuers?: Array<{ name: string; jwksUrl: string; issuer?: string | undefined }> | undefined;
 }
+
+/** Entrada del caché de JWKS por URL. */
+export interface JwksCacheEntry { jwks: { keys: Record<string, unknown>[] }; exp: number }
 
 /** Modo de firma del JWT. */
 export interface IdentityJwtConfig {
