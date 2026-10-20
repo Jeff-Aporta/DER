@@ -827,13 +827,13 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   /** Identificadores de la tabla de configuración, con el caso del controller. */
   private cfgIds(t: CfgTableDef) {
     const c = (n: string) => sql.id(applyCase(n, this.identifierCase));
-    return { tabla: sql.table(applyCase(t.table, this.identifierCase)), entidad: c(t.columns.entidad), json: c(t.columns.json), fecha: c(t.columns.fecha) };
+    return { tabla: sql.table(applyCase(t.table, this.identifierCase)), pk: c(t.columns.pk), json: c(t.columns.json), fecha: c(t.columns.fecha) };
   }
 
   /** JSON guardado de la configuración de esta entidad (`undefined` si aún no tiene fila). */
   async loadCfg(t: CfgTableDef, exec: Kysely<any>): Promise<unknown> {
     const id = this.cfgIds(t);
-    const { rows } = await sql<Record<string, unknown>>`select ${id.json} as ${sql.id("cfg")} from ${id.tabla} where ${id.entidad} = ${
+    const { rows } = await sql<Record<string, unknown>>`select ${id.json} as ${sql.id("cfg")} from ${id.tabla} where ${id.pk} = ${
       this.entity.plural
     }`.execute(exec);
     const [row] = rows;
@@ -845,11 +845,11 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     const id = this.cfgIds(t);
     const json = this.engine.toDb({ type: "json" }, value);
     const fecha = this.engine.toDb({ type: "datetime" }, new Date());
-    const { rows } = await sql`update ${id.tabla} set ${id.json} = ${json}, ${id.fecha} = ${fecha} where ${id.entidad} = ${
+    const { rows } = await sql`update ${id.tabla} set ${id.json} = ${json}, ${id.fecha} = ${fecha} where ${id.pk} = ${
       this.entity.plural
     } returning 1 as ${sql.id("ok")}`.execute(exec);
     if (rows.length) return;
-    await sql`insert into ${id.tabla} (${id.entidad}, ${id.json}, ${id.fecha}) values (${this.entity.plural}, ${json}, ${fecha})`
+    await sql`insert into ${id.tabla} (${id.pk}, ${id.json}, ${id.fecha}) values (${this.entity.plural}, ${json}, ${fecha})`
       .execute(exec);
   }
 
@@ -859,7 +859,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     if (!t) return;
     const n = (c: string) => applyCase(c, this.identifierCase);
     await exec.schema.createTable(n(t.table)).ifNotExists()
-      .addColumn(n(t.columns.entidad), sql.raw(this.engine.columnType({ type: "string", length: 120 })), (cb) => cb.primaryKey().notNull())
+      .addColumn(n(t.columns.pk), sql.raw(this.engine.columnType({ type: "string", length: 120 })), (cb) => cb.primaryKey().notNull())
       .addColumn(n(t.columns.json), sql.raw(this.engine.columnType({ type: "json" })))
       .addColumn(n(t.columns.fecha), sql.raw(this.engine.columnType({ type: "datetime" })))
       .execute();

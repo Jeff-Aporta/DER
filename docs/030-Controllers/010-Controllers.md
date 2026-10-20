@@ -94,7 +94,7 @@ new ServerController(ProductoEntity, {
   relations: { categoria: { controller: () => otroCtrl } }, // opcional
   defaultOrder: "-creado",
   hooks, actions, sse, endpoints,
-  cfg: { table: "productos_cfg", columns: { entidad: "plural", json: "jcfg", fecha: "fhultact" } }, // opcional: sobreescribe la de la base (ver sse-y-cfg.md)
+  cfg: { table: "productos_cfg", columns: { pk: "id", json: "jcfg", fecha: "fhultact" } }, // opcional: sobreescribe la de la base (ver sse-y-cfg.md)
 });
 ```
 

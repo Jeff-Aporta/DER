@@ -169,7 +169,7 @@ export interface ServerControllerConfig<P extends Pojo>
  * Tabla de configuración de las entidades (`plural/cfg`): una fila por entidad. El consumidor elige los nombres,
  * pero declara explícitamente qué columna es cada cosa, así las rutas `/cfg` quedan bien definidas:
  * ```ts
- * cfg: { table: "der_cfg", columns: { entidad: "plural", json: "jcfg", fecha: "fhultact" } }
+ * cfg: { table: "der_cfg", columns: { pk: "id", json: "jcfg", fecha: "fhultact" } }
  * ```
  * Se declara en `Database` (vale para todas sus entidades) o por controller. Sin ella, `/cfg` no se expone.
  * `seed()` la crea si no existe.
@@ -178,8 +178,8 @@ export interface CfgTableDef {
   /** Tabla de configuración. */
   table: string;
   columns: {
-    /** pk: el plural de la entidad (`productos`). */
-    entidad: string;
+    /** Columna pk. Su valor siempre es el plural de la entidad (`productos`); solo se elige el nombre. */
+    pk: string;
     /** JSON de la configuración. */
     json: string;
     /** Fecha y hora de la última actualización (la pone el PUT). */

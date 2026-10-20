@@ -47,14 +47,14 @@ cosa, así las rutas quedan bien definidas:
 
 ```ts
 // para toda la base (todas sus entidades con cfg)…
-const db = sqliteDatabase("app.db", { cfg: { table: "der_cfg", columns: { entidad: "plural", json: "jcfg", fecha: "fhultact" } } });
+const db = sqliteDatabase("app.db", { cfg: { table: "der_cfg", columns: { pk: "id", json: "jcfg", fecha: "fhultact" } } });
 // …o por controller (sobreescribe la de la base); `cfg: false` apaga /cfg en ese controller
 new ServerController(ProductoEntity, { db, table: "productos", cfg: { table: "productos_cfg", columns: { ... } } });
 ```
 
 | Columna | Qué guarda |
 |---|---|
-| `entidad` | pk: el plural de la entidad (`productos`) |
+| `pk` | el plural de la entidad (`productos`); solo se elige el nombre de la columna (`id`, `entidad`…) |
 | `json` | el JSON de la configuración |
 | `fecha` | fecha y hora de la última actualización (la pone el PUT) |
 

@@ -62,7 +62,7 @@ const FacturaEntity = defineEntity({
   cfg: { zod: ZRango },
   endpoints: { anular: { method: "POST", scope: "one" } },
 });
-const CFG_TABLA = { table: "cfg_entidades", columns: { entidad: "entidad", json: "jcfg", fecha: "fhultact" } };
+const CFG_TABLA = { table: "cfg_entidades", columns: { pk: "entidad", json: "jcfg", fecha: "fhultact" } };
 const RenglonEntity = defineEntity({ pojo: Renglon, name: "ctl.renglon", singular: "factura/renglon", plural: "factura/renglones" });
 const ImpuestoEntity = defineEntity({ pojo: Impuesto, name: "ctl.impuesto", singular: "factura/impuesto", plural: "factura/impuestos" });
 

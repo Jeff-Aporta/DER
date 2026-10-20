@@ -9,7 +9,7 @@ import { CategoriaEntity, CrisisEntity, LineaEntity, PedidoEntity, ProductoEntit
  * Tabla de configuración de las entidades (`plural/cfg`), se pasa al crear la base (`sqliteDatabase(ruta, { cfg })`).
  * El consumidor elige los nombres y declara cuál es cada columna: pk con el plural, JSON y fecha de actualización.
  */
-export const CFG_TABLA: CfgTableDef = { table: "der_cfg", columns: { entidad: "plural", json: "jcfg", fecha: "fhultact" } };
+export const CFG_TABLA: CfgTableDef = { table: "der_cfg", columns: { pk: "id", json: "jcfg", fecha: "fhultact" } };
 
 export function buildControllers(db: Database) {
   const categorias = new ServerController(CategoriaEntity, { db, table: "categorias" });
