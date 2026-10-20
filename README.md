@@ -13,4 +13,4 @@ deno task example   # servidor de ejemplo en :8000/api
 
 ## Norma
 
-[ESTANDAR — ecosistema VPS](https://github.com/Jeff-Aporta/dev-vps/blob/main/ESTANDAR.md): norma única; gana sobre este repo si hay conflicto.
+[ESTANDAR — ecosistema VPS](https://github.com/Jeff-Aporta/dsh-dev-vps/blob/main/ESTANDAR.md): norma única; gana sobre este repo si hay conflicto.
