@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals } from "@std/assert";
 import { clientIp } from "../src/03 plugins/identity/Controladores/device.ts";
 
 Deno.test("clientIp: trustProxy=0 legado toma el primer salto", () => {

@@ -556,8 +556,8 @@ export function identityPlugin(cfg: IdentityConfig & { db: Database }): Identity
         // 2) Si hay emisores de confianza (trustedIssuers), intentar verificación externa
         if (trustedIssuers.length === 0) throw e;
       }
-      const ext: Identity | null = await verifyExternal(token);
-      if (ext) return ext as Identity;
+      const ext = await verifyExternal(token);
+      if (ext) return { id: ext.id, claims: { ...ext.claims } };
       throw new HttpError(401, "Token inválido o no verificable");
     },
     async seed() {

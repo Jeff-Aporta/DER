@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals } from "@std/assert";
 import { sqliteDatabase } from "../src/02 controllers/server/sqlite/mod.ts";
 import { checkPatches, runPatches, type Patch } from "../src/03 plugins/patches/mod.ts";
 
