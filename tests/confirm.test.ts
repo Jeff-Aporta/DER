@@ -3,9 +3,10 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { type ConfirmInput, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
 import { CategoriaEntity, ProductoEntity, type Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
+import { CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 
 Deno.test("preConfirm: corre en todas las acciones con su entrada tipada, antes del pre* específico", async () => {
-  const db = sqliteDatabase();
+  const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
   const vistos: string[] = [];
   const orden: string[] = [];
   new ServerController(CategoriaEntity, { db, table: "categorias" });
@@ -41,8 +42,8 @@ Deno.test("preConfirm: corre en todas las acciones con su entrada tipada, antes 
     await productos.putList([{ iproducto: p.iproducto, precio: 3 }]);
     await productos.call("ajustarStock", { iproducto: p.iproducto });
     await productos.call("importar", []);
-    await productos.getCfg(p);
-    await productos.putCfg(p, { visible: true });
+    await productos.getCfg();
+    await productos.putCfg({ stockMinimo: 3 });
     await productos.deleteList([{ iproducto: p.iproducto }]);
     assertEquals(vistos, [
       "post", "get", "put", "list", "query", "postList", "putList",

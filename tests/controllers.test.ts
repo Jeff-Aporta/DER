@@ -1,8 +1,13 @@
 /**
- * Prioridad media: /cfg con load/save propios y molde final, SSE que falla a mitad del stream (en proceso, en el
- * cable y en el client), propagación de escritura de 2 niveles con secuencias por ámbito, 501 y computed sin motor.
+ * Prioridad media: /cfg de la entidad (plural, tabla de cfg, defaults del molde, sólo update, regla del objeto
+ * completo), modos del PUT singular (`schema.put`), SSE que falla a mitad del stream (en proceso, en el cable y en el
+ * client), propagación de escritura de 2 niveles con secuencias por ámbito, 501 y computed sin motor.
  */
-import { assertEquals, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertRejects } from "@std/assert";
+import { sql } from "kysely";
+import { controllerRouteSpecs } from "@Jeff-Aporta/DER/src/02 controllers/server/routes.ts";
+import { NotFoundError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
+import type { PutMode } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
 import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
 import { createRouter, HttpError, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
@@ -44,24 +49,25 @@ class Factura extends pojoOf(FacturaSchema) {
   declare renglones: Renglon[];
 }
 
-// molde con una regla sobre el objeto completo (el fragmento parcial no la ve; el resultado final sí)
-const ZRango = z.object({ min: z.number().optional(), max: z.number().optional() })
-  .refine((v) => v.min === undefined || v.max === undefined || v.min <= v.max, "min no puede superar max");
+// molde de la config de la entidad: defaults (punto de partida del PUT, que sólo ajusta llaves que el molde define)
+// y una regla sobre el objeto completo (el fragmento parcial no la ve; el resultado final sí)
+const ZRango = z.object({ min: z.number().default(0), max: z.number().default(10) })
+  .refine((v) => v.min <= v.max, "min no puede superar max");
 
 const FacturaEntity = defineEntity({
   pojo: Factura,
   name: "ctl.factura",
   singular: "factura",
   plural: "facturas",
-  cfg: { column: "jcfg", zod: ZRango },
+  cfg: { zod: ZRango },
   endpoints: { anular: { method: "POST", scope: "one" } },
 });
+const CFG_TABLA = { table: "cfg_entidades", columns: { entidad: "entidad", json: "jcfg", fecha: "fhultact" } };
 const RenglonEntity = defineEntity({ pojo: Renglon, name: "ctl.renglon", singular: "factura/renglon", plural: "factura/renglones" });
 const ImpuestoEntity = defineEntity({ pojo: Impuesto, name: "ctl.impuesto", singular: "factura/impuesto", plural: "factura/impuestos" });
 
 function setup() {
-  const db = sqliteDatabase();
-  const memoria = new Map<number, unknown>();
+  const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
   const facturas = new ServerController(FacturaEntity, {
     db,
     table: "facturas",
@@ -76,24 +82,24 @@ function setup() {
   });
   const renglones = new ServerController(RenglonEntity, { db, table: "renglones" });
   const impuestos = new ServerController(ImpuestoEntity, { db, table: "impuestos" });
-  // otra entidad con cfg de libre definición en memoria (load/save propios)
-  const conCfgLibre = new ServerController(
-    defineEntity({ pojo: Factura, name: "ctl.factura2", singular: "factura2", plural: "facturas2", cfg: {} }),
-    {
-      db,
-      table: "facturas",
-      register: false,
-      cfg: {
-        load(p) {
-          return p.idfactura === 999 ? undefined : memoria.get(Number(p.idfactura)) ?? {};
-        },
-        save(p, value) {
-          memoria.set(Number(p.idfactura), value);
-        },
-      },
+  return { db, facturas, renglones, impuestos };
+}
+
+// ------------------------------------------------------------------ PUT singular: un schema por modo
+const ZDatos = z.object({ a: z.number().optional(), b: z.object({ c: z.number().optional(), d: z.number().optional() }).optional() });
+function notas(modo: PutMode | undefined) {
+  const Schema = defineSchema({
+    columns: {
+      inota: { type: "int", pk: true, autoincrement: true },
+      titulo: { type: "string" },
+      jdatos: { type: "json", zod: ZDatos },
     },
-  );
-  return { db, facturas, renglones, impuestos, conCfgLibre, memoria };
+    ...(modo ? { put: modo } : {}),
+  });
+  class Nota extends pojoOf(Schema) {}
+  const entity = defineEntity({ pojo: Nota, name: `ctl.nota-${modo ?? "default"}`, singular: "nota", plural: "notas" });
+  const db = sqliteDatabase();
+  return { db, ctrl: new ServerController(entity, { db, table: "notas" }) };
 }
 
 Deno.test("propagación de 2 niveles con secuencias por ámbito: post, get, put (reemplazo) y delete en cascada", async () => {
@@ -124,23 +130,67 @@ Deno.test("propagación de 2 niveles con secuencias por ámbito: post, get, put 
   }
 });
 
-Deno.test("cfg: molde final con regla de objeto completo, load/save propios y entidad inexistente", async () => {
-  const { db, facturas, conCfgLibre, memoria } = setup();
+Deno.test("cfg de la entidad: sólo en plural, defaults del molde, PUT sólo update, regla final y fecha de actualización", async () => {
+  const { db, facturas } = setup();
   await db.seed();
   try {
-    const f = await facturas.post({ cliente: "Beto" });
-    await facturas.putCfg(f, { min: 1, max: 5 });
-    // el fragmento es válido por sí solo, pero el resultado (min 9 > max 5) no cumple el molde completo
-    await assertRejects(() => facturas.putCfg(f, { min: 9 }), ValidationError, "min no puede superar max");
-    assertEquals(await facturas.getCfg(f), { min: 1, max: 5 }); // no quedó nada a medias
-    assertEquals(await facturas.putCfg({ idfactura: 404 }, { min: 1 }), null);
+    // rutas: plural/cfg; los singulares no tienen /cfg
+    assertEquals(FacturaEntity.route("getCfg").path, "facturas/cfg");
+    assertEquals(FacturaEntity.match("PUT", ["facturas", "cfg"])?.name, "putCfg");
+    assertEquals(FacturaEntity.match("GET", ["factura", "1", "cfg"]), null);
+    assert(controllerRouteSpecs(facturas).some((s) => s.name === "getCfg" && s.path === "facturas/cfg" && !s.pkParams.length));
 
-    assertEquals(await conCfgLibre.putCfg({ idfactura: 7 }, { tema: { color: "rojo" } }), { tema: { color: "rojo" } });
-    assertEquals(await conCfgLibre.putCfg({ idfactura: 7 }, { tema: { fuente: 12 } }), { tema: { color: "rojo", fuente: 12 } });
-    assertEquals(memoria.get(7), { tema: { color: "rojo", fuente: 12 } });
-    assertEquals(await conCfgLibre.getCfg({ idfactura: 999 }), null); // load → undefined = no existe
+    assertEquals(await facturas.getCfg(), { min: 0, max: 10 }); // sin fila aún: los defaults del molde
+    assertEquals(await facturas.putCfg({ max: 5 }), { min: 0, max: 5 });
+    // el fragmento es válido por sí solo, pero el resultado (min 9 > max 5) no cumple el molde completo
+    await assertRejects(() => facturas.putCfg({ min: 9 }), ValidationError, "min no puede superar max");
+    assertEquals(await facturas.getCfg(), { min: 0, max: 5 }); // no quedó nada a medias
+    // el alcance de las llaves lo da el molde: una llave que no define se rechaza
+    await assertRejects(() => facturas.putCfg({ otra: 1 }), ValidationError);
+    // una fila por entidad (pk = plural) con la fecha de la última actualización
+    const { rows } = await sql<Record<string, unknown>>`select entidad, fhultact from cfg_entidades`.execute(db.kysely);
+    assertEquals(rows.map((r) => r["entidad"]), ["facturas"]);
+    assert(rows[0]?.["fhultact"]);
   } finally {
     await db.destroy();
+  }
+});
+
+Deno.test("cfg: sin tabla de cfg en el servidor no se expone (ni rutas ni acciones)", async () => {
+  const db = sqliteDatabase();
+  const ctrl = new ServerController(FacturaEntity, { db, table: "facturas", register: false });
+  await db.seed();
+  try {
+    assertEquals(ctrl.hasCfg(), false);
+    assert(!controllerRouteSpecs(ctrl).some((s) => s.name === "getCfg" || s.name === "putCfg"));
+    await assertRejects(() => ctrl.getCfg(), NotFoundError, "no expone configuración");
+  } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("PUT singular según schema.put: insert (default), insertIgnore, update y replace", async () => {
+  const casos: [PutMode | undefined, Record<string, unknown>, Record<string, unknown>][] = [
+    // insert: ajuste parcial; dentro del json con molde fusiona en profundidad; lo no enviado se conserva
+    [undefined, { jdatos: { b: { d: 3 } } }, { titulo: "A", jdatos: { a: 1, b: { c: 2, d: 3 } } }],
+    // insertIgnore: sólo completa lo que no está definido (no pisa el título ni a)
+    ["insertIgnore", { titulo: "B", jdatos: { a: 9, b: { d: 3 } } }, { titulo: "A", jdatos: { a: 1, b: { c: 2, d: 3 } } }],
+    // update: sólo cambia lo ya definido (b.d no existía: no se crea)
+    ["update", { titulo: "B", jdatos: { a: 9, b: { d: 3 } } }, { titulo: "B", jdatos: { a: 9, b: { c: 2 } } }],
+    // replace: reemplazo directo de todo el registro (lo no enviado queda vacío)
+    ["replace", { jdatos: { a: 5 } }, { titulo: null, jdatos: { a: 5 } }],
+  ];
+  for (const [modo, cuerpo, esperado] of casos) {
+    const { db, ctrl } = notas(modo);
+    await db.seed();
+    try {
+      const n = await ctrl.post({ titulo: "A", jdatos: { a: 1, b: { c: 2 } } });
+      await ctrl.put({ inota: n.inota, ...cuerpo });
+      const got = (await ctrl.get({ inota: n.inota }))!.toJSON();
+      assertEquals({ titulo: got["titulo"] ?? null, jdatos: got["jdatos"] }, esperado, `modo ${modo ?? "insert"}`);
+    } finally {
+      await db.destroy();
+    }
   }
 });
 

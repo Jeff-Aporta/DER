@@ -87,11 +87,23 @@ export interface RelationDef {
   on: Record<string, string>;
 }
 
+/**
+ * Cómo aplica el PUT singular (`PUT singular/pks...`) el cuerpo recibido sobre el registro actual (acciones de `Obj`,
+ * guiadas por el molde Zod de cada columna json):
+ * - `insert` (default): ajuste parcial — lo no mencionado se conserva y dentro de los json se fusiona en profundidad;
+ * - `insertIgnore`: sólo completa lo que no está definido (nunca pisa);
+ * - `update`: sólo cambia lo que ya está definido;
+ * - `replace`: reemplazo directo de todo el registro (lo no enviado queda vacío).
+ */
+export type PutMode = "insert" | "insertIgnore" | "update" | "replace";
+
 export interface Schema {
   columns: Record<string, ColumnDef>;
   relations?: Record<string, RelationDef>;
   /** Orden explícito de las pks. Si se omite se toman las columnas con `pk: true` en orden. */
   primaryKey?: readonly string[];
+  /** Modo del PUT singular sobre el registro actual. Default `insert` (ajustes parciales). */
+  put?: PutMode;
 }
 
 type TSOf<T extends ColumnType> = T extends "int" | "bigint" | "float" | "decimal" ? number
@@ -292,8 +304,9 @@ export type CheckResult = Check | Promise<Check>;
  * Entrada de `preConfirm`: unión discriminada por `action` (cada acción con su forma exacta de argumento).
  */
 export type ConfirmInput<P> =
-  | { action: "get" | "post" | "put" | "delete" | "getCfg"; arg: P }
-  | { action: "putCfg"; arg: P; cambios: Record<string, unknown> }
+  | { action: "get" | "post" | "put" | "delete"; arg: P }
+  | { action: "getCfg"; arg: undefined }
+  | { action: "putCfg"; arg: undefined; cambios: Record<string, unknown> }
   | { action: "list"; arg: undefined }
   | { action: "query"; arg: QuerySpec<P> }
   | { action: "postList" | "putList" | "deleteList"; arg: P[] }
@@ -315,25 +328,24 @@ export interface Hooks<P extends Pojo, Ctl = any, Ctx = any> {
   prePostList?(this: Ctl, list: P[], ctx: Ctx): CheckResult;
   prePutList?(this: Ctl, list: P[], ctx: Ctx): CheckResult;
   preDeleteList?(this: Ctl, list: P[], ctx: Ctx): CheckResult;
-  /** GET `/cfg`. */
-  preGetCfg?(this: Ctl, pojo: P, ctx: Ctx): CheckResult;
-  /** PUT `/cfg`: recibe el pojo (pks) y el JSON parcial. */
-  prePutCfg?(this: Ctl, pojo: P, cambios: Record<string, unknown>, ctx: Ctx): CheckResult;
+  /** GET `plural/cfg`. */
+  preGetCfg?(this: Ctl, ctx: Ctx): CheckResult;
+  /** PUT `plural/cfg`: recibe el JSON parcial. */
+  prePutCfg?(this: Ctl, cambios: Record<string, unknown>, ctx: Ctx): CheckResult;
 }
 
 /**
- * Configuración JSON de la entidad, servida en `singular/pks.../cfg` (GET devuelve el JSON; PUT recibe un
- * JSON PARCIAL que se aplica con `Obj.insert`, así una sola llave ajusta un pedazo sin afectar el resto).
- * Sólo modifica JSON. Típicamente la columna `jconfig` del pojo.
- *
- * `getCfg(pojo, ctx)` y `putCfg(pojo, cambios, ctx)` pueden devolver `null` si el registro (las pks)
- * no existe en la entidad — el cliente espera esa posibilidad.
+ * Configuración JSON de la ENTIDAD (no de un registro): sus valores por defecto, servidos sólo sobre el plural
+ * (`GET plural/cfg` y `PUT plural/cfg`; los singulares no tienen `/cfg`). Siempre tipada con Zod:
+ * - `getCfg()` devuelve el JSON guardado con los defaults del molde aplicados;
+ * - `putCfg(cambios)` aplica el JSON parcial con `Obj.update` (sólo cambia llaves que el molde ya define, nunca crea
+ *   otras) y valida el resultado completo con el molde.
+ * Dónde se guarda lo decide el server: una tabla de configuración (`CfgTableDef`, en `Database` o por controller);
+ * si el server no define esa tabla, las rutas `/cfg` no se exponen.
  */
 export interface CfgDef {
-  /** Columna `json` de la propia entidad que guarda la config. Si se omite, el server define dónde (otra tabla / load-save). */
-  column?: string;
-  /** Molde Zod de la config (opcional; si se omite se usa el `zod` de la columna, si lo tiene). */
-  zod?: z.ZodType;
+  /** Molde Zod de la config (obligatorio): forma, tipos y valores por defecto (`.default(...)`). */
+  zod: z.ZodType;
 }
 
 export interface EndpointDef<P extends Pojo = any> {

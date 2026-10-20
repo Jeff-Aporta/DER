@@ -11,7 +11,7 @@
  */
 import { PostgresDialect, type PostgresPool } from "kysely";
 import { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
-import type { IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import type { CfgTableDef, IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 import { postgres } from "@Jeff-Aporta/DER/src/02 controllers/server/pg/engine.ts";
 
 export * from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
@@ -19,7 +19,7 @@ export { postgres } from "@Jeff-Aporta/DER/src/02 controllers/server/pg/engine.t
 
 export function pgDatabase(
   pool: PostgresPool | (() => Promise<PostgresPool>),
-  opts: { identifierCase?: IdentifierCase } = {},
+  opts: { identifierCase?: IdentifierCase; cfg?: CfgTableDef } = {},
 ): Database {
   return new Database({ engine: postgres, dialect: new PostgresDialect({ pool }), ...opts });
 }

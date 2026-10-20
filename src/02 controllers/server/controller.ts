@@ -37,7 +37,9 @@ import { zodMessage } from "@Jeff-Aporta/DER/src/01 objects/zod.ts";
 import { type Database, registeredControllers } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
 import { composeFromSources, entityContractMd, entitySheetPath, vaultHtml } from "@Jeff-Aporta/DER/src/02 controllers/server/doc.ts";
 import { applyCase } from "@Jeff-Aporta/DER/src/02 controllers/server/engine.ts";
+import type { z } from "zod";
 import type {
+  CfgTableDef,
   ComputedSql,
   BuiltSelect,
   DeferredInclude,
@@ -543,12 +545,30 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     return row;
   }
 
+  /**
+   * PUT singular. El cuerpo se aplica sobre el registro actual según el modo del schema (`schema.put`, default
+   * `insert`): `insert` ajusta en parcial (en json con molde fusiona en profundidad), `insertIgnore` sólo completa,
+   * `update` sólo cambia lo ya definido y `replace` reemplaza todo el registro (lo no enviado queda vacío).
+   */
   async updateOne(pojo: P, exec?: Kysely<any>): Promise<P | null> {
     const meta = this.entity.meta;
-    const self = pojo as unknown as Record<string, unknown>;
-    const fields = meta.persisted.filter((k) => !meta.pks.includes(k) && self[k] !== undefined);
+    const modo = this.entity.pojo.schema.put ?? "insert";
+    const editables = meta.persisted.filter((k) => !meta.pks.includes(k));
+    const sent = pojo as unknown as Record<string, unknown>;
+    let self = sent;
+    let fields = editables.filter((k) => sent[k] !== undefined);
+    if (modo === "replace") {
+      fields = editables;
+    } else if (fields.length) {
+      const actual = await this.selectOne(pojo, {}, exec);
+      if (!actual) return null;
+      const cambios = Object.fromEntries(fields.map((k) => [k, (pojo.toJSON() as Record<string, unknown>)[k]]));
+      const next = modo === "update" ? actual.update(cambios as never) : modo === "insertIgnore" ? actual.insertIgnore(cambios as never) : actual.insert(cambios as never);
+      self = next as unknown as Record<string, unknown>;
+      fields = editables.filter((k) => self[k] !== undefined);
+    }
     if (!fields.length) return this.selectOne(pojo, undefined, exec);
-    const sets = fields.map((f) => sql`${sql.id(this.dbCol(f))} = ${this.toDb(f, self[f])}`);
+    const sets = fields.map((f) => sql`${sql.id(this.dbCol(f))} = ${this.toDb(f, self[f] ?? null)}`);
     const q = sql`update ${sql.table(this.table)} set ${sql.join(sets)} where ${
       this.pkWhere(null, pojo)
     } returning ${this.returning()}`;
@@ -744,7 +764,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   /** Contrato generado de la entidad (rutas, columnas, relaciones, endpoints, cfg). */
   contractMd(basePath = ""): string {
-    return entityContractMd(this.entity, { table: this.table, basePath });
+    return entityContractMd(this.entity, { table: this.table, basePath, cfg: this.hasCfg() });
   }
 
   /** Doc expuesta: el contrato autogenerado + las fuentes `doc` concatenadas como secciones. */
@@ -766,104 +786,83 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     return this.composedDoc(typeof ctx.state["basePath"] === "string" ? ctx.state["basePath"] : "");
   }
 
-  // ================================================================ /cfg
+  // ================================================================ /cfg (configuración de la entidad)
 
-  protected async executeCfg(
-    action: CfgAction,
-    pojo: P,
-    cambios: Record<string, unknown> | undefined,
-    ctx: ServerCtx,
-  ): Promise<unknown> {
-    if (action === "getCfg") {
-      const v = await this.loadCfg(pojo, ctx);
-      return v === undefined ? null : v ?? {};
-    }
+  /**
+   * Tabla de configuración que aplica a esta entidad: la del controller o, si no, la de la base. `null` = `/cfg` no
+   * se expone (la entidad no define `cfg`, el controller lo apagó con `cfg: false` o nadie definió la tabla).
+   */
+  cfgTable(): CfgTableDef | null {
+    if (!this.entity.def.cfg || this.config.cfg === false) return null;
+    return this.config.cfg ?? this.db.cfg ?? null;
+  }
+
+  /** ¿Se exponen `GET/PUT plural/cfg`? */
+  hasCfg(): boolean {
+    return this.cfgTable() !== null;
+  }
+
+  protected async executeCfg(action: CfgAction, cambios: Record<string, unknown> | undefined, ctx: ServerCtx): Promise<unknown> {
+    const t = this.cfgTable();
+    if (!t) throw new NotFoundError(`"${this.entity.plural}" no expone configuración (el servidor no define tabla de cfg)`);
+    const molde = this.entity.cfgZod as z.ZodType;
+    if (action === "getCfg") return this.conDefaults(await this.loadCfg(t, ctx.exec), molde);
     return this.inTransaction(ctx, async (exec) => {
-      const tx = { ...ctx, exec, inTransaction: true };
-      const actual = await this.loadCfg(pojo, tx);
-      if (actual === undefined) return null;
-      const molde = this.entity.cfgZod;
-      let merged = Obj.insert(Obj.esPlano(actual) ? actual : {}, cambios, molde);
-      if (molde) {
-        const r = molde.safeParse(merged);
-        if (!r.success) throw new ValidationError(zodMessage(r.error));
-        merged = r.data as Record<string, unknown>;
-      }
-      await this.saveCfg(pojo, merged, tx);
-      return merged;
+      // sólo update: cambia llaves que el molde ya define (con sus defaults); nunca crea otras
+      const next = Obj.update(this.conDefaults(await this.loadCfg(t, exec), molde), cambios ?? {});
+      const r = molde.safeParse(next);
+      if (!r.success) throw new ValidationError(zodMessage(r.error));
+      await this.saveCfg(t, r.data, exec);
+      return r.data;
     });
   }
 
-  private cfgColumn(): string {
-    const col = this.config.cfg?.column ?? this.entity.def.cfg?.column;
-    if (!col) throw new HttpError(501, `"${this.entity.singular}": cfg sin columna ni load/save en el servidor`);
-    return col;
+  /** JSON guardado con los valores por defecto del molde aplicados (si lo guardado no cumple el molde, tal cual). */
+  private conDefaults(v: unknown, molde: z.ZodType): Record<string, unknown> {
+    const base = Obj.esPlano(v) ? v : {};
+    const r = molde.safeParse(base);
+    return (r.success ? r.data : base) as Record<string, unknown>;
   }
 
-  /** Condición sobre la tabla externa de cfg: columnas `keys` = pks del pojo. */
-  private cfgKeysWhere(pojo: P): Raw {
-    const keys = this.config.cfg?.keys ?? {};
-    const self = pojo as unknown as Record<string, unknown>;
-    return sql.join(
-      this.entity.meta.pks.map((k) =>
-        sql`${sql.id(applyCase(keys[k] ?? this.config.columnNames?.[k] ?? k, this.identifierCase))} = ${
-          this.toDb(k, self[k])
-        }`
-      ),
-      sql` and `,
-    );
+  /** Identificadores de la tabla de configuración, con el caso del controller. */
+  private cfgIds(t: CfgTableDef) {
+    const c = (n: string) => sql.id(applyCase(n, this.identifierCase));
+    return { tabla: sql.table(applyCase(t.table, this.identifierCase)), entidad: c(t.columns.entidad), json: c(t.columns.json), fecha: c(t.columns.fecha) };
   }
 
-  /** JSON actual de la config; `undefined` = la entidad no existe. */
-  async loadCfg(pojo: P, ctx: ServerCtx): Promise<unknown> {
-    const def = this.config.cfg;
-    if (def?.load) return await def.load.call(this, pojo, ctx);
-    if (def?.table) {
-      const col = sql.id(applyCase(this.cfgColumn(), this.identifierCase));
-      const tbl = sql.table(applyCase(def.table, this.identifierCase));
-      const { rows } = await sql<Record<string, unknown>>`select ${col} as ${sql.id("cfg")} from ${tbl} where ${
-        this.cfgKeysWhere(pojo)
-      }`.execute(ctx.exec);
-      const [row] = rows;
-      return row ? this.engine.readJson(row["cfg"]) ?? {} : {};
-    }
-    const col = this.cfgColumn();
-    const { rows } = await sql<Record<string, unknown>>`select ${this.col(null, col)} as ${sql.id("cfg")} from ${
-      sql.table(this.table)
-    } where ${this.pkWhere(null, pojo)}`.execute(ctx.exec);
+  /** JSON guardado de la configuración de esta entidad (`undefined` si aún no tiene fila). */
+  async loadCfg(t: CfgTableDef, exec: Kysely<any>): Promise<unknown> {
+    const id = this.cfgIds(t);
+    const { rows } = await sql<Record<string, unknown>>`select ${id.json} as ${sql.id("cfg")} from ${id.tabla} where ${id.entidad} = ${
+      this.entity.plural
+    }`.execute(exec);
     const [row] = rows;
-    if (!row) return undefined;
-    return this.engine.readJson(row["cfg"]) ?? {};
+    return row ? this.engine.readJson(row["cfg"]) ?? undefined : undefined;
   }
 
-  async saveCfg(pojo: P, value: unknown, ctx: ServerCtx): Promise<void> {
-    const def = this.config.cfg;
-    if (def?.save) {
-      await def.save.call(this, pojo, value, ctx);
-      return;
-    }
+  /** Guarda el JSON completo (UPDATE o, si la entidad aún no tiene fila, INSERT) con la fecha de actualización. */
+  async saveCfg(t: CfgTableDef, value: unknown, exec: Kysely<any>): Promise<void> {
+    const id = this.cfgIds(t);
     const json = this.engine.toDb({ type: "json" }, value);
-    if (def?.table) {
-      const colName = applyCase(this.cfgColumn(), this.identifierCase);
-      const tbl = sql.table(applyCase(def.table, this.identifierCase));
-      const { rows } = await sql`update ${tbl} set ${sql.id(colName)} = ${json} where ${
-        this.cfgKeysWhere(pojo)
-      } returning 1 as ${sql.id("ok")}`.execute(ctx.exec);
-      if (rows.length) return;
-      const keys = def.keys ?? {};
-      const self = pojo as unknown as Record<string, unknown>;
-      const pks = this.entity.meta.pks;
-      const cols = [
-        ...pks.map((k) => sql.id(applyCase(keys[k] ?? this.config.columnNames?.[k] ?? k, this.identifierCase))),
-        sql.id(colName),
-      ];
-      const vals = [...pks.map((k) => this.toDb(k, self[k])), json];
-      await sql`insert into ${tbl} (${sql.join(cols)}) values (${sql.join(vals)})`.execute(ctx.exec);
-      return;
-    }
-    await sql`update ${sql.table(this.table)} set ${this.col(null, this.cfgColumn())} = ${json} where ${
-      this.pkWhere(null, pojo)
-    }`.execute(ctx.exec);
+    const fecha = this.engine.toDb({ type: "datetime" }, new Date());
+    const { rows } = await sql`update ${id.tabla} set ${id.json} = ${json}, ${id.fecha} = ${fecha} where ${id.entidad} = ${
+      this.entity.plural
+    } returning 1 as ${sql.id("ok")}`.execute(exec);
+    if (rows.length) return;
+    await sql`insert into ${id.tabla} (${id.entidad}, ${id.json}, ${id.fecha}) values (${this.entity.plural}, ${json}, ${fecha})`
+      .execute(exec);
+  }
+
+  /** `CREATE TABLE IF NOT EXISTS` de la tabla de configuración (compartida por las entidades de la base). */
+  async seedCfgTable(exec: Kysely<any> = this.db.kysely): Promise<void> {
+    const t = this.cfgTable();
+    if (!t) return;
+    const n = (c: string) => applyCase(c, this.identifierCase);
+    await exec.schema.createTable(n(t.table)).ifNotExists()
+      .addColumn(n(t.columns.entidad), sql.raw(this.engine.columnType({ type: "string", length: 120 })), (cb) => cb.primaryKey().notNull())
+      .addColumn(n(t.columns.json), sql.raw(this.engine.columnType({ type: "json" })))
+      .addColumn(n(t.columns.fecha), sql.raw(this.engine.columnType({ type: "datetime" })))
+      .execute();
   }
 
   /**
@@ -903,6 +902,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     if (visited.has(this)) return;
     visited.add(this);
     await this.seedTable(opts.exec ?? this.db.kysely);
+    await this.seedCfgTable(opts.exec ?? this.db.kysely);
     if (opts.propagate === false) return;
     for (const child of this.propagationControllers()) {
       // cada controller crea su tabla en SU base: el ejecutor sólo se comparte dentro de la misma base

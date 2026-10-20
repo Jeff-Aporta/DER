@@ -26,7 +26,7 @@ Los hosts no tienen dependencias: el `app` de `@azure/functions` lo pasa el cons
 | `POST:/plural/query` · `GET:/plural/query` | query |
 | `POST:/singular` · `GET/PUT/DELETE:/singular/{pk...}` | post · get · put · delete |
 | `METHOD:/singular/{pk...}/<ep>` · `METHOD:/plural/<ep>` | endpoints especiales (scope one / many) |
-| `GET/PUT:/singular/{pk...}/cfg` | getCfg / putCfg (si la entidad tiene `cfg`) |
+| `GET/PUT:/plural/cfg` | getCfg / putCfg (si la entidad tiene `cfg` y el server una tabla de cfg) |
 | `GET:/plural/doc` | doc (`?v=1` → vista) |
 | `<lo anterior>/sse` | sólo si el server define el handler SSE de esa acción/endpoint |
 

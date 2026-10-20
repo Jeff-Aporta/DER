@@ -14,7 +14,7 @@ import { HttpError, NotFoundError, ValidationError } from "@Jeff-Aporta/DER/src/
 import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
 import { parseEvents } from "@Jeff-Aporta/DER/src/00 common/sse.ts";
 
-const SINGULAR: ReadonlySet<string> = new Set(["get", "put", "delete", "getCfg", "putCfg"]);
+const SINGULAR: ReadonlySet<string> = new Set(["get", "put", "delete"]);
 
 export class ClientController<P extends Pojo> extends BaseController<P, ClientCtx> {
   constructor(entity: Entity<P>, readonly config: Config<P, ClientController<P>>) {
@@ -111,18 +111,11 @@ export class ClientController<P extends Pojo> extends BaseController<P, ClientCt
     return await res.text();
   }
 
-  protected async executeCfg(
-    action: CfgAction,
-    pojo: P,
-    cambios: Record<string, unknown> | undefined,
-    ctx: ClientCtx,
-  ): Promise<unknown> {
-    const r = this.entity.route(action, pojo);
+  /** `plural/cfg`: 404 = el server no expone la configuración de esta entidad (no definió tabla de cfg). */
+  protected async executeCfg(action: CfgAction, cambios: Record<string, unknown> | undefined, ctx: ClientCtx): Promise<unknown> {
+    const r = this.entity.route(action);
     const res = await this.request(r.method, r.path, action === "putCfg" ? cambios : undefined, ctx);
-    if (res.status === 404) {
-      await res.body?.cancel();
-      return null;
-    }
+    if (res.status === 404) throw new NotFoundError(await errorMessage(res));
     return await res.json();
   }
 

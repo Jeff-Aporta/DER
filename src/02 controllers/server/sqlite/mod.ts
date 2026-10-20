@@ -11,7 +11,7 @@
 import { SqliteDialect, type SqliteDatabase } from "kysely";
 import { DatabaseSync } from "node:sqlite";
 import { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
-import type { IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import type { CfgTableDef, IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 import { sqlite } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/engine.ts";
 
 export * from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
@@ -38,7 +38,7 @@ export function nodeSqliteAdapter(db: DatabaseSync): SqliteDatabase {
 }
 
 /** SQLite en archivo o `":memory:"`. */
-export function sqliteDatabase(path = ":memory:", opts: { identifierCase?: IdentifierCase } = {}): Database {
+export function sqliteDatabase(path = ":memory:", opts: { identifierCase?: IdentifierCase; cfg?: CfgTableDef } = {}): Database {
   return new Database({
     engine: sqlite,
     dialect: new SqliteDialect({ database: nodeSqliteAdapter(new DatabaseSync(path)) }),

@@ -24,7 +24,7 @@ export const ProductoEntity = defineEntity({
     ajustarStock: { method: "POST", scope: "one", returns: "pojo" },
     importar:     { method: "POST", scope: "many", returns: "list" },
   },
-  cfg: { column: "jconfig" },       // habilita /cfg
+  cfg: { zod: ZProductosCfg },      // configuración de la entidad: habilita plural/cfg (si el server define la tabla de cfg)
   itemHooksOnLists: true,           // en las listas, corre también el pre singular por ítem
 });
 ```
@@ -46,8 +46,8 @@ export const ProductoEntity = defineEntity({
 | `deleteList` | DELETE | `plural` | pojo[] (pks) |
 | endpoint `scope:"one"` | `def.method` | `singular/pks.../nombre` | pojo |
 | endpoint `scope:"many"` | `def.method` | `plural/nombre` | pojo[] (GET: `?q=`) |
-| `getCfg` | GET | `singular/pks.../cfg` | pojo (pks) → JSON |
-| `putCfg` | PUT | `singular/pks.../cfg` | JSON parcial → JSON completo |
+| `getCfg` | GET | `plural/cfg` | → JSON de la entidad (con los defaults del molde) |
+| `putCfg` | PUT | `plural/cfg` | JSON parcial (`Obj.update`) → JSON completo |
 | `doc` | GET | `plural/doc` | → markdown (autogenerado + secciones) |
 | `docView` | GET | `plural/doc?v=1` | → HTML (la misma doc en la vista iswc) |
 | variante SSE | mismo método | ruta + `/sse` | igual a la acción |
@@ -57,7 +57,7 @@ export const ProductoEntity = defineEntity({
 - Una ruta puede tener varios segmentos (`singular: "pedido/linea"` → `pedido/linea/1/2`).
 - Al resolver una ruta, el plural tiene prioridad sobre el singular.
 - Segmentos reservados para endpoints: `query`, `sse`, `cfg`, `doc`. Un endpoint tampoco puede llamarse como una acción CRUD.
-- Respuestas: `post`/`postList` → 201; `null` en get/put/delete/cfg → 404; un `pre*` → 400 `{ error }`; error interno → 500 (con el mensaje solo si `exposeErrors`).
+- Respuestas: `post`/`postList` → 201; `null` en get/put/delete → 404; `/cfg` sin tabla de cfg en el server → 404; un `pre*` → 400 `{ error }`; error interno → 500 (con el mensaje solo si `exposeErrors`).
 
 ## Endpoints especiales
 

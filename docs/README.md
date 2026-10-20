@@ -11,7 +11,7 @@ tags: [indice, agentes]
 Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en JSON, los schemas de las entidades y sus POJOs, y reusarlos para:
 
 - **Client:** controllers `fetch` que validan (Zod + `pre*`) antes de llamar a la API.
-- **Server:** controllers SQL agnósticos del motor (PostgreSQL, SQLite), con relaciones anidadas, filtros, paginación, `seed()`, SSE y configuración JSON (`/cfg`).
+- **Server:** controllers SQL agnósticos del motor (PostgreSQL, SQLite), con relaciones anidadas, filtros, paginación, `seed()`, SSE y configuración de la entidad (`plural/cfg`) y modo del PUT singular (`schema.put`).
 
 ## Mapa del paquete
 
@@ -43,7 +43,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 | Controllers: flujo, `pre*`, hooks, overrides, client y server | [030-Controllers/010-Controllers.md](030-Controllers/010-Controllers.md) |
 | `query()`: filtros, operadores, relaciones, orden, paginación, include | [020-Objetos/040-Query.md](020-Objetos/040-Query.md) |
 | Motores SQL: PG, SQLite, PGlite, `seed()`, `syncSchema()` (migraciones), secuencias, índices, caso de identificadores, nuevo motor | [040-Servidor/010-Motores-seed-y-sync.md](040-Servidor/010-Motores-seed-y-sync.md) |
-| Server-Sent Events y configuración JSON | [030-Controllers/030-SSE-y-cfg.md](030-Controllers/030-SSE-y-cfg.md) |
+| Server-Sent Events, configuración de la entidad y modo del PUT | [030-Controllers/030-SSE-y-cfg.md](030-Controllers/030-SSE-y-cfg.md) |
 | Documentación servida: md autogenerado + secciones en `/doc`, vista iswc en `/doc?v=1` | [030-Controllers/040-Documentacion-servida.md](030-Controllers/040-Documentacion-servida.md) |
 | Diagramas DER: payload `erDiagram` / `classDiagram` para ISWC desde las entidades | [030-Controllers/040-Documentacion-servida.md](030-Controllers/040-Documentacion-servida.md#diagramas-del-der-payload-para-iswc) |
 | Hosts: tabla de rutas, Azure Functions, Cloudflare Workers, rutas irregulares, CORS, guard | [040-Servidor/020-Hosts.md](040-Servidor/020-Hosts.md) |

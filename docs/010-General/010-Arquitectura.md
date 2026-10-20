@@ -30,7 +30,7 @@ src/03 plugins       identity (login, tokens, hooks) · permissions (permisos po
 (motores como dimensiones; server/ vive aislado del cliente por dimensión)
 ```
 
-- **Una definición, dos lados.** El schema JSON, el POJO, la entidad (singular, plural, rutas), los `pre*` compartidos y los contratos Zod son los mismos en el client y en el server. El server agrega lo propio de SQL (tabla, caso de identificadores, columnas calculadas, dónde vive `/cfg`) y el client lo propio de HTTP (`baseUrl`, headers, fetch).
+- **Una definición, dos lados.** El schema JSON, el POJO, la entidad (singular, plural, rutas), los `pre*` compartidos y los contratos Zod son los mismos en el client y en el server. El server agrega lo propio de SQL (tabla, caso de identificadores, columnas calculadas, la tabla de configuración de `plural/cfg`) y el client lo propio de HTTP (`baseUrl`, headers, fetch).
 - **BaseController** fija el flujo de toda acción: normalizar a POJO, verificar (`pre*`), override opcional y ejecutar. Client y server solo implementan `execute*`.
 - **Motores como dimensiones.** `server/` no conoce ningún motor: recibe un `Engine` (contrato en `server/schemas.ts`). Cada carpeta de motor aporta su `Engine` y su fábrica de `Database`, así sus dependencias quedan aisladas.
 

@@ -6,7 +6,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { PostgresDialect, type PostgresPool, type PostgresPoolClient } from "kysely";
 import { Database } from "@Jeff-Aporta/DER/src/02 controllers/server/database.ts";
-import type { IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import type { CfgTableDef, IdentifierCase } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 import { postgres } from "@Jeff-Aporta/DER/src/02 controllers/server/pg/engine.ts";
 
 export * from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
@@ -39,7 +39,7 @@ export function pglitePool(pg: PGlite): PostgresPool {
 /** `pg` puede ser una instancia de PGlite o su `dataDir` (por defecto en memoria). */
 export function pgliteDatabase(
   pg: PGlite | string = new PGlite(),
-  opts: { identifierCase?: IdentifierCase } = {},
+  opts: { identifierCase?: IdentifierCase; cfg?: CfgTableDef } = {},
 ): Database {
   const inst = typeof pg === "string" ? new PGlite(pg) : pg;
   return new Database({ engine: postgres, dialect: new PostgresDialect({ pool: pglitePool(inst) }), ...opts });

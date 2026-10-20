@@ -19,7 +19,7 @@ Cada controller expone su documentación para que humanos y agentes LLM se conte
 
 ## Md autogenerado
 
-Se genera desde la definición compartida de la entidad: rutas (con `basePath`), columnas (tipo, pk, nulos, default, enum, molde Zod), relaciones, endpoints especiales, `/cfg`, consulta y verificaciones. Utilidades: `entityContractMd(entity, { table, basePath })` y `apiIndexMd(entities, basePath)`.
+Se genera desde la definición compartida de la entidad: rutas (con `basePath`), columnas (tipo, pk, nulos, default, enum, molde Zod), relaciones, endpoints especiales, `plural/cfg` (si el server lo expone), el modo del PUT singular, consulta y verificaciones. Utilidades: `entityContractMd(entity, { table, basePath })` y `apiIndexMd(entities, basePath)`.
 
 ## Secciones: rutas `.md` para concatenar
 

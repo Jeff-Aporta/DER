@@ -92,6 +92,8 @@ export function entityContractMd(
     entities?: Entity<any>[];
     propagations?: PropagationSpec;
     diagram?: boolean;
+    /** ¿El server expone `plural/cfg`? (necesita la tabla de cfg). Default: si la entidad define `cfg`. */
+    cfg?: boolean;
   } = {},
 ): string {
   const meta = entity.meta;
@@ -111,7 +113,7 @@ export function entityContractMd(
   const rows: [string, string, string, string][] = [
     ["get", "GET", `${S}/${P}`, "pks (`?include=<json>`)"],
     ["post", "POST", S, "pojo (body)"],
-    ["put", "PUT", `${S}/${P}`, "pojo parcial (body)"],
+    ["put", "PUT", `${S}/${P}`, `pojo parcial (body) · modo \`${meta.schema.put ?? "insert"}\``],
     ["delete", "DELETE", `${S}/${P}`, "pks"],
     ["list", "GET", L, "—"],
     ["query", "POST · GET `?q=`", `${L}/query`, "QuerySpec"],
@@ -128,9 +130,10 @@ export function entityContractMd(
       `${ep.scope === "one" ? "pojo" : "pojo[]"} → ${ep.returns ?? "json"}`,
     ]);
   }
-  if (entity.def.cfg) {
-    rows.push(["getCfg", "GET", `${S}/${P}/cfg`, "pks → JSON"]);
-    rows.push(["putCfg", "PUT", `${S}/${P}/cfg`, "JSON parcial → JSON"]);
+  const conCfg = opts.cfg ?? Boolean(entity.def.cfg);
+  if (conCfg) {
+    rows.push(["getCfg", "GET", `${L}/cfg`, "→ JSON de la entidad"]);
+    rows.push(["putCfg", "PUT", `${L}/cfg`, "JSON parcial (`Obj.update`) → JSON"]);
   }
   rows.push(["doc", "GET", `${L}/doc`, "→ markdown"], ["docView", "GET", `${L}/doc?v=1`, "→ HTML"]);
   for (const r of rows) out.push(`| ${r.map(cell).join(" | ")} |`);
@@ -186,10 +189,9 @@ export function entityContractMd(
   out.push(`- \`list()\` columnas: ${entity.listColumns.map((c) => `\`${c}\``).join(", ")}.`);
   out.push(`- \`query()\` pageSize ${entity.pageSize} (máx ${entity.maxPageSize}); orden por defecto: pks.`);
   if (entity.def.getInclude) out.push(`- \`get()\` include por defecto: \`${JSON.stringify(entity.def.getInclude)}\`.`);
-  if (entity.def.cfg) {
-    const columna = entity.def.cfg.column ? ` en la columna \`${entity.def.cfg.column}\`` : "";
-    const molde = entity.cfgZod ? " con molde Zod" : " de libre definición";
-    out.push(`- \`/cfg\`: JSON${columna}${molde}; el PUT es parcial (\`Obj.insert\`).`);
+  out.push(`- \`put\` singular: el cuerpo se aplica sobre el registro actual en modo \`${meta.schema.put ?? "insert"}\` (\`schema.put\`).`);
+  if (conCfg) {
+    out.push("- `plural/cfg`: configuración de la entidad (valores por defecto), tipada con su molde Zod; el PUT sólo ajusta llaves que el molde define (`Obj.update`). Los singulares no tienen `/cfg`.");
   }
   const hooks = Object.keys(entity.hooks);
   if (hooks.length) out.push(`- Verificaciones compartidas: ${hooks.map((h) => `\`${h}\``).join(", ")}.`);

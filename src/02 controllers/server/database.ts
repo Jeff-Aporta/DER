@@ -5,7 +5,7 @@
 import { Kysely } from "kysely";
 import type { Pojo } from "@Jeff-Aporta/DER/src/01 objects/pojo.ts";
 import type { PojoClass } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
-import type { DatabaseOptions, Engine, IdentifierCase, ServerCtx } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
+import type { CfgTableDef, DatabaseOptions, Engine, IdentifierCase, ServerCtx } from "@Jeff-Aporta/DER/src/02 controllers/server/schemas.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/controller.ts";
 
 /**
@@ -28,12 +28,15 @@ export class Database {
   readonly kysely: Kysely<any>;
   readonly engine: Engine;
   readonly identifierCase: IdentifierCase;
+  /** Tabla de configuración de las entidades (`plural/cfg`) por defecto para sus controllers. */
+  readonly cfg: CfgTableDef | undefined;
   readonly #controllers = new Map<PojoClass<any>, ServerController<any>>();
 
   constructor(opts: DatabaseOptions) {
     this.engine = opts.engine;
     this.kysely = new Kysely<any>({ dialect: opts.dialect });
     this.identifierCase = opts.identifierCase ?? "preserve";
+    this.cfg = opts.cfg;
   }
 
   register(ctrl: ServerController<any>): void {

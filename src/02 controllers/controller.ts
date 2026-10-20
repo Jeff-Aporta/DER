@@ -94,43 +94,41 @@ export abstract class BaseController<P extends Pojo, Ctx extends BaseCtx = BaseC
 
   // ------------------------------------------------------------------ configuración JSON (/cfg)
 
-  /** JSON de configuración de la entidad (`GET singular/pks.../cfg`). `null` si la entidad no existe. */
-  async getCfg<T = Record<string, unknown>>(pojo: P | PojoInit, ctx?: Partial<Ctx>): Promise<T | null> {
+  /**
+   * Configuración de la ENTIDAD (`GET plural/cfg`): el JSON guardado con los valores por defecto del molde Zod.
+   * Los singulares no tienen `/cfg`: son los valores por defecto de toda la entidad.
+   */
+  async getCfg<T = Record<string, unknown>>(ctx?: Partial<Ctx>): Promise<T> {
     const c = this.makeCtx(ctx);
-    const p = this.entity.toPojo(pojo);
-    const e = this.cfgCheck(p) ??
-      await this.runConfirm({ action: "getCfg", arg: p }, c) ??
-      await this.runCfgHook("preGetCfg", [p, c]);
+    const e = this.cfgCheck() ??
+      await this.runConfirm({ action: "getCfg", arg: undefined }, c) ??
+      await this.runCfgHook("preGetCfg", [c]);
     if (e) throw new ValidationError(e);
-    return await this.executeCfg("getCfg", p, undefined, c) as T | null;
+    return await this.executeCfg("getCfg", undefined, c) as T;
   }
 
   /**
-   * Aplica un JSON PARCIAL a la configuración (`PUT singular/pks.../cfg`) y retorna la config completa.
-   * Una sola llave basta para ajustar un pedazo; `null` quita (según el molde Zod si lo hay).
+   * Ajusta la configuración de la entidad (`PUT plural/cfg`) con un JSON PARCIAL y retorna la config completa.
+   * Se aplica con `Obj.update`: sólo cambia llaves que el molde define (nunca crea otras); el resultado se valida
+   * completo con el molde.
    */
-  async putCfg<T = Record<string, unknown>>(
-    pojo: P | PojoInit,
-    cambios: Record<string, unknown>,
-    ctx?: Partial<Ctx>,
-  ): Promise<T | null> {
+  async putCfg<T = Record<string, unknown>>(cambios: Record<string, unknown>, ctx?: Partial<Ctx>): Promise<T> {
     const c = this.makeCtx(ctx);
-    const p = this.entity.toPojo(pojo);
-    let e = this.cfgCheck(p);
+    let e = this.cfgCheck();
     if (!e && !Obj.esPlano(cambios)) e = "La configuración debe ser un objeto JSON";
     if (!e && this.entity.cfgPatchZod) {
       const r = this.entity.cfgPatchZod.safeParse(cambios);
       if (!r.success) e = zodMessage(r.error);
     }
-    e ??= await this.runConfirm({ action: "putCfg", arg: p, cambios }, c);
-    e ??= await this.runCfgHook("prePutCfg", [p, cambios, c]);
+    e ??= await this.runConfirm({ action: "putCfg", arg: undefined, cambios }, c);
+    e ??= await this.runCfgHook("prePutCfg", [cambios, c]);
     if (e) throw new ValidationError(e);
-    return await this.executeCfg("putCfg", p, cambios, c) as T | null;
+    return await this.executeCfg("putCfg", cambios, c) as T;
   }
 
-  private cfgCheck(p: P): string | null {
-    if (!this.entity.def.cfg) return `"${this.entity.singular}" no define configuración (cfg)`;
-    return this.builtinCheck("get", p);
+  private cfgCheck(): string | null {
+    if (!this.entity.def.cfg) return `"${this.entity.plural}" no define configuración (cfg)`;
+    return null;
   }
 
   private async runCfgHook(name: "preGetCfg" | "prePutCfg", args: unknown[]): Promise<string | null> {
@@ -343,12 +341,7 @@ export abstract class BaseController<P extends Pojo, Ctx extends BaseCtx = BaseC
   protected abstract executeEndpoint(name: string, ep: EndpointDef<P>, arg: unknown, ctx: Ctx): Promise<unknown>;
   protected abstract executeStream(name: string, arg: unknown, ctx: Ctx): AsyncIterable<string>;
   protected abstract executeDoc(ctx: Ctx): Promise<string>;
-  protected abstract executeCfg(
-    action: CfgAction,
-    pojo: P,
-    cambios: Record<string, unknown> | undefined,
-    ctx: Ctx,
-  ): Promise<unknown>;
+  protected abstract executeCfg(action: CfgAction, cambios: Record<string, unknown> | undefined, ctx: Ctx): Promise<unknown>;
 }
 
 function toMessage(r: Check): string | null {

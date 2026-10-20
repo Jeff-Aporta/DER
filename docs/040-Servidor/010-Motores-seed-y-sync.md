@@ -33,7 +33,7 @@ Los POJOs normalizan lo que llega (casteos), así el resultado es idéntico en a
 
 ## `seed()`
 
-`ctrl.seed()` o `db.seed()` (todos los registrados, en orden): `CREATE TABLE IF NOT EXISTS` a partir de las columnas persistidas del POJO: tipos, `NOT NULL`, `UNIQUE`, `DEFAULT`, pk simple o compuesta y autoincrement. **Crea también las secuencias (`seedSequence`/`nextValue`) y los índices (`ensureIndexes`).** No crea FKs (la integridad la vigila el DER por código). Las tablas externas de `/cfg` las crea el consumidor.
+`ctrl.seed()` o `db.seed()` (todos los registrados, en orden): `CREATE TABLE IF NOT EXISTS` a partir de las columnas persistidas del POJO: tipos, `NOT NULL`, `UNIQUE`, `DEFAULT`, pk simple o compuesta y autoincrement. **Crea también las secuencias (`seedSequence`/`nextValue`) y los índices (`ensureIndexes`).** No crea FKs (la integridad la vigila el DER por código). También crea la tabla de configuración de las entidades (`plural/cfg`) si el server la define.
 
 ## Caso de identificadores
 

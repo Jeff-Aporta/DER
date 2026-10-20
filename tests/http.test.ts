@@ -7,11 +7,11 @@ import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/s
 import { createRouter } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
 import { at } from "@Jeff-Aporta/DER/tests/_util.ts";
-import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
+import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { CategoriaEntity, CrisisEntity, LineaEntity, PedidoEntity, ProductoEntity, Categoria, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 async function setup() {
-  const db = sqliteDatabase();
+  const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
   const srv = buildControllers(db);
   await db.seed();
   const router = createRouter(Object.values(srv), { basePath: "/api", onError: () => {} });
@@ -150,19 +150,21 @@ Deno.test("http: SSE (texto plano por evento, multilínea, errores y verbos con 
   }
 });
 
-Deno.test("http: /cfg GET/PUT parcial", async () => {
+Deno.test("http: /cfg de la entidad en el plural (defaults del molde, PUT parcial sólo update)", async () => {
   const { db, cli, calls } = await setup();
   try {
-    const p = await cli.productos.post({ nombre: "A", precio: 1 });
-    assertEquals(await cli.productos.getCfg(p), {});
-    await cli.productos.putCfg(p, { ui: { color: "azul" } });
-    assertEquals(await cli.productos.putCfg(p, { etiquetas: ["x"] }), { ui: { color: "azul" }, etiquetas: ["x"] });
+    const defaults = { moneda: "COP", stockMinimo: 5, catalogo: { porPagina: 24, mostrarAgotados: false } };
+    assertEquals(await cli.productos.getCfg(), defaults);
+    assertEquals(calls.slice(-1), ["GET /api/productos/cfg"]);
+    // una llave anidada ajusta un pedazo sin tocar el resto
+    assertEquals(await cli.productos.putCfg({ catalogo: { porPagina: 12 } }), { ...defaults, catalogo: { porPagina: 12, mostrarAgotados: false } });
+    assertEquals(calls.slice(-1), ["PUT /api/productos/cfg"]);
     // el fragmento se valida con Zod en el client: no sale
     const antes = calls.length;
-    await assertRejects(() => cli.productos.putCfg(p, { ui: { color: 1 } }), ValidationError);
+    await assertRejects(() => cli.productos.putCfg({ stockMinimo: -1 }), ValidationError);
     assertEquals(calls.length, antes);
-    assertEquals(await cli.productos.getCfg({ iproducto: 99 }), null);
-    assertEquals(calls.slice(-1), ["GET /api/producto/99/cfg"]);
+    // las entidades sin cfg no la exponen
+    await assertRejects(() => cli.categorias.getCfg(), ValidationError, "cfg");
   } finally {
     await db.destroy();
   }

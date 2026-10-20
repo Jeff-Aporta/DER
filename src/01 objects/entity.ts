@@ -79,10 +79,7 @@ export class Entity<P extends Pojo = Pojo> {
     this.hooks = def.hooks ?? {};
     this.endpoints = def.endpoints ?? {};
     this.itemHooksOnLists = def.itemHooksOnLists ?? true;
-    if (def.cfg?.column) {
-      const c = meta.columns[def.cfg.column];
-      if (!c || c.type !== "json" || c.virtual) throw new Error(`cfg.column: "${def.cfg.column}" debe ser una columna json persistida`);
-    }
+    if (def.cfg && !def.cfg.zod) throw new Error(`cfg: "${def.singular}" debe definir el molde Zod de su configuración (cfg.zod)`);
     this.name = def.name ?? def.singular;
     registerPojo(this.name, def.pojo);
     for (const [name, ep] of Object.entries(this.endpoints)) {
@@ -110,14 +107,12 @@ export class Entity<P extends Pojo = Pojo> {
     return this.toPojo({}).replace(Obj.aplicar(pojo.toJSON(), acciones) as Record<string, unknown>);
   }
 
-  /** Molde Zod de la config (`cfg.zod` o el `zod` de la columna); `undefined` = JSON libre. */
+  /** Molde Zod de la configuración de la entidad (`plural/cfg`); `undefined` si la entidad no define `cfg`. */
   get cfgZod(): z.ZodType | undefined {
-    const cfg = this.def.cfg;
-    if (!cfg) return undefined;
-    return cfg.zod ?? (cfg.column ? this.meta.column(cfg.column).zod : undefined);
+    return this.def.cfg?.zod;
   }
 
-  /** Schema Zod de un PUT parcial de la config (cada llave opcional y `null` = quitar). */
+  /** Schema Zod de un PUT parcial de la config: cada llave opcional, y sólo las que el molde define. */
   get cfgPatchZod(): z.ZodType | undefined {
     const m = this.cfgZod;
     return m ? Obj.esquemaInsert(m) : undefined;
@@ -184,11 +179,12 @@ export class Entity<P extends Pojo = Pojo> {
       case "docView":
         r = { method: "GET", path: `${L}/doc?v=1` };
         break;
+      // configuración de la entidad: sólo sobre el plural (los singulares no tienen /cfg)
       case "getCfg":
-        r = { method: "GET", path: `${S}/${pks()}/cfg` };
+        r = { method: "GET", path: `${L}/cfg` };
         break;
       case "putCfg":
-        r = { method: "PUT", path: `${S}/${pks()}/cfg` };
+        r = { method: "PUT", path: `${L}/cfg` };
         break;
       case "deleteList":
         r = { method: "DELETE", path: L };
@@ -225,6 +221,10 @@ export class Entity<P extends Pojo = Pojo> {
       } else if (rest.length === 1) {
         if (rest[0] === "query" && (M === "POST" || M === "GET")) return { name: "query", pks: [], sse };
         if (rest[0] === "doc" && M === "GET") return { name: "doc", pks: [], sse };
+        if (rest[0] === "cfg" && this.def.cfg) {
+          if (M === "GET") return { name: "getCfg", pks: [], sse };
+          if (M === "PUT") return { name: "putCfg", pks: [], sse };
+        }
         const seg = rest[0];
         const ep = seg === undefined ? undefined : this.findEndpoint(seg, "many", M);
         if (ep) return { name: ep[0], endpoint: ep[1], pks: [], sse };
@@ -238,10 +238,6 @@ export class Entity<P extends Pojo = Pojo> {
         if (name) return { name, pks: rest, sse };
       }
       if (rest.length === npk + 1) {
-        if (rest[npk] === "cfg" && this.def.cfg) {
-          if (M === "GET") return { name: "getCfg", pks: rest.slice(0, npk), sse };
-          if (M === "PUT") return { name: "putCfg", pks: rest.slice(0, npk), sse };
-        }
         const seg = rest[npk];
         const ep = seg === undefined ? undefined : this.findEndpoint(seg, "one", M);
         if (ep) return { name: ep[0], endpoint: ep[1], pks: rest.slice(0, npk), sse };

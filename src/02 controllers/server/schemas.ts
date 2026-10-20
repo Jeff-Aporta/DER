@@ -120,8 +120,11 @@ export interface ServerControllerConfig<P extends Pojo>
   sse?: Partial<Record<Action, SseHandler<ServerController<P>>>>;
   /** Implementación de los endpoints especiales definidos en la entidad. */
   endpoints?: Record<string, ServerEndpoint<P>>;
-  /** Dónde vive la config JSON de `/cfg`. */
-  cfg?: ServerCfgDef<P>;
+  /**
+   * Tabla de configuración de `plural/cfg` para esta entidad (sobreescribe la de `Database`); `false` = no exponer
+   * `/cfg` aunque la base tenga tabla. Sólo aplica si la entidad define `cfg` (su molde Zod).
+   */
+  cfg?: CfgTableDef | false;
   /**
    * Qué se registra como ruta (equivalente a `aplicar` de ISS). Default: todo lo que la entidad define
    * (CRUD, listas, query, endpoints, `/cfg` si hay cfg, `/doc`) y sus `/sse` si hay handler.
@@ -163,20 +166,25 @@ export interface ServerControllerConfig<P extends Pojo>
 }
 
 /**
- * Dónde vive la config JSON (`/cfg`) en el server. Por defecto la columna `entity.cfg.column` de la propia tabla.
- * También: otra tabla (`table` + `column` + `keys`) o libre definición con `load`/`save`.
+ * Tabla de configuración de las entidades (`plural/cfg`): una fila por entidad. El consumidor elige los nombres,
+ * pero declara explícitamente qué columna es cada cosa, así las rutas `/cfg` quedan bien definidas:
+ * ```ts
+ * cfg: { table: "der_cfg", columns: { entidad: "plural", json: "jcfg", fecha: "fhultact" } }
+ * ```
+ * Se declara en `Database` (vale para todas sus entidades) o por controller. Sin ella, `/cfg` no se expone.
+ * `seed()` la crea si no existe.
  */
-export interface ServerCfgDef<P extends Pojo> {
-  /** Otra tabla donde vive la config (se hace UPDATE y, si no hay fila, INSERT). */
-  table?: string;
-  /** Columna json (en `table`, o en la propia tabla). Por defecto `entity.cfg.column`. */
-  column?: string;
-  /** pk de la entidad → columna en `table`. Por defecto el mismo nombre (con el caso del controller). */
-  keys?: Record<string, string>;
-  /** Lectura libre: retorna el JSON, o `undefined` si la entidad no existe (→ 404). */
-  load?(this: ServerController<P>, pojo: P, ctx: ServerCtx): unknown;
-  /** Escritura libre del JSON completo ya fusionado y validado. */
-  save?(this: ServerController<P>, pojo: P, value: unknown, ctx: ServerCtx): unknown;
+export interface CfgTableDef {
+  /** Tabla de configuración. */
+  table: string;
+  columns: {
+    /** pk: el plural de la entidad (`productos`). */
+    entidad: string;
+    /** JSON de la configuración. */
+    json: string;
+    /** Fecha y hora de la última actualización (la pone el PUT). */
+    fecha: string;
+  };
 }
 
 export interface SelectOptions {
@@ -200,6 +208,8 @@ export interface DatabaseOptions {
   dialect: Dialect;
   /** Caso por defecto de tablas/columnas; cada controller puede sobreescribirlo. */
   identifierCase?: IdentifierCase;
+  /** Tabla de configuración de las entidades (`plural/cfg`) por defecto para todos sus controllers. */
+  cfg?: CfgTableDef;
 }
 
 export interface RouterOptions {

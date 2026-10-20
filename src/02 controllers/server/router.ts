@@ -369,9 +369,7 @@ export class Router {
     const qArg = q ? parseJson(q, "q") : undefined;
 
     if (m.name === "getCfg" || m.name === "putCfg") {
-      const pojo = e.pojoFromPks(m.pks);
-      const cfg = m.name === "getCfg" ? await ctrl.getCfg(pojo, ctx) : await ctrl.putCfg(pojo, requireObject(body), ctx);
-      return cfg === null ? json(404, { error: "No encontrado" }) : json(200, cfg);
+      return json(200, m.name === "getCfg" ? await ctrl.getCfg(ctx) : await ctrl.putCfg(requireObject(body), ctx));
     }
 
     let arg: unknown;

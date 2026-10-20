@@ -27,8 +27,12 @@ export const ProductoSchema = defineSchema({
     lineas:    { kind: "many", target: "pedido/linea", on: { iproducto: "iproducto" } },
   },
   primaryKey: ["iproducto"], // opcional: orden explícito; si no, las columnas con pk:true en orden
+  put: "insert",             // opcional: cómo aplica el PUT singular el cuerpo (insert | insertIgnore | update | replace)
 });
 ```
+
+`put` elige la operación con la que el `PUT singular/pks...` aplica el cuerpo sobre el registro actual; por defecto
+`insert` (ajustes parciales, fusión profunda en los json con molde). Ver [modo del PUT](../030-Controllers/030-SSE-y-cfg.md).
 
 `defineSchema` es la identidad tipada: conserva los literales para inferir los tipos TS de cada campo.
 

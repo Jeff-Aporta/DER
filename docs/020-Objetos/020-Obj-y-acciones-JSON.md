@@ -44,4 +44,4 @@ Reglas:
 3. `null` en `insert`: en una columna nullable deja `null`; en una no nula la quita (queda sin definir); en un `json` con molde aplica la semántica del molde (opcional → se borra, default → el default…).
 4. Entidad: `ProductoEntity.patch(pojo, cambios)` devuelve una copia con el `insert` aplicado (el original no cambia) y `ProductoEntity.aplicar(pojo, acciones)` aplica una lista `TAccionObj[]` y valida.
 
-`/cfg` usa exactamente esta misma semántica de `insert` sobre el JSON de configuración ([sse-y-cfg.md](../030-Controllers/030-SSE-y-cfg.md)).
+El PUT singular aplica por defecto esta misma semántica de `insert` sobre el registro (`schema.put` elige otra), y `plural/cfg` ajusta la configuración de la entidad con `update` ([sse-y-cfg.md](../030-Controllers/030-SSE-y-cfg.md)).

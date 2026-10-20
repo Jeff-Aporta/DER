@@ -8,6 +8,7 @@ import { type CanFn, createRouter, type Router, ServerController } from "@Jeff-A
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
 import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
+import { CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 
 const SECRET = "secret-de-pruebas-de-acciones-con-32-o-mas";
 
@@ -40,7 +41,7 @@ function controllers(db: ReturnType<typeof sqliteDatabase>) {
 }
 
 async function setup() {
-  const db = sqliteDatabase();
+  const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
   const plugins = pluginsFromConfig({
     identity: { secret: SECRET, iterations: 10_000, admin: { usuario: "admin", password: "admin-12345" } },
     permissions: { grupo: "API", actions: ["auditoria"] },
@@ -98,10 +99,10 @@ Deno.test("acciones personalizadas: compartidas, partidas por verbo, en rutas ir
     const del = await call(router, "DELETE", `producto/${p.iproducto}`, { token: base });
     assertEquals([del.status, del.data.error], [403, "Sin permiso: productos.eliminar"]);
     // config: un id para GET y PUT, partido por verbo
-    assertEquals((await call(router, "GET", `producto/${p.iproducto}/cfg`, { token: base })).status, 200);
-    assertEquals((await call(router, "PUT", `producto/${p.iproducto}/cfg`, { token: base, body: { visible: true } })).status, 403);
-    assertEquals((await call(router, "PUT", `producto/${p.iproducto}/cfg`, { token: sup, body: { visible: true } })).status, 200);
-    assertEquals((await call(router, "GET", `producto/${p.iproducto}/cfg`, { token: sup })).status, 200);
+    assertEquals((await call(router, "GET", "productos/cfg", { token: base })).status, 200);
+    assertEquals((await call(router, "PUT", "productos/cfg", { token: base, body: { stockMinimo: 3 } })).status, 403);
+    assertEquals((await call(router, "PUT", "productos/cfg", { token: sup, body: { stockMinimo: 3 } })).status, 200);
+    assertEquals((await call(router, "GET", "productos/cfg", { token: sup })).status, 200);
     // ruta irregular con su acción + capacidad sólo de código
     assertEquals((await call(router, "GET", "reportes/ventas", { token: base })).status, 403);
     assertEquals((await call(router, "GET", "reportes/ventas", { token: sup })).data, { auditoria: true });

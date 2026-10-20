@@ -8,17 +8,17 @@ import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlit
 import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
 import { PGlite } from "@electric-sql/pglite";
 import { at } from "@Jeff-Aporta/DER/tests/_util.ts";
-import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
+import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { Categoria, Linea, Pedido, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 // Una sola instancia PGlite (arrancarla es lo costoso); cada test recrea el schema `public`.
 let sharedPg: PGlite | undefined;
 const ENGINES: [string, () => Promise<Database>][] = [
-  ["sqlite", () => Promise.resolve(sqliteDatabase())],
+  ["sqlite", () => Promise.resolve(sqliteDatabase(":memory:", { cfg: CFG_TABLA }))],
   ["pg", async () => {
     sharedPg ??= new PGlite();
     await sharedPg.exec("drop schema public cascade; create schema public;");
-    const db = pgliteDatabase(sharedPg);
+    const db = pgliteDatabase(sharedPg, { cfg: CFG_TABLA });
     // no cerrar la instancia compartida
     Object.defineProperty(db, "destroy", { value: () => Promise.resolve() });
     return db;
@@ -29,7 +29,6 @@ async function setup(make: () => Promise<Database>) {
   const db = await make();
   const c = buildControllers(db);
   await db.seed();
-  await sql`create table pedidos_cfg (ipedido integer primary key, jdata text)`.execute(db.kysely);
   const cats = await c.categorias.postList([{ nombre: "Bebidas" }, { nombre: "Comidas", bactivo: false }]);
   const beb = at(cats, 0);
   const com = at(cats, 1);
@@ -211,26 +210,27 @@ for (const [name, make] of ENGINES) {
     }
   });
 
-  Deno.test(`[${name}] /cfg: JSON parcial con molde Zod (columna propia) y libre (otra tabla)`, async () => {
-    const { db, c, prods, ped } = await setup(make);
+  Deno.test(`[${name}] /cfg de la entidad (tabla de cfg) y PUT singular en modo insert sobre el json del registro`, async () => {
+    const { db, c, prods } = await setup(make);
     try {
-      const id = { iproducto: at(prods, 0).iproducto };
-      assertEquals(await c.productos.getCfg(id), {});
-      await c.productos.putCfg(id, { visible: true, ui: { color: "rojo" } });
-      const cfg = await c.productos.putCfg(id, { ui: { orden: 2 } }); // una llave ajusta un pedazo
-      assertEquals(cfg, { visible: true, ui: { color: "rojo", orden: 2 } });
-      assertEquals(await c.productos.putCfg(id, { visible: null }), { ui: { color: "rojo", orden: 2 } });
-      await assertRejects(() => c.productos.putCfg(id, { ui: { orden: "x" } }), ValidationError);
-      await assertRejects(() => c.productos.putCfg(id, { otra: 1 }), ValidationError);
-      assertEquals(await c.productos.getCfg({ iproducto: 999 }), null);
-      // la columna jconfig es la misma que se lee con get()
-      assertEquals((await c.productos.get(id))!.jconfig, { ui: { color: "rojo", orden: 2 } });
+      // configuración de la ENTIDAD: defaults del molde, PUT sólo update (llaves del molde), una fila por entidad
+      const defaults = { moneda: "COP", stockMinimo: 5, catalogo: { porPagina: 24, mostrarAgotados: false } };
+      assertEquals(await c.productos.getCfg(), defaults);
+      const conAgotados = { ...defaults, catalogo: { porPagina: 24, mostrarAgotados: true } };
+      assertEquals(await c.productos.putCfg({ catalogo: { mostrarAgotados: true } }), conAgotados); // una llave ajusta un pedazo
+      assertEquals(await c.productos.putCfg({ moneda: "USD" }), { ...conAgotados, moneda: "USD" });
+      await assertRejects(() => c.productos.putCfg({ stockMinimo: "x" }), ValidationError);
+      await assertRejects(() => c.productos.putCfg({ otra: 1 }), ValidationError); // fuera del molde
+      assertEquals(await c.productos.getCfg(), { ...conAgotados, moneda: "USD" });
+      await assertRejects(() => c.categorias.getCfg(), ValidationError, "cfg");
 
-      const pid = { ipedido: ped.ipedido };
-      assertEquals(await c.pedidos.getCfg(pid), {});
-      await c.pedidos.putCfg(pid, { libre: { a: 1 } });
-      assertEquals(await c.pedidos.putCfg(pid, { libre: { b: 2 }, x: [1] }), { libre: { a: 1, b: 2 }, x: [1] });
-      await assertRejects(() => c.categorias.getCfg({ icategoria: 1 }), ValidationError, "cfg");
+      // PUT singular (modo insert por defecto): el json propio del registro se ajusta en parcial
+      const id = { iproducto: at(prods, 0).iproducto };
+      await c.productos.put({ ...id, jconfig: { visible: true, ui: { color: "rojo" } } });
+      await c.productos.put({ ...id, jconfig: { ui: { orden: 2 } } });
+      const got = (await c.productos.get(id))!;
+      assertEquals(got.jconfig, { visible: true, ui: { color: "rojo", orden: 2 } });
+      assertEquals(got.nombre, "Café"); // lo no enviado se conserva
     } finally {
       await db.destroy();
     }

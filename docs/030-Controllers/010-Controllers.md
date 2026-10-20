@@ -18,7 +18,7 @@ query(spec, ctx?)          → P[]   (siempre arreglo; ver query.md)
 postList / putList / deleteList(pojos, ctx?)  → P[]   (en el server, en una transacción)
 call(endpoint, arg, ctx?)  → resultado del endpoint especial
 stream(acción|endpoint, arg?, ctx?) → AsyncIterable<string>   (SSE)
-getCfg(pojo, ctx?)         → JSON | null       putCfg(pojo, parcial, ctx?) → JSON | null
+getCfg(ctx?)               → JSON              putCfg(parcial, ctx?)       → JSON   (config de la entidad, plural/cfg)
 doc(ctx?)                  → string (md autogenerado + secciones `doc`; ver doc-endpoint.md)
 verify(acción, arg, ctx)   → string | null     (ejecuta las verificaciones sin la acción)
 ```
@@ -55,7 +55,7 @@ hooks: {
 }
 ```
 
-Hooks disponibles: `preGet`, `prePost`, `prePut`, `preDelete`, `preList(ctx)`, `preQuery(spec)`, `prePostList(list)`, `prePutList(list)`, `preDeleteList(list)`, `preGetCfg(pojo)`, `prePutCfg(pojo, parcial)`, más `pre` en cada endpoint. En las listas se ejecuta también el pre singular por ítem, con el mensaje prefijado `[i] `.
+Hooks disponibles: `preGet`, `prePost`, `prePut`, `preDelete`, `preList(ctx)`, `preQuery(spec)`, `prePostList(list)`, `prePutList(list)`, `preDeleteList(list)`, `preGetCfg(ctx)`, `prePutCfg(parcial, ctx)`, más `pre` en cada endpoint. En las listas se ejecuta también el pre singular por ítem, con el mensaje prefijado `[i] `.
 
 ### Overrides
 
@@ -80,7 +80,7 @@ new ClientController(ProductoEntity, {
 });
 ```
 
-400 → `ValidationError`, otros ≥ 400 → `HttpError`, 404 en get/put/delete/cfg → `null`. `request()` es la utilidad de bajo nivel para fetch personalizados.
+400 → `ValidationError`, otros ≥ 400 → `HttpError`, 404 en get/put/delete → `null` (en `/cfg` → `NotFoundError`: el server no la expone). `request()` es la utilidad de bajo nivel para fetch personalizados.
 
 ## ServerController
 
@@ -94,14 +94,14 @@ new ServerController(ProductoEntity, {
   relations: { categoria: { controller: () => otroCtrl } }, // opcional
   defaultOrder: "-creado",
   hooks, actions, sse, endpoints,
-  cfg: { table: "productos_cfg", column: "jdata" },          // opcional (ver sse-y-cfg.md)
+  cfg: { table: "productos_cfg", columns: { entidad: "plural", json: "jcfg", fecha: "fhultact" } }, // opcional: sobreescribe la de la base (ver sse-y-cfg.md)
 });
 ```
 
 - **Relaciones:** las resuelve el controller registrado para el POJO destino (`db.controllerFor`). Cada controller se registra en su `db` al construirse.
 - **Columnas calculadas:** un string con `{campo}` se convierte en la referencia correcta según el motor, el alias y el caso. También aceptan `{ pg, sqlite }` por motor o una función `({ col, alias, engine }) => sql`.
 - **Transacciones:** las listas abren una transacción. Para compartir una entre controllers: `db.transaction(async (tx) => { await a.post(x, tx); await b.postList(ys, tx); })`.
-- **Utilidades públicas** para acciones a medida: `buildSelect`, `buildWhere`, `relationExpr`, `pkWhere`, `col`, `dbCol`, `fieldExpr`, `rows`, `select`, `selectOne`, `insertOne`, `updateOne`, `deleteOne`, `inTransaction`, `loadCfg`, `saveCfg`, `seed`.
+- **Utilidades públicas** para acciones a medida: `buildSelect`, `buildWhere`, `relationExpr`, `pkWhere`, `col`, `dbCol`, `fieldExpr`, `rows`, `select`, `selectOne`, `insertOne`, `updateOne`, `deleteOne`, `inTransaction`, `loadCfg`, `saveCfg`, `cfgTable`, `hasCfg`, `seed`.
 
 ## Router
 

@@ -73,9 +73,10 @@ export function controllerRouteSpecs(ctrl: ServerController<any>): ActionRouteSp
     if (ep.scope === "one") add(name, ep.method, `${S}/${P}/${seg}`, true, name);
     else add(name, ep.method, `${L}/${seg}`, false, name);
   }
-  if (e.def.cfg) {
-    add("getCfg", "GET", `${S}/${P}/cfg`, true);
-    add("putCfg", "PUT", `${S}/${P}/cfg`, true);
+  // configuración de la entidad: sólo en el plural y sólo si el server define la tabla de cfg
+  if (ctrl.hasCfg()) {
+    add("getCfg", "GET", `${L}/cfg`, false);
+    add("putCfg", "PUT", `${L}/cfg`, false);
   }
   specs.push({ name: "doc", method: "GET", path: `${L}/doc`, pkParams: [], sse: false });
   const expose = ctrl.config.expose;

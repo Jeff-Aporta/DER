@@ -15,11 +15,11 @@ import {
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
 import { registerAzure } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/azure/mod.ts";
 import { defineWorker } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/cloudflare/mod.ts";
-import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
+import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 async function setup() {
-  const db = sqliteDatabase();
+  const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
   const ctrls = buildControllers(db);
   await db.seed();
   return { db, ctrls };
@@ -46,8 +46,8 @@ Deno.test("rutas: la tabla expone cada acción del controller con id METHOD:/rut
         "POST:/producto/{iproducto}/ajustarStock",
         "POST:/producto/{iproducto}/ajustarStock/sse",
         "POST:/productos/importar",
-        "GET:/producto/{iproducto}/cfg",
-        "PUT:/producto/{iproducto}/cfg",
+        "GET:/productos/cfg",
+        "PUT:/productos/cfg",
         "GET:/productos/doc",
         "POST:/producto/sse",
         "GET:/productos/sse",
@@ -57,7 +57,8 @@ Deno.test("rutas: la tabla expone cada acción del controller con id METHOD:/rut
       ]
     ) assert(ids.includes(id), `falta ${id}`);
     assert(!ids.includes("GET:/categorias/sse"), "sin handler SSE no se registra la variante /sse");
-    assert(!ids.includes("GET:/categoria/{icategoria}/cfg"), "sin cfg no se registra /cfg");
+    assert(!ids.includes("GET:/categorias/cfg"), "sin cfg no se registra /cfg");
+    assert(!ids.includes("GET:/producto/{iproducto}/cfg"), "los singulares no tienen /cfg");
     // literal gana a parámetro: crisis/s es el plural, no el get de la pk "s"
     assertEquals(router.match("GET", "/api/crisis/s")?.route.name, "list");
     assertEquals(router.match("GET", "/api/crisis/x1")?.params, { codigo: "x1" });

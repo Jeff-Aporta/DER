@@ -2,8 +2,14 @@
  * Controllers de servidor para el dominio de ejemplo. Sólo aquí aparece lo específico de SQL:
  * nombre de tabla, caso de identificadores, columnas calculadas, acciones y SSE.
  */
-import { type Database, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { type CfgTableDef, type Database, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
 import { CategoriaEntity, CrisisEntity, LineaEntity, PedidoEntity, ProductoEntity, type Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
+
+/**
+ * Tabla de configuración de las entidades (`plural/cfg`), se pasa al crear la base (`sqliteDatabase(ruta, { cfg })`).
+ * El consumidor elige los nombres y declara cuál es cada columna: pk con el plural, JSON y fecha de actualización.
+ */
+export const CFG_TABLA: CfgTableDef = { table: "der_cfg", columns: { entidad: "plural", json: "jcfg", fecha: "fhultact" } };
 
 export function buildControllers(db: Database) {
   const categorias = new ServerController(CategoriaEntity, { db, table: "categorias" });
@@ -55,11 +61,7 @@ export function buildControllers(db: Database) {
     },
   });
 
-  const pedidos = new ServerController(PedidoEntity, {
-    db,
-    table: "pedidos",
-    cfg: { table: "pedidos_cfg", column: "jdata" },
-  });
+  const pedidos = new ServerController(PedidoEntity, { db, table: "pedidos" });
   const lineas = new ServerController(LineaEntity, { db, table: "pedido_lineas" });
   const crisis = new ServerController(CrisisEntity, { db, table: "crisis", identifierCase: "upper" });
 

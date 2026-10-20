@@ -4,11 +4,25 @@
  */
 import { defineEntity, defineSchema, pojoOf, z } from "@Jeff-Aporta/DER/mod.ts";
 
-/** Molde Zod de la config de producto (columna `jconfig`). */
+/**
+ * Molde Zod del JSON propio de CADA producto (columna `jconfig`). Se ajusta con el PUT singular del producto, que
+ * por defecto aplica `insert` (ajustes parciales: una sola llave basta).
+ */
 export const ZProductoCfg = z.object({
   visible: z.boolean().optional(),
   ui: z.object({ color: z.string().optional(), orden: z.number().int().optional() }).optional(),
   etiquetas: z.array(z.string()).optional(),
+});
+
+/**
+ * Molde Zod de la configuración de la ENTIDAD productos (`GET/PUT productos/cfg`): sus valores por defecto.
+ * Los `.default(...)` son el punto de partida; el PUT sólo ajusta estas llaves (`Obj.update`).
+ */
+export const ZProductosCfg = z.object({
+  moneda: z.string().default("COP"),
+  stockMinimo: z.number().int().min(0).default(5),
+  catalogo: z.object({ porPagina: z.number().int().min(1).default(24), mostrarAgotados: z.boolean().default(false) })
+    .default({ porPagina: 24, mostrarAgotados: false }),
 });
 
 // ------------------------------------------------------------------ Categoria
@@ -71,7 +85,7 @@ export const ProductoEntity = defineEntity({
   plural: "productos",
   listColumns: ["iproducto", "nombre"],
   getInclude: { categoria: true },
-  cfg: { column: "jconfig" },
+  cfg: { zod: ZProductosCfg },
   hooks: {
     prePost(p) {
       return p.precio != null && p.precio < 0 ? "El precio no puede ser negativo" : null;
@@ -103,8 +117,7 @@ export class Pedido extends pojoOf(PedidoSchema) {
   declare lineas: Linea[];
 }
 
-/** Config de libre definición (sin Zod), guardada por el server en otra tabla. */
-export const PedidoEntity = defineEntity({ pojo: Pedido, singular: "pedido", plural: "pedidos", cfg: {} });
+export const PedidoEntity = defineEntity({ pojo: Pedido, singular: "pedido", plural: "pedidos" });
 
 export const LineaSchema = defineSchema({
   columns: {
