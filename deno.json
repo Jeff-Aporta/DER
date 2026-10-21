@@ -23,6 +23,7 @@
   "imports": {
     "@Jeff-Aporta/DER/": "./",
     "@Jeff-Aporta/wc-base/": "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/",
+    "@Jeff-Aporta/wc-diagrams/": "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/components/diagrams/schemas/",
     "zod": "npm:zod@4.6.7",
     "kysely": "npm:kysely@0.28.17",
     "@electric-sql/pglite": "npm:@electric-sql/pglite@0.3.16",

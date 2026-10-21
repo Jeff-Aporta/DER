@@ -1,10 +1,10 @@
 /**
- * ServerController: implementa las acciones contra SQL. El SQL lo arma el controller a partir del schema
- * (columnas, pks, relaciones) bifurcando por motor; el usuario sólo aporta SQL quemado para columnas calculadas.
+ * ServerController: implementa las acciones contra SQL. El SQL lo arma el controller a partir del schema (columnas, pks,
+ * relaciones) con las primitivas del motor (`Engine`); el usuario sólo aporta SQL quemado para columnas calculadas.
  *
  * ```ts
  * const productos = new ServerController(ProductoEntity, {
- *   db, table: "productos", identifierCase: "lower",
+ *   db, identifierCase: "lower",                      // table: default el de la entidad (plural)
  *   computed: { total: "{precio} * {stock}" },          // {campo} → referencia correcta según motor/caso
  *   hooks: { prePost(p) { if (p.precio! < 0) return "precio negativo"; } },
  *   actions: { async delete(p, ctx, next) { ...; return next(p); } },
@@ -12,55 +12,26 @@
  *   endpoints: { activar: { handler(p, ctx) { ... } } },
  * });
  * ```
+ * Escrituras: `returning` (PG/SQLite), `output inserted/deleted` (MSSQL) o relectura por pk (MySQL), según el motor.
  */
 import { type Kysely, sql } from "kysely";
-import { CASTS } from "@Jeff-Aporta/DER/src/00-common/cast.ts";
+import { CASTS, HttpError, NotFoundError, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { BaseController } from "@Jeff-Aporta/DER/src/02-controllers/controller.ts";
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";
-import { HttpError, NotFoundError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/errors.ts";
-import { Obj } from "@Jeff-Aporta/DER/src/00-common/obj.ts";
+import { sequenceOf } from "@Jeff-Aporta/DER/src/01-objects/meta.ts";
 import { type Pojo, resolvePojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import { expandInclude, isOpsObject, normalizeOrder } from "@Jeff-Aporta/DER/src/01-objects/query.ts";
-import type {
-  Action,
-  CfgAction,
-  ColumnDef,
-  SequenceDef,
-  EndpointDef,
-  FieldOps,
-  Include,
-  QuerySpec,
-  Where,
-} from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import type { Action, CfgAction, ColumnDef, EndpointDef, FieldOps, Include, QuerySpec, Where } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { TextChannel } from "@Jeff-Aporta/DER/src/00-common/sse.ts";
 import { zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 import { type Database, registeredControllers } from "@Jeff-Aporta/DER/src/02-controllers/server/database.ts";
 import { composeFromSources, entityContractMd, entitySheetPath, vaultHtml } from "@Jeff-Aporta/DER/src/02-controllers/server/doc.ts";
 import { applyCase } from "@Jeff-Aporta/DER/src/02-controllers/server/engines.ts";
 import type { z } from "zod";
-import type {
-  CfgTableDef,
-  ComputedSql,
-  BuiltSelect,
-  DeferredInclude,
-  DocSheet,
-  DocViewOptions,
-  Engine,
-  IdentifierCase,
-  OutField,
-  Raw,
-  SelectOptions,
-  ServerControllerConfig,
-  ResolvedIndex,
-  ServerCtx,
-  SyncSchemaOptions,
-  SyncSchemaResult,
-  WritePropagation,
-} from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
-
+import type { BuiltSelect, CfgTableDef, ComputedSql, DeferredInclude, DocSheet, DocViewOptions, Engine, IdentifierCase, OutField, Raw, ResolvedIndex, SelectOptions, ServerControllerConfig, ServerCtx, SyncSchemaOptions, SyncSchemaResult, WritePropagation } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 
 /** Generador de alias únicos por consulta. */
-export class Aliases {
+class Aliases {
   #n = 0;
   next(): string {
     return `t${this.#n++}`;
@@ -68,7 +39,11 @@ export class Aliases {
 }
 
 const escapeLike = (s: string) => String(s).replace(/[\\%_]/g, (m) => "\\" + m);
-const ESCAPE = sql.raw(`escape '\\'`);
+
+/** `"FAC-{n:5}"` → `FAC-00042`; `"{n}"` → `42`. `n` ya viene quemado en la base de la secuencia. */
+export function formatSequence(pattern: string, n: string): string {
+  return pattern.replace(/\{n(?::(\d+))?\}/g, (_m, w: string | undefined) => (w ? n.padStart(Number(w), "0") : n));
+}
 
 export class ServerController<P extends Pojo> extends BaseController<P, ServerCtx> {
   readonly db: Database;
@@ -79,14 +54,10 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     super(entity, config);
     this.db = config.db;
     this.identifierCase = config.identifierCase ?? config.db.identifierCase;
-    this.table = applyCase(config.table, this.identifierCase);
+    this.table = applyCase(config.table ?? entity.table, this.identifierCase);
     const meta = entity.meta;
-    for (const k of Object.keys(config.computed ?? {})) {
-      if (!meta.columns[k]?.virtual) throw new Error(`computed: "${k}" debe ser una columna virtual del schema`);
-    }
-    for (const k of Object.keys(config.columnNames ?? {})) {
-      if (!meta.isColumn(k)) throw new Error(`columnNames: "${k}" no es una columna`);
-    }
+    for (const k of Object.keys(config.computed ?? {})) if (!meta.columns[k]?.virtual) throw new Error(`computed: "${k}" debe ser una columna virtual del schema`);
+    for (const k of Object.keys(config.columnNames ?? {})) if (!meta.isColumn(k)) throw new Error(`columnNames: "${k}" no es una columna`);
     if (config.register !== false) config.db.register(this);
   }
 
@@ -99,13 +70,6 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   /** Columna oculta: nunca se devuelve (`config.hidden`). */
   isHidden(field: string): boolean {
     return this.config.hidden?.includes(field) ?? false;
-  }
-
-  /** Una consulta pública no puede seleccionar columnas ocultas (los filtros los rechaza `buildWhere`). */
-  private assertNotHidden(q: QuerySpec<P>): void {
-    const used = [...(q.select ?? [])];
-    const hidden = used.find((f) => this.isHidden(f));
-    if (hidden) throw new ValidationError(`"${hidden}" no es consultable`);
   }
 
   /** Nombre de la columna en BD. */
@@ -125,18 +89,15 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     if (!c) throw new ValidationError(`"${field}" no es una columna`);
     if (!c.virtual) return this.col(alias, field);
     const def = this.config.computed?.[field];
-    if (def === undefined) return null;
-    return this.compileComputed(alias, def);
+    return def === undefined ? null : this.#compileComputed(alias, def);
   }
 
-  private compileComputed(alias: string, def: ComputedSql): Raw {
+  #compileComputed(alias: string, def: ComputedSql): Raw {
     let src: Raw | string | undefined;
-    if (typeof def === "function") {
-      src = def({ col: (f) => this.col(alias, f), alias, engine: this.engine });
-    } else if (typeof def === "object") {
-      src = (def as Record<string, string | undefined>)[this.engine.name];
-      if (src === undefined) throw new Error(`computed sin expresión para el motor ${this.engine.name}`);
-    } else src = def;
+    if (typeof def === "function") src = def({ col: (f) => this.col(alias, f), alias, engine: this.engine });
+    else if (typeof def === "object") src = (def as Record<string, string | undefined>)[this.engine.name];
+    else src = def;
+    if (src === undefined) throw new Error(`computed sin expresión para el motor ${this.engine.name}`);
     if (typeof src !== "string") return src;
     // "{precio} * {stock}" → partes crudas + referencias
     const parts: Raw[] = [];
@@ -150,13 +111,9 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     return sql`(${sql.join(parts, sql``)})`;
   }
 
-  private colDef(field: string): ColumnDef {
-    return this.entity.meta.column(field);
-  }
-
   /** Castea con el tipo de la columna y convierte al formato del motor. */
   toDb(field: string, v: unknown): unknown {
-    const c = this.colDef(field);
+    const c = this.entity.meta.column(field);
     return this.engine.toDb(c, v == null ? v : CASTS[c.type](v));
   }
 
@@ -168,12 +125,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     const A = opts.alias ?? aliases.next();
     const explicit = !!opts.fields;
     const includes = expandInclude(meta, opts.include);
-    const fields = [
-      ...(opts.fields ?? [
-        ...meta.persisted.filter((f) => !this.isHidden(f)),
-        ...meta.virtual.filter((v) => this.config.computed?.[v] !== undefined),
-      ]),
-    ];
+    const fields = [...(opts.fields ?? [...meta.persisted.filter((f) => !this.isHidden(f)), ...meta.virtual.filter((v) => this.config.computed?.[v] !== undefined)])];
     // las relaciones a otra base se anexan por POJOs: necesitan las columnas locales de `on` en la salida
     for (const [rel] of includes) {
       if (this.isSameDb(this.relationController(rel))) continue;
@@ -185,10 +137,8 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
       const c = meta.columns[f];
       if (!c) throw new ValidationError(`"${f}" no es una columna`);
       let expr = this.fieldExpr(A, f);
-      if (!expr) {
-        if (explicit) throw new ValidationError(`"${f}" no tiene expresión en el servidor`);
-        continue;
-      }
+      if (!expr && explicit) throw new ValidationError(`"${f}" no tiene expresión en el servidor`);
+      if (!expr) continue;
       if (!c.virtual) expr = this.engine.selectExpr(expr, c);
       sel.push(sql`${expr} as ${sql.id(f)}`);
       out.push({ name: f, kind: c.type === "json" ? "json" : "col" });
@@ -199,30 +149,26 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
         deferred.push({ path: [], rel, owner: this, include: sub });
         continue;
       }
-      const r = this.relationExpr(A, rel, sub, aliases);
+      const r = this.#relationExpr(A, rel, sub, aliases);
       sel.push(sql`${r.expr} as ${sql.id(rel)}`);
       out.push({ name: rel, kind: "rel" });
       for (const d of r.deferred) deferred.push({ ...d, path: [rel, ...d.path] });
     }
     if (!sel.length) throw new ValidationError("No hay columnas para seleccionar");
-
     const conds = [...(opts.extra ?? [])];
     const w = this.buildWhere(A, opts.where, aliases);
     if (w) conds.push(w);
-
     let q = sql`select ${sql.join(sel)} from ${sql.table(this.table)} as ${sql.id(A)}`;
     if (conds.length) q = sql`${q} where ${sql.join(conds, sql` and `)}`;
     const order = normalizeOrder(opts.orderBy ?? this.config.defaultOrder);
-    const orderSql = (order.length ? order : meta.pks.map((field) => ({ field, dir: "asc" as const }))).map(
-      (o) => {
-        const e = this.fieldExpr(A, o.field);
-        if (!e) throw new ValidationError(`"${o.field}" no tiene expresión en el servidor`);
-        return sql`${e} ${sql.raw(o.dir)}`;
-      },
-    );
+    const orderSql = (order.length ? order : meta.pks.map((field) => ({ field, dir: "asc" as const }))).map((o) => {
+      const e = this.fieldExpr(A, o.field);
+      if (!e) throw new ValidationError(`"${o.field}" no tiene expresión en el servidor`);
+      return sql`${e} ${sql.raw(o.dir)}`;
+    });
     q = sql`${q} order by ${sql.join(orderSql)}`;
-    if (opts.limit !== undefined) q = sql`${q} limit ${opts.limit}`;
-    if (opts.offset) q = sql`${q} offset ${opts.offset}`;
+    const page = this.engine.page(opts.limit, opts.offset);
+    if (page) q = sql`${q} ${page}`;
     return { query: q, fields: out, deferred };
   }
 
@@ -234,7 +180,6 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   /** Controller que maneja el detalle de una relación. */
   relationController(rel: string): ServerController<any> {
     const def = this.entity.meta.relation(rel);
-    if (!def) throw new ValidationError(`"${rel}" no es una relación`);
     const override = this.config.relations?.[rel]?.controller?.();
     if (override) return override;
     try {
@@ -245,30 +190,17 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     }
   }
 
-  private correlation(A: string, rel: string, child: ServerController<any>, Z: string): Raw[] {
+  #correlation(A: string, rel: string, child: ServerController<any>, Z: string): Raw[] {
     const def = this.entity.meta.relation(rel);
     return Object.entries(def.on).map(([local, remote]) => sql`${child.col(Z, remote)} = ${this.col(A, local)}`);
   }
 
   /** Subconsulta correlacionada que devuelve el detalle como objeto (one) o arreglo (many) JSON. */
-  relationExpr(
-    A: string,
-    rel: string,
-    include: Include | undefined,
-    aliases: Aliases,
-  ): { expr: Raw; deferred: DeferredInclude[] } {
+  #relationExpr(A: string, rel: string, include: Include | undefined, aliases: Aliases): { expr: Raw; deferred: DeferredInclude[] } {
     const def = this.entity.meta.relation(rel);
     const child = this.relationController(rel);
     const Z = aliases.next();
-    const { query, fields, deferred } = child.buildSelect(
-      {
-        alias: Z,
-        include,
-        extra: this.correlation(A, rel, child, Z),
-        limit: def.kind === "one" ? 1 : undefined,
-      },
-      aliases,
-    );
+    const { query, fields, deferred } = child.buildSelect({ alias: Z, include, extra: this.#correlation(A, rel, child, Z), limit: def.kind === "one" ? 1 : undefined }, aliases);
     const W = aliases.next();
     const expr = def.kind === "one" ? this.engine.jsonOne(query, W, fields) : this.engine.jsonMany(query, W, fields);
     return { expr, deferred };
@@ -286,93 +218,57 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
         const subs = (v as Where[]).map((w) => this.buildWhere(A, w, aliases)).filter((x): x is Raw => !!x);
         if (subs.length) parts.push(sql`(${sql.join(subs, k === "$and" ? sql` and ` : sql` or `)})`);
         else if (k === "$or" && (v as Where[]).length) parts.push(sql`1 = 1`);
-      } else if (k === "$not") {
+        continue;
+      }
+      if (k === "$not") {
         const s = this.buildWhere(A, v as Where, aliases);
         if (s) parts.push(sql`not (${s})`);
-      } else if (meta.isRelation(k)) {
+        continue;
+      }
+      if (meta.isRelation(k)) {
         const child = this.relationController(k);
         const Z = aliases.next();
-        const conds = [...this.correlation(A, k, child, Z)];
+        const conds = [...this.#correlation(A, k, child, Z)];
         const cw = child.buildWhere(Z, v as Where, aliases);
         if (cw) conds.push(cw);
-        parts.push(sql`exists (select 1 from ${sql.table(child.table)} as ${sql.id(Z)} where ${
-          sql.join(conds, sql` and `)
-        })`);
-      } else {
-        // una columna oculta nunca se filtra (tampoco vía relaciones o lógicos): no puede servir de oráculo
-        if (this.isHidden(k)) throw new ValidationError(`"${k}" no es consultable`);
-        const e = this.fieldExpr(A, k);
-        if (!e) throw new ValidationError(`"${k}" no tiene expresión en el servidor`);
-        parts.push(...this.fieldConditions(k, e, v));
+        parts.push(sql`exists (select 1 from ${sql.table(child.table)} as ${sql.id(Z)} where ${sql.join(conds, sql` and `)})`);
+        continue;
       }
+      // una columna oculta nunca se filtra (tampoco vía relaciones o lógicos): no puede servir de oráculo
+      if (this.isHidden(k)) throw new ValidationError(`"${k}" no es consultable`);
+      const e = this.fieldExpr(A, k);
+      if (!e) throw new ValidationError(`"${k}" no tiene expresión en el servidor`);
+      parts.push(...this.#fieldConditions(k, e, v));
     }
     return parts.length ? sql.join(parts, sql` and `) : null;
   }
 
-  private fieldConditions(field: string, e: Raw, v: unknown): Raw[] {
+  #fieldConditions(field: string, e: Raw, v: unknown): Raw[] {
     const p = (x: unknown) => this.toDb(field, x);
     if (v === null) return [sql`${e} is null`];
     if (Array.isArray(v)) return [v.length ? sql`${e} in (${sql.join(v.map(p))})` : sql`1 = 0`];
     if (!isOpsObject(v)) return [sql`${e} = ${p(v)}`];
+    const like = (pattern: string) => (this.engine.escape ? sql`${this.engine.ilike(e, pattern)} ${this.engine.escape}` : this.engine.ilike(e, pattern));
     const out: Raw[] = [];
-    const ops = v as FieldOps;
-    for (const [op, x] of Object.entries(ops)) {
+    for (const [op, x] of Object.entries(v as FieldOps)) {
       if (x === undefined) continue;
-      switch (op) {
-        case "eq":
-          out.push(x === null ? sql`${e} is null` : sql`${e} = ${p(x)}`);
-          break;
-        case "ne":
-          out.push(x === null ? sql`${e} is not null` : sql`${e} <> ${p(x)}`);
-          break;
-        case "gt":
-          out.push(sql`${e} > ${p(x)}`);
-          break;
-        case "gte":
-          out.push(sql`${e} >= ${p(x)}`);
-          break;
-        case "lt":
-          out.push(sql`${e} < ${p(x)}`);
-          break;
-        case "lte":
-          out.push(sql`${e} <= ${p(x)}`);
-          break;
-        case "in": {
-          const a = x as unknown[];
-          out.push(a.length ? sql`${e} in (${sql.join(a.map(p))})` : sql`1 = 0`);
-          break;
-        }
-        case "nin": {
-          const a = x as unknown[];
-          if (a.length) out.push(sql`${e} not in (${sql.join(a.map(p))})`);
-          break;
-        }
-        case "between": {
-          const [a, b] = x as [unknown, unknown];
-          out.push(sql`${e} between ${p(a)} and ${p(b)}`);
-          break;
-        }
-        case "like":
-          out.push(sql`${e} like ${String(x)}`);
-          break;
-        case "ilike":
-          out.push(this.engine.ilike(e, String(x)));
-          break;
-        case "contains":
-          out.push(sql`${this.engine.ilike(e, `%${escapeLike(x as string)}%`)} ${ESCAPE}`);
-          break;
-        case "startsWith":
-          out.push(sql`${this.engine.ilike(e, `${escapeLike(x as string)}%`)} ${ESCAPE}`);
-          break;
-        case "endsWith":
-          out.push(sql`${this.engine.ilike(e, `%${escapeLike(x as string)}`)} ${ESCAPE}`);
-          break;
-        case "isNull":
-          out.push(x ? sql`${e} is null` : sql`${e} is not null`);
-          break;
-        default:
-          throw new ValidationError(`Operador desconocido "${op}"`);
-      }
+      if (op === "eq") out.push(x === null ? sql`${e} is null` : sql`${e} = ${p(x)}`);
+      else if (op === "ne") out.push(x === null ? sql`${e} is not null` : sql`${e} <> ${p(x)}`);
+      else if (op === "gt") out.push(sql`${e} > ${p(x)}`);
+      else if (op === "gte") out.push(sql`${e} >= ${p(x)}`);
+      else if (op === "lt") out.push(sql`${e} < ${p(x)}`);
+      else if (op === "lte") out.push(sql`${e} <= ${p(x)}`);
+      else if (op === "in") out.push((x as unknown[]).length ? sql`${e} in (${sql.join((x as unknown[]).map(p))})` : sql`1 = 0`);
+      else if (op === "nin" && (x as unknown[]).length) out.push(sql`${e} not in (${sql.join((x as unknown[]).map(p))})`);
+      else if (op === "nin") continue;
+      else if (op === "between") out.push(sql`${e} between ${p((x as [unknown, unknown])[0])} and ${p((x as [unknown, unknown])[1])}`);
+      else if (op === "like") out.push(sql`${e} like ${String(x)}`);
+      else if (op === "ilike") out.push(this.engine.ilike(e, String(x)));
+      else if (op === "contains") out.push(like(`%${escapeLike(x as string)}%`));
+      else if (op === "startsWith") out.push(like(`${escapeLike(x as string)}%`));
+      else if (op === "endsWith") out.push(like(`%${escapeLike(x as string)}`));
+      else if (op === "isNull") out.push(x ? sql`${e} is null` : sql`${e} is not null`);
+      else throw new ValidationError(`Operador desconocido "${op}"`);
     }
     return out;
   }
@@ -380,18 +276,14 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   /** `pk1 = ? and pk2 = ?` (alias null → sin calificar, para UPDATE/DELETE). */
   pkWhere(alias: string | null, pojo: P): Raw {
     const self = pojo as unknown as Record<string, unknown>;
-    return sql.join(
-      this.entity.meta.pks.map((k) => sql`${this.col(alias, k)} = ${this.toDb(k, self[k])}`),
-      sql` and `,
-    );
+    return sql.join(this.entity.meta.pks.map((k) => sql`${this.col(alias, k)} = ${this.toDb(k, self[k])}`), sql` and `);
   }
 
-  private returning(): Raw {
+  /** Columnas devueltas por una escritura (`returning` o `output <prefix>.col`). */
+  #returning(prefix: string | null = null): Raw {
     const meta = this.entity.meta;
-    return sql.join(
-      meta.persisted.filter((f) => !this.isHidden(f))
-        .map((f) => sql`${this.engine.selectExpr(this.col(null, f), meta.column(f))} as ${sql.id(f)}`),
-    );
+    const ref = (f: string) => (prefix ? sql.ref(`${prefix}.${this.dbCol(f)}`) : this.col(null, f));
+    return sql.join(meta.persisted.filter((f) => !this.isHidden(f)).map((f) => sql`${this.engine.selectExpr(ref(f), meta.column(f))} as ${sql.id(f)}`));
   }
 
   // ================================================================ ejecución
@@ -434,7 +326,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   // ================================================================ cross-db (join de aplicación por POJOs)
 
   /** Objetos dueños de una relación diferida: las filas raíz o los anidados en `path`. */
-  private holdersAt(roots: Pojo[], path: string[]): Pojo[] {
+  #holdersAt(roots: Pojo[], path: string[]): Pojo[] {
     let level: unknown[] = roots;
     for (const seg of path) {
       level = level.flatMap((o) => {
@@ -448,15 +340,12 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   /** Resuelve las relaciones diferidas (detalles en otra base) y las anexa a sus dueños. */
   async resolveDeferred(roots: Pojo[], deferred: DeferredInclude[]): Promise<void> {
     for (const d of deferred) {
-      const holders = this.holdersAt(roots, d.path);
+      const holders = this.#holdersAt(roots, d.path);
       if (holders.length) await d.owner.attachRelation(holders, d.rel, d.include);
     }
   }
 
-  /**
-   * Anexa a `holders` (POJOs de este controller) la relación `rel`, consultando en lote al controller del
-   * detalle con SU base y SU motor (`IN` sobre las llaves de `on`).
-   */
+  /** Anexa a `holders` la relación `rel`, consultando en lote al controller del detalle con SU base y SU motor (`IN` sobre las llaves de `on`). */
   async attachRelation(holders: Pojo[], rel: string, include: Include | undefined): Promise<void> {
     const def = this.entity.meta.relation(rel);
     const child = this.relationController(rel);
@@ -470,7 +359,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
       if (locals.some((l) => o[l] == null)) continue;
       tuples.set(keyOf(o, locals), Object.fromEntries(pairs.map(([l, r]) => [r, o[l]])));
     }
-    const found = tuples.size ? await child.select({ where: this.tuplesWhere(remotes, [...tuples.values()]), include }) : [];
+    const found = tuples.size ? await child.select({ where: this.#tuplesWhere(remotes, [...tuples.values()]), include }) : [];
     const byKey = new Map<string, Pojo[]>();
     for (const c of found) {
       const k = keyOf(c as unknown as Record<string, unknown>, remotes);
@@ -483,16 +372,13 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   }
 
   /** `where` que coincide con cualquiera de las tuplas (`IN` si es una sola columna). */
-  private tuplesWhere(cols: string[], tuples: Record<string, unknown>[]): Where {
+  #tuplesWhere(cols: string[], tuples: Record<string, unknown>[]): Where {
     const [only] = cols;
     if (cols.length === 1 && only) return { [only]: { in: tuples.map((t) => t[only]) } };
     return { $or: tuples };
   }
 
-  /**
-   * Traduce los filtros por relación cuyo detalle vive en otra base: consulta allá las llaves que cumplen
-   * y los reemplaza por un filtro local sobre las columnas de `on`. Los de la misma base quedan en SQL (EXISTS).
-   */
+  /** Traduce los filtros por relación cuyo detalle vive en otra base a un filtro local sobre las columnas de `on`. Los de la misma base quedan en SQL (EXISTS). */
   async resolveWhere(where: Where | undefined): Promise<Where | undefined> {
     if (!where) return where;
     const meta = this.entity.meta;
@@ -502,84 +388,103 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
       if (v === undefined) continue;
       if (k === "$and" || k === "$or") {
         out[k] = await Promise.all((v as Where[]).map((w) => this.resolveWhere(w)));
-      } else if (k === "$not") {
+        continue;
+      }
+      if (k === "$not") {
         out[k] = await this.resolveWhere(v as Where);
-      } else if (meta.isRelation(k)) {
-        const child = this.relationController(k);
-        if (this.isSameDb(child)) {
-          out[k] = await child.resolveWhere(v as Where);
-          continue;
-        }
-        const pairs = Object.entries(meta.relation(k).on);
-        const found = await child.select({ fields: pairs.map(([, r]) => r), where: v as Where });
-        const tuples = found.map((c) =>
-          Object.fromEntries(pairs.map(([l, r]) => [l, (c as unknown as Record<string, unknown>)[r]]))
-        );
-        const [firstLocal] = pairs.map(([l]) => l);
-        extra.push(
-          tuples.length || !firstLocal
-            ? this.tuplesWhere(pairs.map(([l]) => l), tuples)
-            : { [firstLocal]: { in: [] } },
-        );
-      } else out[k] = v;
+        continue;
+      }
+      if (!meta.isRelation(k)) {
+        out[k] = v;
+        continue;
+      }
+      const child = this.relationController(k);
+      if (this.isSameDb(child)) {
+        out[k] = await child.resolveWhere(v as Where);
+        continue;
+      }
+      const pairs = Object.entries(meta.relation(k).on);
+      const found = await child.select({ fields: pairs.map(([, r]) => r), where: v as Where });
+      const tuples = found.map((c) => Object.fromEntries(pairs.map(([l, r]) => [l, (c as unknown as Record<string, unknown>)[r]])));
+      const [firstLocal] = pairs.map(([l]) => l);
+      extra.push(tuples.length || !firstLocal ? this.#tuplesWhere(pairs.map(([l]) => l), tuples) : { [firstLocal]: { in: [] } });
     }
     if (extra.length) out["$and"] = [...((out["$and"] as Where[] | undefined) ?? []), ...extra];
     return out as Where;
   }
 
-  async insertOne(pojo: P, exec?: Kysely<any>): Promise<P> {
+  // ================================================================ escrituras
+
+  async insertOne(pojo: P, exec: Kysely<any> = this.db.kysely): Promise<P> {
     const meta = this.entity.meta;
     const self = pojo as unknown as Record<string, unknown>;
-    await this.fillSequences(pojo, exec ?? this.db.kysely);
-    const fields = meta.persisted.filter((k) =>
-      self[k] !== undefined && !(meta.column(k).autoincrement && self[k] == null)
-    );
+    await this.#fillSequences(pojo, exec);
+    const fields = meta.persisted.filter((k) => self[k] !== undefined && !(meta.column(k).autoincrement && self[k] == null));
     const tbl = sql.table(this.table);
-    const q = fields.length
-      ? sql`insert into ${tbl} (${sql.join(fields.map((f) => sql.id(this.dbCol(f))))}) values (${
-        sql.join(fields.map((f) => this.toDb(f, self[f])))
-      }) returning ${this.returning()}`
-      : sql`insert into ${tbl} default values returning ${this.returning()}`;
-    const [row] = await this.rows(q, exec);
+    const cols = sql.join(fields.map((f) => sql.id(this.dbCol(f))));
+    const vals = sql.join(fields.map((f) => this.toDb(f, self[f])));
+    const mode = this.engine.returning;
+    if (mode === "returning") {
+      const q = fields.length ? sql`insert into ${tbl} (${cols}) values (${vals}) returning ${this.#returning()}` : sql`insert into ${tbl} ${this.engine.defaultValues} returning ${this.#returning()}`;
+      return this.#firstRow(await this.rows(q, exec));
+    }
+    if (mode === "output") {
+      const q = fields.length ? sql`insert into ${tbl} (${cols}) output ${this.#returning("inserted")} values (${vals})` : sql`insert into ${tbl} output ${this.#returning("inserted")} ${this.engine.defaultValues}`;
+      return this.#firstRow(await this.rows(q, exec));
+    }
+    // sin RETURNING (MySQL): insertar y releer por pk; la pk autoincrement sale de insertId
+    const q = fields.length ? sql`insert into ${tbl} (${cols}) values (${vals})` : sql`insert into ${tbl} ${this.engine.defaultValues}`;
+    const r = await q.execute(exec);
+    const key = pojo.pkOnly() as unknown as Record<string, unknown>;
+    for (const k of meta.pks) if (key[k] == null && meta.column(k).autoincrement && r.insertId !== undefined) key[k] = Number(r.insertId);
+    return this.#firstRow(await this.selectOne(key as unknown as P, {}, exec));
+  }
+
+  #firstRow(rows: P[] | P | null): P {
+    const row = Array.isArray(rows) ? rows[0] : rows;
     if (!row) throw new Error(`INSERT en "${this.table}" no retornó la fila`);
     return row;
   }
 
-  /**
-   * PUT singular. El cuerpo se aplica sobre el registro actual según el modo del schema (`schema.put`, default
-   * `insert`): `insert` ajusta en parcial (en json con molde fusiona en profundidad), `insertIgnore` sólo completa,
-   * `update` sólo cambia lo ya definido y `replace` reemplaza todo el registro (lo no enviado queda vacío).
-   */
-  async updateOne(pojo: P, exec?: Kysely<any>): Promise<P | null> {
+  /** PUT singular: el cuerpo se aplica sobre el registro actual según `schema.put` (`insert` parcial por defecto, `insertIgnore`, `update` o `replace`). */
+  async updateOne(pojo: P, exec: Kysely<any> = this.db.kysely): Promise<P | null> {
     const meta = this.entity.meta;
     const modo = this.entity.pojo.schema.put ?? "insert";
     const editables = meta.persisted.filter((k) => !meta.pks.includes(k));
     const sent = pojo as unknown as Record<string, unknown>;
     let self = sent;
     let fields = editables.filter((k) => sent[k] !== undefined);
-    if (modo === "replace") {
-      fields = editables;
-    } else if (fields.length) {
+    if (modo === "replace") fields = editables;
+    else if (fields.length) {
       const actual = await this.selectOne(pojo, {}, exec);
       if (!actual) return null;
       const cambios = Object.fromEntries(fields.map((k) => [k, (pojo.toJSON() as Record<string, unknown>)[k]]));
-      const next = modo === "update" ? actual.update(cambios as never) : modo === "insertIgnore" ? actual.insertIgnore(cambios as never) : actual.insert(cambios as never);
+      let next: P;
+      if (modo === "update") next = actual.update(cambios as never);
+      else if (modo === "insertIgnore") next = actual.insertIgnore(cambios as never);
+      else next = actual.insert(cambios as never);
       self = next as unknown as Record<string, unknown>;
       fields = editables.filter((k) => self[k] !== undefined);
     }
     if (!fields.length) return this.selectOne(pojo, undefined, exec);
-    const sets = fields.map((f) => sql`${sql.id(this.dbCol(f))} = ${this.toDb(f, self[f] ?? null)}`);
-    const q = sql`update ${sql.table(this.table)} set ${sql.join(sets)} where ${
-      this.pkWhere(null, pojo)
-    } returning ${this.returning()}`;
-    return (await this.rows(q, exec))[0] ?? null;
+    const sets = sql.join(fields.map((f) => sql`${sql.id(this.dbCol(f))} = ${this.toDb(f, self[f] ?? null)}`));
+    const tbl = sql.table(this.table);
+    const mode = this.engine.returning;
+    if (mode === "returning") return (await this.rows(sql`update ${tbl} set ${sets} where ${this.pkWhere(null, pojo)} returning ${this.#returning()}`, exec))[0] ?? null;
+    if (mode === "output") return (await this.rows(sql`update ${tbl} set ${sets} output ${this.#returning("inserted")} where ${this.pkWhere(null, pojo)}`, exec))[0] ?? null;
+    await sql`update ${tbl} set ${sets} where ${this.pkWhere(null, pojo)}`.execute(exec);
+    return this.selectOne(pojo, {}, exec);
   }
 
-  async deleteOne(pojo: P, exec?: Kysely<any>): Promise<P | null> {
-    const q = sql`delete from ${sql.table(this.table)} where ${this.pkWhere(null, pojo)} returning ${
-      this.returning()
-    }`;
-    return (await this.rows(q, exec))[0] ?? null;
+  async deleteOne(pojo: P, exec: Kysely<any> = this.db.kysely): Promise<P | null> {
+    const tbl = sql.table(this.table);
+    const mode = this.engine.returning;
+    if (mode === "returning") return (await this.rows(sql`delete from ${tbl} where ${this.pkWhere(null, pojo)} returning ${this.#returning()}`, exec))[0] ?? null;
+    if (mode === "output") return (await this.rows(sql`delete from ${tbl} output ${this.#returning("deleted")} where ${this.pkWhere(null, pojo)}`, exec))[0] ?? null;
+    const before = await this.selectOne(pojo, {}, exec);
+    if (!before) return null;
+    await sql`delete from ${tbl} where ${this.pkWhere(null, pojo)}`.execute(exec);
+    return before;
   }
 
   /** Ejecuta en la transacción del ctx o abre una nueva. */
@@ -605,30 +510,21 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   }
 
   /** Valores de un detalle (arreglo en 1:N, objeto o nada en 1:1) como lista. */
-  private detailItems(rel: string, value: unknown): Pojo[] {
+  #detailItems(rel: string, value: unknown): Pojo[] {
     const def = this.entity.meta.relation(rel);
     if (def.kind === "many") return Array.isArray(value) ? value as Pojo[] : [];
     return value instanceof Object ? [value as Pojo] : [];
   }
 
-  /**
-   * Ejecutor para escribir en un detalle: la transacción en curso si vive en la misma base; si vive en otra
-   * (otro motor o credenciales), SU propia conexión (cross-db no es atómico entre bases).
-   */
-  private childExec(child: ServerController<any>, exec: Kysely<any>, ctx: ServerCtx): { exec: Kysely<any>; ctx: ServerCtx } {
+  /** Ejecutor para escribir en un detalle: la transacción en curso si vive en la misma base; si no, SU propia conexión (cross-db no es atómico entre bases). */
+  #childExec(child: ServerController<any>, exec: Kysely<any>, ctx: ServerCtx): { exec: Kysely<any>; ctx: ServerCtx } {
     if (this.isSameDb(child)) return { exec, ctx: { ...ctx, exec, inTransaction: true } };
     const own = child.db.kysely;
     return { exec: own, ctx: { ...ctx, exec: own, inTransaction: false } };
   }
 
   /** Inserta los detalles de `rels` de `source` colgándolos de `parent` (FK según `on`), con sus pre*. */
-  private async insertDetails(
-    parent: P,
-    source: P,
-    prop: WritePropagation,
-    exec: Kysely<any>,
-    ctx: ServerCtx,
-  ): Promise<void> {
+  async #insertDetails(parent: P, source: P, prop: WritePropagation, exec: Kysely<any>, ctx: ServerCtx): Promise<void> {
     const self = parent as unknown as Record<string, unknown>;
     for (const [rel, nested] of Object.entries(prop)) {
       const value = (source as unknown as Record<string, unknown>)[rel];
@@ -636,10 +532,10 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
       const def = this.entity.meta.relation(rel);
       const child = this.relationController(rel);
       const saved: Pojo[] = [];
-      for (const [i, raw] of this.detailItems(rel, value).entries()) {
+      for (const [i, raw] of this.#detailItems(rel, value).entries()) {
         const item = child.entity.toPojo(raw) as Pojo & Record<string, unknown>;
         for (const [local, remote] of Object.entries(def.on)) item[remote] = self[local];
-        const x = this.childExec(child, exec, ctx);
+        const x = this.#childExec(child, exec, ctx);
         const e = await child.verify("post", item, x.ctx);
         if (e) throw new ValidationError(`${rel}[${i}]: ${e}`);
         saved.push(await child.insertDeep(item, nested === true ? {} : nested, x.exec, x.ctx));
@@ -649,23 +545,21 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   }
 
   /** Borra (en cascada según `prop`) los detalles actuales de `parent`. */
-  private async deleteDetails(parent: P, prop: WritePropagation, exec: Kysely<any>, ctx: ServerCtx): Promise<void> {
+  async #deleteDetails(parent: P, prop: WritePropagation, exec: Kysely<any>, ctx: ServerCtx): Promise<void> {
     const self = parent as unknown as Record<string, unknown>;
     for (const [rel, nested] of Object.entries(prop)) {
       const def = this.entity.meta.relation(rel);
       const child = this.relationController(rel);
       const where = Object.fromEntries(Object.entries(def.on).map(([local, remote]) => [remote, self[local]]));
-      const x = this.childExec(child, exec, ctx);
-      for (const item of await child.select({ where }, x.exec)) {
-        await child.deleteDeep(item, nested === true ? {} : nested, x.exec, x.ctx);
-      }
+      const x = this.#childExec(child, exec, ctx);
+      for (const item of await child.select({ where }, x.exec)) await child.deleteDeep(item, nested === true ? {} : nested, x.exec, x.ctx);
     }
   }
 
   /** `post` con propagación: el padre y luego sus detalles (recursivo). */
   async insertDeep(pojo: P, prop: WritePropagation, exec: Kysely<any>, ctx: ServerCtx): Promise<P> {
     const saved = await this.insertOne(pojo, exec);
-    await this.insertDetails(saved, pojo, prop, exec, ctx);
+    await this.#insertDetails(saved, pojo, prop, exec, ctx);
     return saved;
   }
 
@@ -673,10 +567,10 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   async updateDeep(pojo: P, prop: WritePropagation, exec: Kysely<any>, ctx: ServerCtx): Promise<P | null> {
     const updated = await this.updateOne(pojo, exec);
     if (!updated) return null;
-    const sent = (pojo as unknown as Record<string, unknown>);
+    const sent = pojo as unknown as Record<string, unknown>;
     const touched = Object.fromEntries(Object.entries(prop).filter(([rel]) => sent[rel] !== undefined));
-    await this.deleteDetails(updated, touched, exec, ctx);
-    await this.insertDetails(updated, pojo, touched, exec, ctx);
+    await this.#deleteDetails(updated, touched, exec, ctx);
+    await this.#insertDetails(updated, pojo, touched, exec, ctx);
     return updated;
   }
 
@@ -685,12 +579,12 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     if (!Object.keys(prop).length) return this.deleteOne(pojo, exec);
     const current = await this.selectOne(pojo, {}, exec);
     if (!current) return null;
-    await this.deleteDetails(current, prop, exec, ctx);
+    await this.#deleteDetails(current, prop, exec, ctx);
     return this.deleteOne(pojo, exec);
   }
 
   /** Ejecuta una escritura: directa si no hay propagación, o en transacción si la hay. */
-  private write<T>(ctx: ServerCtx, direct: () => Promise<T>, deep: (prop: WritePropagation, tx: Kysely<any>) => Promise<T>) {
+  #write<T>(ctx: ServerCtx, direct: () => Promise<T>, deep: (prop: WritePropagation, tx: Kysely<any>) => Promise<T>): Promise<T> {
     const prop = this.setPropagation();
     if (!Object.keys(prop).length) return direct();
     return this.inTransaction(ctx, (tx) => deep(prop, tx));
@@ -698,54 +592,36 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   protected execute(action: Action, arg: unknown, ctx: ServerCtx): Promise<unknown> {
     const ex = ctx.exec;
-    switch (action) {
-      case "get":
-        return this.selectOne(arg as P, ctx.include ?? this.getPropagation(), ex);
-      case "post":
-        return this.write(ctx, () => this.insertOne(arg as P, ex), (prop, tx) => this.insertDeep(arg as P, prop, tx, ctx));
-      case "put":
-        return this.write(ctx, () => this.updateOne(arg as P, ex), (prop, tx) => this.updateDeep(arg as P, prop, tx, ctx));
-      case "delete":
-        return this.write(ctx, () => this.deleteOne(arg as P, ex), (prop, tx) => this.deleteDeep(arg as P, prop, tx, ctx));
-      case "list":
-        return this.select({ fields: this.entity.listColumns.filter((f) => !this.isHidden(f)) }, ex);
-      case "query": {
-        const q = arg as QuerySpec<P>;
-        this.assertNotHidden(q);
-        const size = q.pageSize ?? this.entity.pageSize;
-        const page = q.page ?? 1;
-        return this.select({
-          fields: q.select as string[] | undefined,
-          where: q.where,
-          orderBy: q.orderBy,
-          include: q.include,
-          limit: size,
-          offset: (page - 1) * size,
-        }, ex);
-      }
-      case "postList":
-        return this.inTransaction(ctx, async (tx) => {
-          const prop = this.setPropagation();
-          const out: P[] = [];
-          for (const p of arg as P[]) out.push(await this.insertDeep(p, prop, tx, ctx));
-          return out;
-        });
-      case "putList":
-      case "deleteList":
-        return this.inTransaction(ctx, async (tx) => {
-          const prop = this.setPropagation();
-          const out: P[] = [];
-          const list = arg as P[];
-          for (const [i, item] of list.entries()) {
-            const r = action === "putList"
-              ? await this.updateDeep(item, prop, tx, ctx)
-              : await this.deleteDeep(item, prop, tx, ctx);
-            if (!r) throw new NotFoundError(`[${i}] No encontrado: ${item.pkValues().join("/")}`);
-            out.push(r);
-          }
-          return out;
-        });
+    if (action === "get") return this.selectOne(arg as P, ctx.include ?? this.getPropagation(), ex);
+    if (action === "post") return this.#write(ctx, () => this.insertOne(arg as P, ex), (prop, tx) => this.insertDeep(arg as P, prop, tx, ctx));
+    if (action === "put") return this.#write(ctx, () => this.updateOne(arg as P, ex), (prop, tx) => this.updateDeep(arg as P, prop, tx, ctx));
+    if (action === "delete") return this.#write(ctx, () => this.deleteOne(arg as P, ex), (prop, tx) => this.deleteDeep(arg as P, prop, tx, ctx));
+    if (action === "list") return this.select({ fields: this.entity.listColumns.filter((f) => !this.isHidden(f)) }, ex);
+    if (action === "query") {
+      const q = arg as QuerySpec<P>;
+      const hidden = [...(q.select ?? [])].find((f) => this.isHidden(f));
+      if (hidden) throw new ValidationError(`"${hidden}" no es consultable`);
+      const size = q.pageSize ?? this.entity.pageSize;
+      return this.select({ fields: q.select as string[] | undefined, where: q.where, orderBy: q.orderBy, include: q.include, limit: size, offset: ((q.page ?? 1) - 1) * size }, ex);
     }
+    if (action === "postList") {
+      return this.inTransaction(ctx, async (tx) => {
+        const prop = this.setPropagation();
+        const out: P[] = [];
+        for (const p of arg as P[]) out.push(await this.insertDeep(p, prop, tx, ctx));
+        return out;
+      });
+    }
+    return this.inTransaction(ctx, async (tx) => {
+      const prop = this.setPropagation();
+      const out: P[] = [];
+      for (const [i, item] of (arg as P[]).entries()) {
+        const r = action === "putList" ? await this.updateDeep(item, prop, tx, ctx) : await this.deleteDeep(item, prop, tx, ctx);
+        if (!r) throw new NotFoundError(`[${i}] No encontrado: ${item.pkValues().join("/")}`);
+        out.push(r);
+      }
+      return out;
+    });
   }
 
   protected executeEndpoint(name: string, _ep: EndpointDef<P>, arg: unknown, ctx: ServerCtx): Promise<unknown> {
@@ -788,10 +664,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   // ================================================================ /cfg (configuración de la entidad)
 
-  /**
-   * Tabla de configuración que aplica a esta entidad: la del controller o, si no, la de la base. `null` = `/cfg` no
-   * se expone (la entidad no define `cfg`, el controller lo apagó con `cfg: false` o nadie definió la tabla).
-   */
+  /** Tabla de configuración que aplica: la del controller o la de la base. `null` = `/cfg` no se expone. */
   cfgTable(): CfgTableDef | null {
     if (!this.entity.def.cfg || this.config.cfg === false) return null;
     return this.config.cfg ?? this.db.cfg ?? null;
@@ -806,10 +679,10 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     const t = this.cfgTable();
     if (!t) throw new NotFoundError(`"${this.entity.plural}" no expone configuración (el servidor no define tabla de cfg)`);
     const molde = this.entity.cfgZod as z.ZodType;
-    if (action === "getCfg") return this.conDefaults(await this.loadCfg(t, ctx.exec), molde);
+    if (action === "getCfg") return this.#conDefaults(await this.loadCfg(t, ctx.exec), molde);
     return this.inTransaction(ctx, async (exec) => {
       // sólo update: cambia llaves que el molde ya define (con sus defaults); nunca crea otras
-      const next = Obj.update(this.conDefaults(await this.loadCfg(t, exec), molde), cambios ?? {});
+      const next = Obj.update(this.#conDefaults(await this.loadCfg(t, exec), molde), cambios ?? {});
       const r = molde.safeParse(next);
       if (!r.success) throw new ValidationError(zodMessage(r.error));
       await this.saveCfg(t, r.data, exec);
@@ -818,39 +691,34 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   }
 
   /** JSON guardado con los valores por defecto del molde aplicados (si lo guardado no cumple el molde, tal cual). */
-  private conDefaults(v: unknown, molde: z.ZodType): Record<string, unknown> {
+  #conDefaults(v: unknown, molde: z.ZodType): Record<string, unknown> {
     const base = Obj.esPlano(v) ? v : {};
     const r = molde.safeParse(base);
     return (r.success ? r.data : base) as Record<string, unknown>;
   }
 
   /** Identificadores de la tabla de configuración, con el caso del controller. */
-  private cfgIds(t: CfgTableDef) {
+  #cfgIds(t: CfgTableDef) {
     const c = (n: string) => sql.id(applyCase(n, this.identifierCase));
     return { tabla: sql.table(applyCase(t.table, this.identifierCase)), pk: c(t.columns.pk), json: c(t.columns.json), fecha: c(t.columns.fecha) };
   }
 
   /** JSON guardado de la configuración de esta entidad (`undefined` si aún no tiene fila). */
   async loadCfg(t: CfgTableDef, exec: Kysely<any>): Promise<unknown> {
-    const id = this.cfgIds(t);
-    const { rows } = await sql<Record<string, unknown>>`select ${id.json} as ${sql.id("cfg")} from ${id.tabla} where ${id.pk} = ${
-      this.entity.plural
-    }`.execute(exec);
+    const id = this.#cfgIds(t);
+    const { rows } = await sql<Record<string, unknown>>`select ${id.json} as ${sql.id("cfg")} from ${id.tabla} where ${id.pk} = ${this.entity.plural}`.execute(exec);
     const [row] = rows;
     return row ? this.engine.readJson(row["cfg"]) ?? undefined : undefined;
   }
 
   /** Guarda el JSON completo (UPDATE o, si la entidad aún no tiene fila, INSERT) con la fecha de actualización. */
   async saveCfg(t: CfgTableDef, value: unknown, exec: Kysely<any>): Promise<void> {
-    const id = this.cfgIds(t);
+    const id = this.#cfgIds(t);
     const json = this.engine.toDb({ type: "json" }, value);
     const fecha = this.engine.toDb({ type: "datetime" }, new Date());
-    const { rows } = await sql`update ${id.tabla} set ${id.json} = ${json}, ${id.fecha} = ${fecha} where ${id.pk} = ${
-      this.entity.plural
-    } returning 1 as ${sql.id("ok")}`.execute(exec);
-    if (rows.length) return;
-    await sql`insert into ${id.tabla} (${id.pk}, ${id.json}, ${id.fecha}) values (${this.entity.plural}, ${json}, ${fecha})`
-      .execute(exec);
+    const r = await sql`update ${id.tabla} set ${id.json} = ${json}, ${id.fecha} = ${fecha} where ${id.pk} = ${this.entity.plural}`.execute(exec);
+    if (r.numAffectedRows && r.numAffectedRows > 0n) return;
+    await sql`insert into ${id.tabla} (${id.pk}, ${id.json}, ${id.fecha}) values (${this.entity.plural}, ${json}, ${fecha})`.execute(exec);
   }
 
   /** `CREATE TABLE IF NOT EXISTS` de la tabla de configuración (compartida por las entidades de la base). */
@@ -858,18 +726,16 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     const t = this.cfgTable();
     if (!t) return;
     const n = (c: string) => applyCase(c, this.identifierCase);
-    await exec.schema.createTable(n(t.table)).ifNotExists()
-      .addColumn(n(t.columns.pk), sql.raw(this.engine.columnType({ type: "string", length: 120 })), (cb) => cb.primaryKey().notNull())
+    if (!this.engine.ifNotExists && await this.#tableExists(n(t.table), exec)) return;
+    let b = exec.schema.createTable(n(t.table));
+    if (this.engine.ifNotExists) b = b.ifNotExists();
+    await b.addColumn(n(t.columns.pk), sql.raw(this.engine.columnType({ type: "string", length: 120 })), (cb) => cb.primaryKey().notNull())
       .addColumn(n(t.columns.json), sql.raw(this.engine.columnType({ type: "json" })))
       .addColumn(n(t.columns.fecha), sql.raw(this.engine.columnType({ type: "datetime" })))
       .execute();
   }
 
-  /**
-   * ¿Existe handler SSE para la acción/endpoint?
-   * La variante `/sse` de una ruta **solo se publica** si este método devuelve `true`
-   * (server config `sse[nombre]` o `endpoints[nombre].sse`).
-   */
+  /** ¿Existe handler SSE para la acción/endpoint? La variante `/sse` sólo se publica si devuelve `true`. */
   hasStream(name: string): boolean {
     return !!(this.config.sse?.[name as Action] ?? this.config.endpoints?.[name]?.sse);
   }
@@ -891,29 +757,18 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   // ================================================================ seed
 
-  /**
-   * Seed del controller: su tabla y, en cascada, las de los detalles que propaga (`getPropagation` ∪
-   * `setPropagation`), sin repetir ni entrar en ciclos. `propagate: false` = sólo la propia.
-   */
-  async seed(
-    opts: { exec?: Kysely<any>; propagate?: boolean } = {},
-    visited: Set<ServerController<any>> = new Set(),
-  ): Promise<void> {
+  /** Seed del controller: su tabla y, en cascada, las de los detalles que propaga, sin repetir ni entrar en ciclos. `propagate: false` = sólo la propia. */
+  async seed(opts: { exec?: Kysely<any>; propagate?: boolean } = {}, visited: Set<ServerController<any>> = new Set()): Promise<void> {
     if (visited.has(this)) return;
     visited.add(this);
     await this.seedTable(opts.exec ?? this.db.kysely);
     await this.seedCfgTable(opts.exec ?? this.db.kysely);
     if (opts.propagate === false) return;
-    for (const child of this.propagationControllers()) {
-      // cada controller crea su tabla en SU base: el ejecutor sólo se comparte dentro de la misma base
-      await child.seed(child.db === this.db && opts.exec ? { exec: opts.exec } : {}, visited);
-    }
+    // cada controller crea su tabla en SU base: el ejecutor sólo se comparte dentro de la misma base
+    for (const child of this.propagationControllers()) await child.seed(child.db === this.db && opts.exec ? { exec: opts.exec } : {}, visited);
   }
 
-  /**
-   * Set de los controllers alcanzables por `getPropagation` (anidado, `"*"` expandido) ∪ `setPropagation`
-   * (anidado), de cualquier base. Es lo que `seed()` propaga.
-   */
+  /** Set de los controllers alcanzables por `getPropagation` (anidado, `"*"` expandido) ∪ `setPropagation` (anidado), de cualquier base. */
   propagationControllers(): ServerController<any>[] {
     const out = new Set<ServerController<any>>();
     const walkRead = (ctrl: ServerController<any>, inc: Include | undefined): void => {
@@ -939,39 +794,33 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   /** Relaciones de detalle (lectura ∪ escritura), con `"*"` expandido. */
   detailRelations(): string[] {
-    const meta = this.entity.meta;
-    const read = expandInclude(meta, this.getPropagation()).map(([rel]) => rel);
+    const read = expandInclude(this.entity.meta, this.getPropagation()).map(([rel]) => rel);
     return [...new Set([...read, ...Object.keys(this.setPropagation())])];
   }
 
   // ================================================================ secuencias
 
-  /** Definición de secuencia de una columna (o `null`). */
-  sequenceDef(field: string): SequenceDef | null {
-    const s = this.entity.meta.column(field).sequence;
-    return s === undefined ? null : s === true ? {} : s;
-  }
-
   /** Nombre de la secuencia global de una columna (`<tabla>_<campo>_seq` si no se nombra). */
   sequenceName(field: string): string {
-    return applyCase(this.sequenceDef(field)?.name ?? `${this.config.table}_${field}_seq`, this.identifierCase);
+    const def = sequenceOf(field, this.entity.meta.column(field));
+    return applyCase(def?.name ?? `${this.config.table ?? this.entity.table}_${field}_seq`, this.identifierCase);
   }
 
   /** Crea (si no existen) las secuencias globales de la tabla. */
   async ensureSequences(exec: Kysely<any> = this.db.kysely): Promise<void> {
     for (const f of this.entity.meta.persisted) {
-      const def = this.sequenceDef(f);
+      const def = sequenceOf(f, this.entity.meta.column(f));
       if (!def || def.scope?.length) continue;
       await this.engine.createSequence(exec, this.sequenceName(f), def.start ?? 1, def.increment ?? 1);
     }
   }
 
   /**
-   * Siguiente valor de la secuencia de `field` para `pojo`: global (secuencia del motor) o por ámbito
-   * (máximo del grupo + incremento, dentro de la transacción del insert); con `pattern`, formateado.
+   * Siguiente valor de la secuencia de `field` para `pojo`: global (secuencia del motor) o por ámbito (máximo del grupo +
+   * incremento, dentro de la transacción del insert). Se quema en `base` (default 10): numérico, o texto (con `pattern`).
    */
   async nextSequence(field: string, pojo: P, exec: Kysely<any> = this.db.kysely): Promise<number | string> {
-    const def = this.sequenceDef(field);
+    const def = sequenceOf(field, this.entity.meta.column(field));
     if (!def) throw new Error(`"${field}" no tiene secuencia`);
     const start = def.start ?? 1;
     const increment = def.increment ?? 1;
@@ -981,23 +830,22 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
       const missing = def.scope.filter((k) => self[k] == null);
       if (missing.length) throw new ValidationError(`La secuencia de "${field}" requiere: ${missing.join(", ")}`);
       const where = sql.join(def.scope.map((k) => sql`${this.col(null, k)} = ${this.toDb(k, self[k])}`), sql` and `);
-      const { rows } = await sql<{ v: unknown }>`select max(${this.col(null, field)}) as ${sql.id("v")} from ${
-        sql.table(this.table)
-      } where ${where}`.execute(exec);
+      const { rows } = await sql<{ v: unknown }>`select max(${this.col(null, field)}) as ${sql.id("v")} from ${sql.table(this.table)} where ${where}`.execute(exec);
       const max = rows[0]?.v;
-      const last = typeof max === "string" ? Number(/(\d+)(?!.*\d)/.exec(max)?.[1] ?? Number.NaN) : Number(max);
+      // en texto, el número es el último tramo alfanumérico (el que deja el patrón al final)
+      const last = typeof max === "string" ? parseInt(/([0-9a-z]+)$/i.exec(max)?.[1] ?? "", def.base) : Number(max);
       n = max == null || Number.isNaN(last) ? start : last + increment;
-    } else {
-      n = await this.engine.nextValue(exec, this.sequenceName(field));
-    }
-    return def.pattern ? formatSequence(def.pattern, n) : n;
+    } else n = await this.engine.nextValue(exec, this.sequenceName(field));
+    if (def.as === "number") return n;
+    const text = n.toString(def.base);
+    return def.pattern ? formatSequence(def.pattern, text) : text;
   }
 
   /** Completa las columnas con secuencia que no vienen en el pojo (antes del INSERT). */
-  private async fillSequences(pojo: P, exec: Kysely<any>): Promise<void> {
+  async #fillSequences(pojo: P, exec: Kysely<any>): Promise<void> {
     const self = pojo as unknown as Record<string, unknown>;
     for (const f of this.entity.meta.persisted) {
-      if (this.sequenceDef(f) && self[f] == null) self[f] = await this.nextSequence(f, pojo, exec);
+      if (this.entity.meta.column(f).sequence !== undefined && self[f] == null) self[f] = await this.nextSequence(f, pojo, exec);
     }
   }
 
@@ -1009,7 +857,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     return fields.length <= pks.length && fields.every((f, i) => pks[i] === f);
   }
 
-  private indexOf(table: string, columns: string[], unique: boolean, name?: string): ResolvedIndex {
+  #indexOf(table: string, columns: string[], unique: boolean, name?: string): ResolvedIndex {
     const base = `${unique ? "ux" : "ix"}_${table}_${columns.join("_")}`.replace(/[^A-Za-z0-9_]+/g, "_").slice(0, 60);
     return { name: name ?? base, table, columns, unique };
   }
@@ -1024,12 +872,12 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
         const locals = Object.keys(def.on);
         if (def.kind !== "one" || this.isPkPrefix(locals)) continue;
         if (locals.length === 1 && locals[0] && meta.column(locals[0]).unique) continue;
-        add(this.indexOf(this.table, locals.map((f) => this.dbCol(f)), false));
+        add(this.#indexOf(this.table, locals.map((f) => this.dbCol(f)), false));
       }
     }
     for (const ix of this.config.indexes ?? []) {
       for (const f of ix.columns) meta.column(f);
-      add(this.indexOf(this.table, ix.columns.map((f) => this.dbCol(f)), !!ix.unique, ix.name));
+      add(this.#indexOf(this.table, ix.columns.map((f) => this.dbCol(f)), !!ix.unique, ix.name));
     }
     return [...out.values()];
   }
@@ -1043,35 +891,27 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
       const child = this.relationController(rel);
       const remotes = Object.values(def.on);
       if (!this.isSameDb(child) || child.isPkPrefix(remotes)) continue;
-      out.push(this.indexOf(child.table, remotes.map((f) => child.dbCol(f)), false));
+      out.push(this.#indexOf(child.table, remotes.map((f) => child.dbCol(f)), false));
     }
     return out;
   }
 
-  /**
-   * Índices que piden sobre ESTA tabla las relaciones 1:N de otros controllers de la misma base (los crea la
-   * tabla del detalle al sembrarse, así no importa el orden del seed).
-   */
+  /** Índices que piden sobre ESTA tabla las relaciones 1:N de otros controllers de la misma base (así no importa el orden del seed). */
   requestedIndexes(): ResolvedIndex[] {
-    return registeredControllers()
-      .filter((c) => c !== this && c.db === this.db)
-      .flatMap((c) => {
-        try {
-          return c.detailIndexes();
-        } catch {
-          return [];
-        }
-      })
-      .filter((ix) => ix.table === this.table);
+    const others = registeredControllers().filter((c) => c !== this && c.db === this.db);
+    const all = others.flatMap((c) => {
+      try {
+        return c.detailIndexes();
+      } catch {
+        return [];
+      }
+    });
+    return all.filter((ix) => ix.table === this.table);
   }
 
   /** `CREATE [UNIQUE] INDEX IF NOT EXISTS` de cada índice. */
   async ensureIndexes(indexes: ResolvedIndex[], exec: Kysely<any> = this.db.kysely): Promise<void> {
-    for (const ix of indexes) {
-      let b = exec.schema.createIndex(ix.name).ifNotExists().on(ix.table).columns(ix.columns);
-      if (ix.unique) b = b.unique();
-      await b.execute();
-    }
+    for (const ix of indexes) await this.engine.createIndex(exec, ix);
   }
 
   // ================================================================ sync POJO ↔ tabla (migraciones)
@@ -1080,18 +920,25 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   pojoAccessors(): Set<string> {
     const names = new Set<string>();
     for (let proto: object | null = this.entity.pojo.prototype; proto && proto !== Object.prototype;) {
-      for (const [name, d] of Object.entries(Object.getOwnPropertyDescriptors(proto))) {
-        if (d.get && d.set) names.add(name);
-      }
+      for (const [name, d] of Object.entries(Object.getOwnPropertyDescriptors(proto))) if (d.get && d.set) names.add(name);
       proto = Object.getPrototypeOf(proto) as object | null;
     }
     return names;
   }
 
+  async #tableExists(table: string, exec: Kysely<any>): Promise<boolean> {
+    const tables = await exec.introspection.getTables();
+    return tables.some((t) => t.name === table);
+  }
+
+  /** Valor por defecto de una columna para el DDL. */
+  #defaultTo(c: ColumnDef): unknown {
+    return c.default !== null && typeof c.default === "object" ? sql.raw(c.default.sql) : this.engine.toDb(c, c.default);
+  }
+
   /**
-   * Sincroniza la tabla con el POJO (opcional, para migraciones): inventario de getters/setters → columnas;
-   * agrega las que faltan (conservando los valores de las existentes), pasa cada fila por `migrate` (con las
-   * columnas viejas aún presentes) y elimina las que el POJO ya no tiene. Todo en una transacción.
+   * Sincroniza la tabla con el POJO (opcional, para migraciones): inventario de getters/setters → columnas; agrega las que
+   * faltan, pasa cada fila por `migrate` (con las columnas viejas aún presentes) y elimina las que el POJO ya no tiene.
    */
   async syncSchema(opts: SyncSchemaOptions = {}): Promise<SyncSchemaResult> {
     const meta = this.entity.meta;
@@ -1100,7 +947,6 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     if (sinAccessor.length) throw new Error(`syncSchema: el POJO no tiene getter/setter para: ${sinAccessor.join(", ")}`);
     const expected = new Map(meta.persisted.map((f) => [this.dbCol(f), f] as const));
     const result: SyncSchemaResult = { table: this.table, created: false, added: [], dropped: [], migrated: 0, dryRun: !!opts.dryRun };
-
     const tables = await this.db.kysely.introspection.getTables();
     const current = tables.find((t) => t.name === this.table);
     if (!current) {
@@ -1115,17 +961,10 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     const pkFaltante = meta.pks.map((k) => this.dbCol(k)).find((c) => result.added.includes(c));
     if (pkFaltante) throw new Error(`syncSchema: la pk "${pkFaltante}" no existe en la tabla; recréela (no se migra la pk)`);
     if (opts.dryRun) return result;
-
     await this.db.kysely.transaction().execute(async (tx) => {
       for (const col of result.added) {
-        const field = expected.get(col) ?? col;
-        const c = meta.column(field);
-        await tx.schema.alterTable(this.table).addColumn(col, sql.raw(this.engine.columnType(c)), (cb) => {
-          if (c.default === undefined) return cb;
-          return cb.defaultTo(
-            c.default !== null && typeof c.default === "object" ? sql.raw(c.default.sql) : this.engine.toDb(c, c.default) as never,
-          );
-        }).execute();
+        const c = meta.column(expected.get(col) ?? col);
+        await tx.schema.alterTable(this.table).addColumn(col, sql.raw(this.engine.columnType(c)), (cb) => (c.default === undefined ? cb : cb.defaultTo(this.#defaultTo(c) as never))).execute();
       }
       if (opts.migrate) {
         const { rows } = await sql<Record<string, unknown>>`select * from ${sql.table(this.table)}`.execute(tx);
@@ -1150,41 +989,29 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     const meta = this.entity.meta;
     const pks = meta.pks;
     const single = pks.length === 1;
-    let b = exec.schema.createTable(this.table).ifNotExists();
-    for (const f of meta.persisted) {
-      const c = meta.column(f);
-      const isPk = pks.includes(f);
-      if (c.autoincrement && !(c.type === "int" || c.type === "bigint")) {
-        throw new Error(`"${f}": autoincrement sólo aplica a int/bigint`);
+    const exists = !this.engine.ifNotExists && await this.#tableExists(this.table, exec);
+    if (!exists) {
+      let b = exec.schema.createTable(this.table);
+      if (this.engine.ifNotExists) b = b.ifNotExists();
+      for (const f of meta.persisted) {
+        const c = meta.column(f);
+        const isPk = pks.includes(f);
+        if (c.autoincrement && !(c.type === "int" || c.type === "bigint")) throw new Error(`"${f}": autoincrement sólo aplica a int/bigint`);
+        if (c.autoincrement && this.engine.name === "sqlite" && !(single && isPk)) throw new Error(`"${f}": en SQLite autoincrement requiere que sea la única pk`);
+        b = b.addColumn(this.dbCol(f), sql.raw(this.engine.columnType(c)), (cb) => {
+          if (isPk && single) cb = cb.primaryKey();
+          if (c.autoincrement) cb = this.engine.autoincrement(cb);
+          if (isPk || c.nullable === false) cb = cb.notNull();
+          if (c.unique) cb = cb.unique();
+          if (c.default !== undefined) cb = cb.defaultTo(this.#defaultTo(c) as never);
+          return cb;
+        });
       }
-      if (c.autoincrement && this.engine.name === "sqlite" && !(single && isPk)) {
-        throw new Error(`"${f}": en SQLite autoincrement requiere que sea la única pk`);
-      }
-      const type = this.engine.name === "sqlite" && c.autoincrement ? "integer" : this.engine.columnType(c);
-      b = b.addColumn(this.dbCol(f), sql.raw(type), (cb) => {
-        if (isPk && single) cb = cb.primaryKey();
-        if (c.autoincrement) cb = this.engine.name === "pg" ? cb.generatedByDefaultAsIdentity() : cb.autoIncrement();
-        if (isPk || c.nullable === false) cb = cb.notNull();
-        if (c.unique) cb = cb.unique();
-        if (c.default !== undefined) {
-          cb = cb.defaultTo(
-            c.default !== null && typeof c.default === "object"
-              ? sql.raw(c.default.sql)
-              : this.engine.toDb(c, c.default) as never,
-          );
-        }
-        return cb;
-      });
+      if (!single) b = b.addPrimaryKeyConstraint(`${this.table}_pk`, pks.map((k) => this.dbCol(k)) as never);
+      await b.execute();
     }
-    if (!single) b = b.addPrimaryKeyConstraint(`${this.table}_pk`, pks.map((k) => this.dbCol(k)) as never);
-    await b.execute();
     await this.ensureSequences(exec);
     await this.ensureIndexes(this.resolvedIndexes(), exec);
     await this.ensureIndexes(this.requestedIndexes(), exec);
   }
-}
-
-/** `"FAC-{n:5}"` → `FAC-00042`; `"{n}"` → `42`. */
-export function formatSequence(pattern: string, n: number): string {
-  return pattern.replace(/\{n(?::(\d+))?\}/g, (_m, w: string | undefined) => (w ? String(n).padStart(Number(w), "0") : String(n)));
 }

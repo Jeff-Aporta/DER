@@ -1,11 +1,10 @@
 /**
  * Tabla de rutas: lo que cada host registra (Azure `app.http`, Workers, `Deno.serve`...).
- * Mismo modelo que `registrarEntidad` de ISS: cada acción del controller es una ruta propia con parámetros
- * `{pk}`, id estable `METHOD:/ruta`, sin duplicados ni ambigüedades.
+ * Cada acción del controller es una ruta propia con parámetros `{pk}`, id estable `METHOD:/ruta`, sin duplicados ni ambigüedades.
  */
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
-import type { ActionRouteSpec, ExposedName, RouteSecurity } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
-import type { HttpMethod } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import type { ActionRouteSpec } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import type { ExposedName, HttpMethod, RouteSecurity, SecurityDef, SecurityInput } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 
 /** Une segmentos de ruta sin barras repetidas (`["a/", "/b"]` → `a/b`). */
 export function joinPath(...parts: string[]): string {
@@ -22,10 +21,7 @@ export function routeKey(method: string, path: string): string {
   return `${method.toUpperCase()} ${joinPath(path).toLowerCase().replace(/\{[^}]+\}/g, "{}")}`;
 }
 
-/**
- * Compara una plantilla (`producto/{iproducto}`) con los segmentos del request.
- * Retorna los parámetros decodificados o `null` si no coincide.
- */
+/** Compara una plantilla (`producto/{iproducto}`) con los segmentos del request. Retorna los parámetros decodificados o `null`. */
 export function matchTemplate(template: string, segs: readonly string[]): Record<string, string> | null {
   const parts = joinPath(template).split("/").filter(Boolean);
   if (parts.length !== segs.length) return null;
@@ -73,11 +69,9 @@ export function controllerRouteSpecs(ctrl: ServerController<any>): ActionRouteSp
     if (ep.scope === "one") add(name, ep.method, `${S}/${P}/${seg}`, true, name);
     else add(name, ep.method, `${L}/${seg}`, false, name);
   }
-  // configuración de la entidad: sólo en el plural y sólo si el server define la tabla de cfg
-  if (ctrl.hasCfg()) {
-    add("getCfg", "GET", `${L}/cfg`, false);
-    add("putCfg", "PUT", `${L}/cfg`, false);
-  }
+  // configuración y documentación: sólo en el plural; /cfg sólo si el server define la tabla de cfg
+  if (ctrl.hasCfg()) add("getCfg", "GET", `${L}/cfg`, false);
+  if (ctrl.hasCfg()) add("putCfg", "PUT", `${L}/cfg`, false);
   specs.push({ name: "doc", method: "GET", path: `${L}/doc`, pkParams: [], sse: false });
   const expose = ctrl.config.expose;
   if (!expose) return specs;
@@ -87,9 +81,9 @@ export function controllerRouteSpecs(ctrl: ServerController<any>): ActionRouteSp
 
 const PUBLIC: RouteSecurity = { protected: false, permissions: false };
 
-/** Seguridad de una acción según `config.security` del controller. */
+/** Seguridad de una acción según `config.security` del controller (default: la `security` de la entidad). */
 export function controllerSecurity(ctrl: ServerController<any>, name: string): RouteSecurity {
-  const sec = ctrl.config.security;
+  const sec: boolean | SecurityDef | undefined = ctrl.config.security ?? ctrl.entity.def.security;
   if (!sec) return PUBLIC;
   if (sec === true) return name === "doc" ? PUBLIC : { protected: true, permissions: true };
   if (sec.public?.includes(name)) return PUBLIC;
@@ -101,13 +95,10 @@ export function controllerSecurity(ctrl: ServerController<any>, name: string): R
   return { protected: true, permissions: sec.permissions ?? true, ...(action ? { action } : {}) };
 }
 
-/** Seguridad de una ruta irregular. */
-export function routeSecurity(sec: boolean | RouteSecurity | undefined): RouteSecurity {
-  if (!sec) return PUBLIC;
+/** Seguridad de una ruta irregular: `"protected"` sólo sesión; `true` sesión + permisos; detalle con `{ protected, permissions, action }`. */
+export function routeSecurity(sec: SecurityInput | undefined): RouteSecurity {
+  if (!sec || sec === "public") return PUBLIC;
   if (sec === true) return { protected: true, permissions: true };
-  return {
-    protected: sec.protected,
-    permissions: sec.protected && sec.permissions,
-    ...(sec.action ? { action: sec.action } : {}),
-  };
+  if (sec === "protected") return { protected: true, permissions: false };
+  return { protected: sec.protected, permissions: sec.protected && sec.permissions, ...(sec.action ? { action: sec.action } : {}) };
 }

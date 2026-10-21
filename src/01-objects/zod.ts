@@ -8,36 +8,21 @@
  *   zodOf(Producto).molde   molde de `Obj.insert`: `null` → null si la columna es nullable; si no, se quita
  *
  * Una columna puede refinar su tipo con `zod: z.email()`; en columnas `json` el `zod` es su molde.
- * Los tipos y schemas de contrato (`SchemaZod`, `ZQuerySpec`...) viven en `schema.ts`.
  */
 import { z } from "zod";
 import { isRequiredOnInsert, schemaMeta } from "@Jeff-Aporta/DER/src/01-objects/meta.ts";
 import { type Pojo, resolvePojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import type { ColumnDef, PojoClass, Schema, SchemaZod } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 
-const EXPECTED: Record<ColumnDef["type"], string> = {
-  string: "texto",
-  text: "texto",
-  uuid: "texto",
-  int: "un entero",
-  bigint: "un entero",
-  float: "un número",
-  decimal: "un número",
-  bool: "un booleano",
-  date: "una fecha YYYY-MM-DD",
-  datetime: "una fecha/hora",
-  time: "una hora HH:MM:SS",
-  json: "JSON",
-};
+const EXPECTED: Record<ColumnDef["type"], string> = { string: "texto", text: "texto", uuid: "texto", int: "un entero", bigint: "un entero", float: "un número", decimal: "un número", bool: "un booleano", date: "una fecha YYYY-MM-DD", datetime: "una fecha/hora", time: "una hora HH:MM:SS", json: "JSON" };
 
 /** Mensajes en español: falta / nulo / tipo. */
 function err(name: string, c: ColumnDef) {
-  return (iss: { input?: unknown }) =>
-    iss.input === undefined
-      ? `Falta el campo requerido "${name}"`
-      : iss.input === null
-      ? `"${name}" no puede ser nulo`
-      : `"${name}" debe ser ${EXPECTED[c.type]}`;
+  return (iss: { input?: unknown }) => {
+    if (iss.input === undefined) return `Falta el campo requerido "${name}"`;
+    if (iss.input === null) return `"${name}" no puede ser nulo`;
+    return `"${name}" debe ser ${EXPECTED[c.type]}`;
+  };
 }
 
 /** Zod del valor (no nulo) de una columna. */
@@ -47,9 +32,7 @@ export function columnZod(name: string, c: ColumnDef): z.ZodType {
   if (c.enum) {
     const msg = `"${name}" debe ser uno de: ${c.enum.join(", ")}`;
     const literals: z.ZodLiteral[] = c.enum.map((v: string | number): z.ZodLiteral => z.literal(v));
-    return z.union(literals as [z.ZodLiteral, z.ZodLiteral, ...z.ZodLiteral[]], {
-      error: (iss: { input?: unknown }): string => (iss.input == null ? error(iss) : msg),
-    });
+    return z.union(literals as [z.ZodLiteral, z.ZodLiteral, ...z.ZodLiteral[]], { error: (iss: { input?: unknown }): string => (iss.input == null ? error(iss) : msg) });
   }
   const typeMsg = error({ input: "" });
   switch (c.type) {
@@ -82,8 +65,8 @@ export function columnZod(name: string, c: ColumnDef): z.ZodType {
 const cache = new WeakMap<Schema, SchemaZod>();
 
 export function schemaZod(schema: Schema): SchemaZod {
-  let r = cache.get(schema);
-  if (r) return r;
+  const cached = cache.get(schema);
+  if (cached) return cached;
   const meta = schemaMeta(schema);
   const row: Record<string, z.ZodType> = {};
   const insert: Record<string, z.ZodType> = {};
@@ -103,19 +86,12 @@ export function schemaZod(schema: Schema): SchemaZod {
     if (isPk) pk[k] = base;
   }
   for (const [k, rel] of Object.entries(meta.relations)) {
-    const target = () => schemaZod(resolvePojo(rel.target).schema);
-    const tRow = z.lazy(() => target().row);
-    const tMolde = z.lazy(() => target().molde);
+    const tRow = z.lazy(() => schemaZod(resolvePojo(rel.target).schema).row);
+    const tMolde = z.lazy(() => schemaZod(resolvePojo(rel.target).schema).molde);
     row[k] = rel.kind === "many" ? z.array(tRow).optional() : tRow.nullable().optional();
     molde[k] = rel.kind === "many" ? z.array(tMolde) : tMolde.nullable();
   }
-  r = {
-    row: z.object(row),
-    insert: z.object(insert),
-    update: z.object(update),
-    pk: z.object(pk),
-    molde: z.object(molde),
-  };
+  const r: SchemaZod = { row: z.object(row), insert: z.object(insert), update: z.object(update), pk: z.object(pk), molde: z.object(molde) };
   cache.set(schema, r);
   return r;
 }

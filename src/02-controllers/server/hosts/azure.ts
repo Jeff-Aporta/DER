@@ -67,16 +67,7 @@ export function registerAzure(app: AzureApp, router: Router, opts: AzureOptions 
       authLevel,
       handler: async (req) => responseToAzure(await def.handle(await azureToRequest(req), { ...req.params }), stream),
     });
-    registered.push({
-      id: def.id,
-      method: def.method,
-      path: def.path,
-      kind: def.kind,
-      name: def.name,
-      sse: def.sse,
-      security: def.security,
-      ...(def.entity ? { entity: def.entity } : {}),
-    });
+    registered.push({ id: def.id, method: def.method, path: def.path, kind: def.kind, name: def.name, sse: def.sse, security: def.security, ...(def.entity ? { entity: def.entity } : {}) });
     if (router.options.cors && !preflight.has(route.toLowerCase())) {
       preflight.add(route.toLowerCase());
       app.http(azureFunctionName(opts.functionPrefix ?? "", "OPTIONS", route, used), {

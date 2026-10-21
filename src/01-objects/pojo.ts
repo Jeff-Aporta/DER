@@ -18,6 +18,7 @@
  *      set nombre(v: unknown) { this.f["nombre"] = toStr(v); }
  *    }
  *    ```
+ * Sin clase: `defineEntity({ schema, ... })` genera el POJO y `controller.pojo(content?)` lo instancia.
  *
  * Acciones JSON parciales y tipadas (con el molde Zod del schema; el resultado se valida y nunca sale del molde):
  *   p.insert(cambios)       upsert profundo: lo no mencionado se conserva; `null` → null si la columna lo admite
@@ -28,38 +29,13 @@
  *   p.replace(obj)         reemplazo directo de todo el contenido
  * Una columna `json` SIN `zod` no tiene molde: cualquier acción la reemplaza completa (replace directo).
  */
-import { CASTS } from "@Jeff-Aporta/DER/src/00-common/cast.ts";
-import { ValidationError } from "@Jeff-Aporta/DER/src/00-common/errors.ts";
+import { CASTS, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { schemaMeta } from "@Jeff-Aporta/DER/src/01-objects/meta.ts";
-import { Obj } from "@Jeff-Aporta/DER/src/00-common/obj.ts";
-import type {
-  GeneratedPojoClass,
-  PojoPartialOp,
-  Patch,
-  PojoClass,
-  PojoInit,
-  PojoQuery,
-  Schema,
-  SchemaMeta,
-  TConsulta,
-} from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
+import type { GeneratedPojoClass, Patch, PojoClass, PojoInit, PojoPartialOp, PojoQuery, Schema, SchemaMeta, TConsulta } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { pojoValues, schemaZod, zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 
-const RESERVED = new Set([
-  "f",
-  "assign",
-  "toJSON",
-  "pkValues",
-  "pkOnly",
-  "constructor",
-  "insert",
-  "insertIgnore",
-  "update",
-  "delete",
-  "get",
-  "replace",
-]);
-
+const RESERVED = new Set(["f", "assign", "toJSON", "pkValues", "pkOnly", "constructor", "insert", "insertIgnore", "update", "delete", "get", "replace"]);
 
 export abstract class Pojo {
   static schema: Schema;
@@ -149,8 +125,7 @@ export abstract class Pojo {
   }
 
   delete(query: PojoQuery<this>): this {
-    const next = Obj.delete(this.toJSON(), query as TConsulta) as Record<string, unknown>;
-    return this.#commit(next);
+    return this.#commit(Obj.delete(this.toJSON(), query as TConsulta) as Record<string, unknown>);
   }
 
   get(query: PojoQuery<this>): Record<string, unknown> {
@@ -164,11 +139,10 @@ export abstract class Pojo {
   #partial(op: PojoPartialOp, cambios: Record<string, unknown>): this {
     const base = this.toJSON();
     const z = schemaZod(this.$meta.schema);
-    const next = (op === "insert"
-      ? Obj.insert(base, cambios, z.molde)
-      : op === "insertIgnore"
-      ? Obj.insertIgnore(base, cambios)
-      : Obj.update(base, cambios)) as Record<string, unknown>;
+    let next: Record<string, unknown>;
+    if (op === "insert") next = Obj.insert(base, cambios, z.molde) as Record<string, unknown>;
+    else if (op === "insertIgnore") next = Obj.insertIgnore(base, cambios) as Record<string, unknown>;
+    else next = Obj.update(base, cambios) as Record<string, unknown>;
     // json sin molde → reemplazo directo
     for (const [k, c] of Object.entries(this.$meta.columns)) {
       if (c.type !== "json" || c.zod || cambios[k] === undefined) continue;
@@ -205,46 +179,24 @@ export function pojoOf<const S extends Schema>(schema: S): GeneratedPojoClass<S>
   for (const [k, def] of Object.entries(meta.columns)) {
     const cast = CASTS[def.type];
     if (!cast) throw new Error(`Tipo de columna desconocido "${def.type}" en "${k}"`);
-    Object.defineProperty(proto, k, {
-      get(this: { f: Record<string, unknown> }) {
-        return this.f[k];
-      },
-      set(this: { f: Record<string, unknown> }, v: unknown) {
-        this.f[k] = v === undefined ? undefined : cast(v);
-      },
-      enumerable: true,
-      configurable: true,
-    });
+    const set = function (this: { f: Record<string, unknown> }, v: unknown) {
+      this.f[k] = v === undefined ? undefined : cast(v);
+    };
+    Object.defineProperty(proto, k, { get(this: { f: Record<string, unknown> }) { return this.f[k]; }, set, enumerable: true, configurable: true });
   }
   for (const [k, rel] of Object.entries(meta.relations)) {
-    Object.defineProperty(proto, k, {
-      get(this: { f: Record<string, unknown> }) {
-        return this.f[k];
-      },
-      set(this: { f: Record<string, unknown> }, v: unknown) {
-        this.f[k] = castRelation(rel.kind, resolvePojo(rel.target), v);
-      },
-      enumerable: true,
-      configurable: true,
-    });
+    const set = function (this: { f: Record<string, unknown> }, v: unknown) {
+      this.f[k] = castRelation(rel.kind, resolvePojo(rel.target), v);
+    };
+    Object.defineProperty(proto, k, { get(this: { f: Record<string, unknown> }) { return this.f[k]; }, set, enumerable: true, configurable: true });
   }
   return Generated as unknown as GeneratedPojoClass<S>;
 }
 
-// ------------------------------------------------------------------ registro por nombre
-
-const registry = new Map<string, PojoClass<any>>();
-
-/** Registra un POJO bajo un nombre para resolver `RelationDef.target` en formato string. */
-export function registerPojo(name: string, cls: PojoClass<any>): void {
-  registry.set(name, cls);
-}
-
+/** Clase del POJO de `RelationDef.target`: thunk, o nombre de entidad resuelto en el registro global. */
 export function resolvePojo(target: string | (() => PojoClass<any>)): PojoClass<any> {
   if (typeof target === "function") return target();
-  const c = registry.get(target);
-  if (!c) throw new Error(`No hay POJO registrado como "${target}" (¿falta defineEntity/registerPojo?)`);
-  return c;
+  return registry.pojoClass(target);
 }
 
 /** Casteo de relaciones, útil también para POJOs manuales. */

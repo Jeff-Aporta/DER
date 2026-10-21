@@ -1,83 +1,67 @@
 /**
- * Router HTTP sobre Request/Response estándar (Web API). Construye la TABLA DE RUTAS (una por acción del
- * controller, como `registrarEntidad` de ISS) que luego registra cada host:
+ * Router HTTP sobre Request/Response estándar (Web API). Construye la TABLA DE RUTAS (una por acción del controller)
+ * que luego registra cada host:
  *
  * ```ts
- * const router = createRouter([productos, categorias], { basePath: "/api", cors: true });
+ * const router = createRouter([productos, categorias], { basePath: "/api", cors: true, plugins: [auth, permisos] });
  * Deno.serve(router.fetch);                          // Deno / Bun / Node (matcher genérico)
  * registerAzure(app, router);                        // Azure Functions: una función por ruta
  * export default defineWorker((env) => router);      // Cloudflare Workers
  * ```
+ *
+ * Seguridad: las puertas del registro global (`registry.security`). Sin `extract` no hay seguridad (skip). Con ella, cada
+ * request saca su sesión (`ctx.session`, `ctx.state.session`); una ruta `protected` exige sesión válida y, si además
+ * evalúa `permissions`, consulta `permissions(sesión, acción, entidad)`; el valor efectivo viaja en `ctx.state.permiso`.
+ * Los plugins (`createServer`) aportan sus puertas; entran al registro sólo donde el consumidor no definió la suya.
  */
 import { encodeEvent, TextChannel } from "@Jeff-Aporta/DER/src/00-common/sse.ts";
-import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/errors.ts";
-import type { Include, RouteMatch } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
+import type { CanFn, Include, RouteMatch, SessionInfo } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
 import { apiIndexMd, composeFromSources, vaultHtml } from "@Jeff-Aporta/DER/src/02-controllers/server/doc.ts";
-import {
-  controllerRouteSpecs,
-  controllerSecurity,
-  joinPath,
-  literalCount,
-  matchTemplate,
-  routeId,
-  routeKey,
-  routeSecurity,
-} from "@Jeff-Aporta/DER/src/02-controllers/server/routes.ts";
-import type {
-  CanFn,
-  CorsOptions,
-  DocSheet,
-  ExtraRoute,
-  ExtraRouteInput,
-  Identity,
-  Plugin,
-  RouteDef,
-  RouteInfo,
-  RouterOptions,
-  ServerCtx,
-} from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import { controllerRouteSpecs, controllerSecurity, joinPath, literalCount, matchTemplate, routeId, routeKey, routeSecurity } from "@Jeff-Aporta/DER/src/02-controllers/server/routes.ts";
+import type { CorsOptions, DocSheet, ExtraRoute, ExtraRouteInput, RouteDef, RouteInfo, RouterOptions, ServerCtx, ServerPlugin } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 
-/**
- * `?v=1` (o cualquier valor salvo `0`/`false`/`vacio`) pide la vista HTML del mismo endpoint `/doc`.
- * NOTA: `?v=` (presente pero vacío) cuenta como truthy y devuelve la vista HTML.
- */
-const wantsView = (url: URL): boolean => {
+/** `?v=1` (o cualquier valor salvo `0`/`false`) pide la vista HTML del mismo endpoint `/doc`. `?v=` vacío cuenta como truthy. */
+function wantsView(url: URL): boolean {
   const v = url.searchParams.get("v");
   return v !== null && v !== "0" && v.toLowerCase() !== "false";
-};
+}
 
-const markdown = (text: string): Response =>
-  new Response(text, { headers: { "content-type": "text/markdown; charset=utf-8" } });
-const html = (text: string): Response => new Response(text, { headers: { "content-type": "text/html; charset=utf-8" } });
+function markdown(text: string): Response {
+  return new Response(text, { headers: { "content-type": "text/markdown; charset=utf-8" } });
+}
 
-const json = (status: number, body: unknown): Response =>
-  body === undefined ? new Response(null, { status: 204 }) : Response.json(body, { status });
+function html(text: string): Response {
+  return new Response(text, { headers: { "content-type": "text/html; charset=utf-8" } });
+}
+
+function json(status: number, body: unknown): Response {
+  return body === undefined ? new Response(null, { status: 204 }) : Response.json(body, { status });
+}
 
 export class Router {
   readonly basePath: string[];
   /** Tabla de rutas (relativas al basePath): lo que registra cada host. */
   readonly routes: RouteDef[];
   readonly #cors: Required<CorsOptions> | null;
-
   /** Controllers propios + los que aportan los plugins. */
   readonly controllers: ServerController<any>[];
-  readonly plugins: Plugin[];
+  readonly plugins: ServerPlugin[];
 
   constructor(controllers: ServerController<any>[], readonly options: RouterOptions = {}) {
     this.plugins = options.plugins ?? [];
-    this.controllers = [...controllers, ...this.plugins.flatMap((p) => p.controllers ?? [])];
+    this.controllers = [...controllers, ...this.plugins.flatMap((p) => p.list)];
     this.basePath = (options.basePath ?? "").split("/").filter(Boolean);
     const cors = options.cors;
-    this.#cors = cors
-      ? {
-        origin: "*",
-        methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-        headers: "content-type, authorization, accept",
-        maxAge: 86400,
-        ...(cors === true ? {} : cors),
-      }
-      : null;
+    this.#cors = cors ? { origin: "*", methods: "GET, POST, PUT, DELETE, PATCH, OPTIONS", headers: "content-type, authorization, accept", maxAge: 86400, ...(cors === true ? {} : cors) } : null;
+    for (const plugin of this.plugins) {
+      plugin.router = this;
+      // las puertas del plugin entran al registro sólo donde el consumidor no definió la suya
+      const hooks = registry.security;
+      registry.secure({ ...(hooks.extract ? {} : { extract: plugin.security.extract }), ...(hooks.protected ? {} : { protected: plugin.security.protected }), ...(hooks.permissions ? {} : { permissions: plugin.security.permissions }) });
+    }
     this.routes = this.#buildRoutes();
   }
 
@@ -98,36 +82,13 @@ export class Router {
       seen.set(key, origen);
       routes.push(def);
     };
-
-    const docInfo: RouteInfo = {
-      id: routeId("GET", "doc"),
-      method: "GET",
-      path: "doc",
-      kind: "doc",
-      name: "doc",
-      sse: false,
-      security: routeSecurity(false),
-    };
+    const docInfo: RouteInfo = { id: routeId("GET", "doc"), method: "GET", path: "doc", kind: "doc", name: "doc", sse: false, security: routeSecurity(false) };
     push({ ...docInfo, handle: (req) => this.#run(docInfo, req, () => this.#docResponse(req)) }, "router");
-
     for (const ctrl of this.controllers) {
       for (const spec of controllerRouteSpecs(ctrl)) {
-        const info: RouteInfo = {
-          id: routeId(spec.method, spec.path),
-          method: spec.method,
-          path: joinPath(spec.path),
-          kind: spec.name === "doc" ? "doc" : "action",
-          name: spec.name,
-          entity: ctrl.entity.name,
-          sse: spec.sse,
-          security: controllerSecurity(ctrl, spec.name),
-        };
+        const info: RouteInfo = { id: routeId(spec.method, spec.path), method: spec.method, path: joinPath(spec.path), kind: spec.name === "doc" ? "doc" : "action", name: spec.name, entity: ctrl.entity.name, sse: spec.sse, security: controllerSecurity(ctrl, spec.name) };
         const handle = (req: Request, params: Record<string, string>) => {
-          const m: RouteMatch = {
-            name: spec.name,
-            pks: spec.pkParams.map((k) => params[k] ?? ""),
-            sse: spec.sse,
-          };
+          const m: RouteMatch = { name: spec.name, pks: spec.pkParams.map((k) => params[k] ?? ""), sse: spec.sse };
           if (spec.endpoint) m.endpoint = spec.endpoint;
           return this.#run(info, req, (ctx) => this.#dispatch(ctrl, m, req, ctx));
         };
@@ -141,8 +102,8 @@ export class Router {
       for (const def of this.#extraDefs(extra, this, "router")) push(def, "router");
     }
     for (const plugin of this.plugins) {
-      for (const extra of plugin.routes ?? []) {
-        for (const def of this.#extraDefs(extra, this, "router")) push(def, `plugin ${plugin.name}`);
+      for (const extra of plugin.routes) {
+        for (const def of this.#extraDefs(extra, plugin, "router")) push(def, `plugin ${plugin.name}`);
       }
     }
     return routes;
@@ -154,20 +115,9 @@ export class Router {
     const defs: RouteDef[] = [];
     const make = (sse: boolean): RouteDef => {
       const p = sse ? joinPath(path, "sse") : path;
-      const info: RouteInfo = {
-        id: extra.id ?? routeId(extra.method, p),
-        method: extra.method,
-        path: p,
-        kind: "extra",
-        name: extra.id ?? routeId(extra.method, p),
-        sse,
-        security: routeSecurity(extra.security),
-      };
+      const info: RouteInfo = { id: extra.id ?? routeId(extra.method, p), method: extra.method, path: p, kind: "extra", name: extra.id ?? routeId(extra.method, p), sse, security: routeSecurity(extra.security) };
       if (entity !== "router") info.entity = entity;
-      return {
-        ...info,
-        handle: (req, params) => this.#run(info, req, (ctx) => this.#runExtra(extra, self, sse, req, params, ctx)),
-      };
+      return { ...info, handle: (req, params) => this.#run(info, req, (ctx) => this.#runExtra(extra, self, sse, req, params, ctx)) };
     };
     if (extra.handler) defs.push(make(false));
     if (extra.sse) defs.push(make(true));
@@ -205,8 +155,7 @@ export class Router {
   }
 
   /** Handler listo para `Deno.serve` / Workers: 404 si no hay ruta. */
-  fetch = async (req: Request): Promise<Response> =>
-    (await this.handle(req)) ?? this.#withCors(json(404, { error: "Ruta no encontrada" }));
+  fetch = async (req: Request): Promise<Response> => (await this.handle(req)) ?? this.#withCors(json(404, { error: "Ruta no encontrada" }));
 
   /** Respuesta del preflight CORS. */
   preflight(): Response {
@@ -215,7 +164,7 @@ export class Router {
 
   // ================================================================ ejecución común
 
-  /** Contexto, guard, CORS y errores: igual para toda ruta y todo host. */
+  /** Contexto, seguridad, guard, CORS y errores: igual para toda ruta y todo host. */
   async #run(info: RouteInfo, req: Request, inner: (ctx: Partial<ServerCtx>) => Promise<Response>): Promise<Response> {
     try {
       // la señal sólo en SSE (detectar desconexión): leer req.signal en cada request dispara un aviso en Deno 2.9+
@@ -230,50 +179,36 @@ export class Router {
     }
   }
 
-  /**
-   * Puertas de los plugins: identidad (JWT) y permisos. Sin plugin de identidad no hay seguridad (skip).
-   * Ruta pública: la identidad se intenta (para `ctx.state.identity`) pero un token inválido no la bloquea.
-   */
+  /** Puertas del registro: `extract` → sesión; ruta protegida → sesión válida; `permissions` → decisión (valor en `state.permiso`). */
   async #security(info: RouteInfo, req: Request, ctx: Partial<ServerCtx>): Promise<void> {
     const state = ctx.state ?? {};
     ctx.state = state;
-    let identity: Identity | null = null;
-    // `ctx.state.can(accion)`: capacidades desde código (sin plugins de seguridad, todo se permite: skip)
-    const canPlugin = this.plugins.find((p) => p.can);
-    const can: CanFn = async (action, method = info.method) => {
-      if (!canPlugin?.can) return { allowed: true, value: true };
-      if (!identity) return { allowed: false, reason: "Requiere autenticación" };
-      return await canPlugin.can(identity, action, method);
-    };
+    let session: SessionInfo | null = null;
+    const can: CanFn = (action, entity = null) => registry.decide(session, action, entity, { method: info.method, route: info });
     state["can"] = can;
-    const auth = this.plugins.find((p) => p.authenticate);
-    if (!auth?.authenticate) return;
+    ctx.session = null;
+    state["session"] = null;
+    if (!registry.secured) return;
     try {
-      identity = await auth.authenticate(req, ctx);
+      session = await registry.security.extract!(req);
     } catch (err) {
       if (info.security.protected) throw err;
     }
-    state["identity"] = identity;
+    ctx.session = session;
+    state["session"] = session;
     if (!info.security.protected) return;
-    if (!identity) throw new HttpError(401, `Requiere autenticación: ${info.id}`);
+    if (!(await registry.isLogged(session))) throw new HttpError(401, `Requiere autenticación: ${info.id}`);
     if (!info.security.permissions) return;
-    for (const plugin of this.plugins) {
-      if (!plugin.authorize) continue;
-      const decision = await plugin.authorize(info, identity, ctx);
-      if (!decision.allowed) throw new HttpError(403, decision.reason ?? `Sin permiso: ${info.id}`);
-      state["permiso"] = decision.value;
-    }
+    const decision = await registry.decide(session, info.security.action ?? info.id, info.entity ?? null, { method: info.method, route: info });
+    if (!decision.allowed) throw new HttpError(403, decision.reason ?? `Sin permiso: ${info.id}`);
+    state["permiso"] = decision.value;
   }
 
-  /**
-   * Seed completo: `CREATE TABLE IF NOT EXISTS` de todos los controllers (también los de los plugins, en cada
-   * base usada) y después el seed de datos de cada plugin (admin, grupo, roles base...). Idempotente.
-   */
+  /** Seed completo: tablas de todos los controllers (también los de los plugins, en cada base usada) y el seed de datos de cada plugin. Idempotente. */
   async seed(): Promise<void> {
-    // un solo set compartido: cada controller (de cualquier base y motor) se siembra una vez
     const visited = new Set<ServerController<any>>();
     for (const c of this.controllers) await c.seed({}, visited);
-    for (const plugin of this.plugins) await plugin.seed?.(this);
+    for (const plugin of this.plugins) await plugin.seed();
   }
 
   #withCors(res: Response): Response {
@@ -287,14 +222,7 @@ export class Router {
     return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
   }
 
-  async #runExtra<Ctl>(
-    extra: ExtraRoute<Ctl>,
-    self: Ctl,
-    sse: boolean,
-    req: Request,
-    params: Record<string, string>,
-    ctx: Partial<ServerCtx>,
-  ): Promise<Response> {
+  async #runExtra<Ctl>(extra: ExtraRoute<Ctl>, self: Ctl, sse: boolean, req: Request, params: Record<string, string>, ctx: Partial<ServerCtx>): Promise<Response> {
     const url = new URL(req.url);
     const input: ExtraRouteInput = { request: req, params, query: url.searchParams, body: await readBody(req) };
     const full = this.#fullCtx(ctx);
@@ -357,79 +285,32 @@ export class Router {
     const inc = url.searchParams.get("include");
     if (inc) ctx.include = parseJson(inc, "include") as Include;
     const e = ctrl.entity;
-
-    if (m.name === "doc") {
-      return wantsView(url)
-        ? html(await ctrl.docView(this.basePathStr, this.options.docView))
-        : markdown(await ctrl.doc(ctx));
-    }
-
+    if (m.name === "doc" && wantsView(url)) return html(await ctrl.docView(this.basePathStr, this.options.docView));
+    if (m.name === "doc") return markdown(await ctrl.doc(ctx));
     const body = await readBody(req);
     const q = url.searchParams.get("q");
     const qArg = q ? parseJson(q, "q") : undefined;
-
-    if (m.name === "getCfg" || m.name === "putCfg") {
-      return json(200, m.name === "getCfg" ? await ctrl.getCfg(ctx) : await ctrl.putCfg(requireObject(body), ctx));
-    }
-
+    if (m.name === "getCfg") return json(200, await ctrl.getCfg(ctx));
+    if (m.name === "putCfg") return json(200, await ctrl.putCfg(requireObject(body), ctx));
     let arg: unknown;
-    switch (m.name) {
-      case "get":
-      case "delete":
-        arg = e.pojoFromPks(m.pks);
-        break;
-      case "put":
-        arg = e.pojoFromPks(m.pks, body);
-        break;
-      case "post":
-        arg = requireObject(body);
-        break;
-      case "list":
-        break;
-      case "query":
-        arg = (req.method === "GET" ? qArg : body) ?? {};
-        break;
-      case "postList":
-      case "putList":
-      case "deleteList":
-        arg = requireArray(body);
-        break;
-      default:
-        arg = m.endpoint?.scope === "one" ? e.pojoFromPks(m.pks, body ?? qArg) : requireArray(body ?? qArg ?? []);
-    }
-
+    if (m.name === "get" || m.name === "delete") arg = e.pojoFromPks(m.pks);
+    else if (m.name === "put") arg = e.pojoFromPks(m.pks, body);
+    else if (m.name === "post") arg = requireObject(body);
+    else if (m.name === "query") arg = (req.method === "GET" ? qArg : body) ?? {};
+    else if (m.name === "postList" || m.name === "putList" || m.name === "deleteList") arg = requireArray(body);
+    else if (m.name !== "list") arg = m.endpoint?.scope === "one" ? e.pojoFromPks(m.pks, body ?? qArg) : requireArray(body ?? qArg ?? []);
     if (m.sse) return sseResponse(await ctrl.openStream(m.name, arg, ctx));
-
+    if (m.name === "post") return json(201, await ctrl.post(arg as never, ctx));
+    if (m.name === "postList") return json(201, await ctrl.postList(arg as never, ctx));
     let result: unknown;
-    switch (m.name) {
-      case "get":
-        result = await ctrl.get(arg as never, ctx);
-        break;
-      case "post":
-        return json(201, await ctrl.post(arg as never, ctx));
-      case "put":
-        result = await ctrl.put(arg as never, ctx);
-        break;
-      case "delete":
-        result = await ctrl.delete(arg as never, ctx);
-        break;
-      case "list":
-        result = await ctrl.list(ctx);
-        break;
-      case "query":
-        result = await ctrl.query(arg as never, ctx);
-        break;
-      case "postList":
-        return json(201, await ctrl.postList(arg as never, ctx));
-      case "putList":
-        result = await ctrl.putList(arg as never, ctx);
-        break;
-      case "deleteList":
-        result = await ctrl.deleteList(arg as never, ctx);
-        break;
-      default:
-        return json(200, await ctrl.call(m.name, arg, ctx));
-    }
+    if (m.name === "get") result = await ctrl.get(arg as never, ctx);
+    else if (m.name === "put") result = await ctrl.put(arg as never, ctx);
+    else if (m.name === "delete") result = await ctrl.delete(arg as never, ctx);
+    else if (m.name === "list") result = await ctrl.list(ctx);
+    else if (m.name === "query") result = await ctrl.query(arg as never, ctx);
+    else if (m.name === "putList") result = await ctrl.putList(arg as never, ctx);
+    else if (m.name === "deleteList") result = await ctrl.deleteList(arg as never, ctx);
+    else return json(200, await ctrl.call(m.name, arg, ctx));
     return result === null ? json(404, { error: "No encontrado" }) : json(200, result);
   }
 
@@ -458,7 +339,7 @@ export function sseResponse(it: AsyncIterable<string>): Response {
         if (r.done) controller.close();
         else controller.enqueue(enc.encode(encodeEvent(r.value)));
       } catch (e) {
-        const msg = e instanceof HttpError ? e.message : e instanceof Error ? e.message : String(e);
+        const msg = e instanceof Error ? e.message : String(e);
         controller.enqueue(enc.encode(encodeEvent(msg, "error")));
         controller.close();
       }
@@ -467,13 +348,7 @@ export function sseResponse(it: AsyncIterable<string>): Response {
       await iter.return?.();
     },
   });
-  return new Response(stream, {
-    headers: {
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache",
-      "x-accel-buffering": "no",
-    },
-  });
+  return new Response(stream, { headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache", "x-accel-buffering": "no" } });
 }
 
 async function readBody(req: Request): Promise<unknown> {

@@ -1,12 +1,12 @@
 /**
  * Dimensión PGlite: PostgreSQL real embebido (WASM), sin servidor. Ideal para tests y apps locales.
- * Dependencias: `kysely` + `zod` + `@electric-sql/pglite`. Reusa el motor de `server/pg`.
+ * Dependencias: `kysely` + `zod` + `@electric-sql/pglite`. Reusa el motor `postgres`.
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  */
 import { PGlite } from "@electric-sql/pglite";
 import { PostgresDialect, type PostgresPool, type PostgresPoolClient } from "kysely";
 import { Database } from "@Jeff-Aporta/DER/src/02-controllers/server/database.ts";
-import type { CfgTableDef, IdentifierCase } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import type { DbFactoryOptions } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { postgres } from "@Jeff-Aporta/DER/src/02-controllers/server/engines.ts";
 
 export * from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
@@ -37,10 +37,7 @@ export function pglitePool(pg: PGlite): PostgresPool {
 }
 
 /** `pg` puede ser una instancia de PGlite o su `dataDir` (por defecto en memoria). */
-export function pgliteDatabase(
-  pg: PGlite | string = new PGlite(),
-  opts: { identifierCase?: IdentifierCase; cfg?: CfgTableDef } = {},
-): Database {
+export function pgliteDatabase(pg: PGlite | string = new PGlite(), opts: DbFactoryOptions = {}): Database {
   const inst = typeof pg === "string" ? new PGlite(pg) : pg;
   return new Database({ engine: postgres, dialect: new PostgresDialect({ pool: pglitePool(inst) }), ...opts });
 }

@@ -1,6 +1,6 @@
 /**
- * Conexión (Kysely) + motor + registro de controllers (para resolver relaciones entre entidades).
- * Agnóstico: las fábricas concretas viven en `server/sqlite`, `server/pg`, `server/pglite`.
+ * Conexión (Kysely) + motor + registro de controllers (para resolver relaciones entre entidades, por POJO o por plural).
+ * Agnóstico: las fábricas concretas viven en `server/sqlite.ts`, `pg.ts`, `pglite.ts`, `mysql.ts` y `mssql.ts`.
  */
 import { Kysely } from "kysely";
 import type { Pojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
@@ -8,10 +8,7 @@ import type { PojoClass } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import type { CfgTableDef, DatabaseOptions, Engine, IdentifierCase, ServerCtx } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
 
-/**
- * Registro GLOBAL (todas las bases): los controllers pueden vivir en bases, motores y credenciales distintos
- * y aun así relacionarse por sus POJOs.
- */
+/** Registro GLOBAL (todas las bases): los controllers pueden vivir en bases, motores y credenciales distintos y aun así relacionarse. */
 const globalRegistry = new Map<PojoClass<any>, ServerController<any>>();
 
 /** Todos los controllers registrados (de todas las bases). */
@@ -19,9 +16,10 @@ export function registeredControllers(): ServerController<any>[] {
   return [...globalRegistry.values()];
 }
 
-/** Controller registrado para un POJO en cualquier base (o `undefined`). */
-export function findController<P extends Pojo>(pojo: PojoClass<P>): ServerController<P> | undefined {
-  return globalRegistry.get(pojo) as ServerController<P> | undefined;
+/** Controller registrado para un POJO (clase) o para el plural de su entidad, en cualquier base (o `undefined`). */
+export function findController<P extends Pojo>(key: PojoClass<P> | string): ServerController<P> | undefined {
+  if (typeof key !== "string") return globalRegistry.get(key) as ServerController<P> | undefined;
+  return registeredControllers().find((c) => c.entity.pluralPath.join("/") === key) as ServerController<P> | undefined;
 }
 
 export class Database {
@@ -44,10 +42,11 @@ export class Database {
     globalRegistry.set(ctrl.entity.pojo, ctrl);
   }
 
-  /** Controller de un POJO: primero el de esta base y, si no, el de cualquier otra (relaciones cross-db). */
-  controllerFor<P extends Pojo>(pojo: PojoClass<P>): ServerController<P> {
-    const c = this.#controllers.get(pojo) ?? globalRegistry.get(pojo);
-    if (!c) throw new Error(`No hay ServerController registrado para ${pojo.name}`);
+  /** Controller de un POJO (clase) o de un plural: primero el de esta base y, si no, el de cualquier otra (relaciones cross-db). */
+  controllerFor<P extends Pojo>(key: PojoClass<P> | string): ServerController<P> {
+    const own = typeof key === "string" ? this.controllers.find((c) => c.entity.pluralPath.join("/") === key) : this.#controllers.get(key);
+    const c = own ?? findController(key);
+    if (!c) throw new Error(`No hay ServerController registrado para ${typeof key === "string" ? key : key.name}`);
     return c as ServerController<P>;
   }
 
@@ -55,18 +54,12 @@ export class Database {
     return [...this.#controllers.values()];
   }
 
-  /**
-   * Seed de todos los controllers de esta base y, propagado, de todo lo que sus `getPropagation` /
-   * `setPropagation` alcanzan (aunque viva en otra base): cada controller crea su tabla en SU base, una vez.
-   */
+  /** Seed de todos los controllers de esta base y, propagado, de todo lo que sus propagaciones alcanzan (aunque viva en otra base). */
   async seed(visited: Set<ServerController<any>> = new Set()): Promise<void> {
     for (const c of this.#controllers.values()) await c.seed({}, visited);
   }
 
-  /**
-   * Transacción que se puede compartir entre controllers:
-   * `db.transaction(async (tx) => { await a.post(x, tx); await b.postList(ys, tx); })`
-   */
+  /** Transacción que se puede compartir entre controllers: `db.transaction(async (tx) => { await a.post(x, tx); })`. */
   transaction<T>(fn: (tx: Partial<ServerCtx>) => Promise<T>): Promise<T> {
     return this.kysely.transaction().execute((trx) => fn({ exec: trx, inTransaction: true }));
   }
