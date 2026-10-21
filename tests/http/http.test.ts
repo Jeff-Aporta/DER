@@ -2,8 +2,8 @@
  * Punta a punta: ClientController (fetch) ↔ Router (Request/Response) ↔ ServerController (SQLite).
  * Mismas entidades en ambos lados; el fetch del client va directo al handler (sin red).
  */
-import { assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
-import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
+import { assertEquals, assertInstanceOf, assertMatch, assertRejects } from "@std/assert";
+import { ClientController, encodeQuery, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
 import { createRouter } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { at } from "@Jeff-Aporta/DER/tests/_util.ts";
@@ -64,7 +64,7 @@ Deno.test("http: CRUD + listas con las rutas RESTful", async () => {
       "PUT /api/producto/1",
       "GET /api/producto/404",
       "GET /api/productos",
-      "POST /api/productos/query",
+      "GET /api/productos",
       "PUT /api/productos",
       "DELETE /api/productos",
       "DELETE /api/producto/1",
@@ -106,8 +106,13 @@ Deno.test("http: query por GET ?q=, include en get y endpoints especiales", asyn
   const { db, cli, router } = await setup();
   try {
     await cli.productos.postList([{ nombre: "A", precio: 1, stock: 1 }, { nombre: "B", precio: 2 }]);
-    const q = encodeURIComponent(JSON.stringify({ where: { precio: { gt: 1 } } }));
-    const res = await router.fetch(new Request(`http://test/api/productos/query?q=${q}`));
+    const q = encodeQuery({ where: { precio: { gt: 1 } } });
+    const res = await router.fetch(new Request(`http://test/api/productos?q=${q}`));
+    assertMatch(q, /^[A-Za-z0-9_-]+$/); // base64url: pegable en la barra del navegador
+    const plano = await router.fetch(new Request(`http://test/api/productos?q=${encodeURIComponent(JSON.stringify({ where: { precio: { gt: 1 } } }))}`));
+    assertEquals((await plano.json()).length, 1); // JSON plano también se acepta
+    assertEquals((await router.fetch(new Request("http://test/api/productos?q=%%%"))).status, 400);
+    assertEquals((await (await router.fetch(new Request("http://test/api/productos"))).json()).length, 2); // sin q es list
     assertEquals((await res.json()).map((p: { nombre: string }) => p.nombre), ["B"]);
     const r = await cli.productos.call<Producto>("ajustarStock", { iproducto: 1, stock: 4 });
     assertInstanceOf(r, Producto);

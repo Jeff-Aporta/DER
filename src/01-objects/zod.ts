@@ -12,11 +12,12 @@
  * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import { z } from "zod";
+import { ISO_DATETIME } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { isRequiredOnInsert, schemaMeta } from "@Jeff-Aporta/DER/src/01-objects/meta.ts";
 import { type Pojo, resolvePojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import type { ColumnDef, PojoClass, Schema, SchemaZod } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 
-const EXPECTED: Record<ColumnDef["type"], string> = { string: "texto", text: "texto", uuid: "texto", int: "un entero", bigint: "un entero", float: "un número", decimal: "un número", bool: "un booleano", date: "una fecha YYYY-MM-DD", datetime: "una fecha/hora", time: "una hora HH:MM:SS", json: "JSON" };
+const EXPECTED: Record<ColumnDef["type"], string> = { string: "texto", text: "texto", uuid: "texto", int: "un entero", bigint: "un entero", float: "un número", decimal: "un número", bool: "un booleano", date: "una fecha YYYY-MM-DD", datetime: "una fecha/hora ISO 8601 (2024-02-29T10:00:00Z)", time: "una hora HH:MM:SS", json: "JSON" };
 
 /** Mensajes en español: falta / nulo / tipo. */
 function err(name: string, c: ColumnDef) {
@@ -56,7 +57,7 @@ export function columnZod(name: string, c: ColumnDef): z.ZodType {
     case "date":
       return z.string({ error }).regex(/^\d{4}-\d{2}-\d{2}$/, typeMsg);
     case "datetime":
-      return z.date({ error });
+      return z.union([z.date(), z.string().regex(ISO_DATETIME)], { error: () => typeMsg });
     case "time":
       return z.string({ error }).regex(/^\d{2}:\d{2}:\d{2}$/, typeMsg);
     case "json":

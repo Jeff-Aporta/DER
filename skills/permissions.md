@@ -29,7 +29,7 @@
 
 ## Ids de acción y alias
 
-- Por defecto, el id de la ruta: `DELETE:/producto/{iproducto}`, `POST:/productos/query`…
+- Por defecto, el id de la ruta: `DELETE:/producto/{iproducto}`, `GET:/productos` (`list` y `query` comparten id)…
 - `/cfg` es UNA acción para GET y PUT: `CFG:/productos`.
 - Personalizadas en el registro: `security: { actions: { delete: "productos.eliminar", getCfg: "productos.config", putCfg: "productos.config" } }`; en rutas irregulares `security: { protected: true, permissions: true, action: "reportes.ver" }`; capacidades solo de código en `cfg.actions`.
 - **Alias** (`cfg.aliases`): `{ "DELETE:/producto/{iproducto}": "productos.borrar", "CFG:/productos": "productos.config" }` renombra lo que se quema en la BD; catálogo, perfil, carga y puerta usan el alias.

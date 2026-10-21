@@ -1,5 +1,5 @@
 import { assertEquals, assertInstanceOf, assertThrows } from "@std/assert";
-import { defineSchema, Pojo, pojoOf, toStr } from "@Jeff-Aporta/DER/index.ts";
+import { defineSchema, Pojo, pojoOf, toDateTime, toIso, toStr, zodOf } from "@Jeff-Aporta/DER/index.ts";
 import { Categoria, Linea, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("pojo: los setters castean según el tipo de columna", () => {
@@ -76,4 +76,19 @@ Deno.test("schema: valida pks, nombres y reservados", () => {
   assertThrows(() => pojoOf({ columns: { a: { type: "int" } } }), Error, "pk");
   assertThrows(() => pojoOf({ columns: { "a-b": { type: "int", pk: true } } }), Error, "inválido");
   assertThrows(() => pojoOf({ columns: { f: { type: "int", pk: true } } }), Error, "reservado");
+});
+
+Deno.test("fechas: datetime solo ISO 8601, sin zona es UTC y toJSON siempre emite ISO UTC", () => {
+  assertEquals(toDateTime("2024-02-29T05:00:00-05:00")?.toISOString(), "2024-02-29T10:00:00.000Z");
+  assertEquals(toDateTime("2024-02-29T05:00:00+0530")?.toISOString(), "2024-02-28T23:30:00.000Z");
+  assertEquals(toDateTime("2024-02-29 10:00")?.toISOString(), "2024-02-29T10:00:00.000Z"); // sin zona: UTC, no la del proceso
+  assertEquals(toDateTime("2024-02-29")?.toISOString(), "2024-02-29T00:00:00.000Z");
+  assertEquals(toDateTime("2024-02-29T10:00:00.123456Z")?.toISOString(), "2024-02-29T10:00:00.123Z"); // microsegundos (MySQL)
+  assertEquals(toDateTime(0)?.toISOString(), "1970-01-01T00:00:00.000Z");
+  assertEquals([toDateTime("29/02/2024"), toDateTime("Feb 29 2024"), toDateTime("2024-13-01"), toIso("x")], [null, null, null, null]);
+  assertEquals(toIso("2024-02-29T10:00:00+02:00"), "2024-02-29T08:00:00.000Z");
+  const p = new Producto({ creado: "2024-02-29T05:00:00-05:00" });
+  assertEquals(p.toJSON()["creado"], "2024-02-29T10:00:00.000Z");
+  assertEquals(zodOf(Producto).insert.safeParse({ nombre: "A", precio: 1, creado: "2024-02-29T10:00:00Z" }).success, true);
+  assertEquals(zodOf(Producto).insert.safeParse({ nombre: "A", precio: 1, creado: "29/02/2024" }).success, false);
 });

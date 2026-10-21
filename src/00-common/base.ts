@@ -94,11 +94,31 @@ export function toDate(v: unknown): string | null {
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
-/** Fecha-hora como `Date` (copia); inválida → `null`. */
+/** Fecha-hora ISO 8601: `YYYY-MM-DD`, opcional `T`/espacio + `HH:MM[:SS[.fff]]`, opcional zona `Z`/`±HH:MM`/`±HHMM`. */
+export const ISO_DATETIME = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?)?(Z|[+-]\d{2}:?\d{2})?$/i;
+
+/**
+ * Fecha-hora como `Date` (copia). Texto: SOLO ISO 8601 (`ISO_DATETIME`); sin zona se lee como UTC, nunca como la
+ * zona local del proceso (así el dato no se corre al cambiar país o servidor). Número: epoch ms. Inválido → `null`.
+ */
 export function toDateTime(v: unknown): Date | null {
   if (v == null || v === "") return null;
-  const d = v instanceof Date ? new Date(v.getTime()) : new Date(v as string | number);
+  if (v instanceof Date || typeof v === "number") {
+    const d = new Date(v instanceof Date ? v.getTime() : v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const m = ISO_DATETIME.exec(String(v).trim());
+  if (!m) return null;
+  const [, dia, hm = "00:00", ss = "00", frac = "", zona = "Z"] = m;
+  const ms = (frac + "000").slice(0, 3);
+  const z = zona.length === 5 ? `${zona.slice(0, 3)}:${zona.slice(3)}` : zona.toUpperCase();
+  const d = new Date(`${dia}T${hm}:${ss}.${ms}${z}`);
   return isNaN(d.getTime()) ? null : d;
+}
+
+/** Fecha-hora como texto ISO 8601 en UTC (`2024-02-29T10:00:00.000Z`), el formato único de transporte y almacenamiento. */
+export function toIso(v: unknown): string | null {
+  return toDateTime(v)?.toISOString() ?? null;
 }
 
 /** Hora sin fecha, siempre `HH:MM:SS`. */

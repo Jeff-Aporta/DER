@@ -30,6 +30,8 @@ export const ProductoEntity = defineEntity({
 ```
 
 - Tipos: `string text int bigint float decimal bool date datetime time json uuid`. Pks compuestas: varias `pk: true` (o `primaryKey`).
+- Fechas: `datetime` SOLO ISO 8601 (`2024-02-29T10:00:00Z`, con offset, o sin zona = UTC); se transporta y guarda en UTC con `Z` (`toIso`). `date` es `YYYY-MM-DD`, `time` es `HH:MM:SS`. Nunca formatos locales.
+- Query por HTTP: `GET plural?q=<encodeQuery(spec)>` (base64url; sin `q` es `list`). No existe `POST plural/query`.
 - Secuencias: `sequence: true | { name, start, increment, scope, pattern, base (2..36), as }`. Base > 10 exige columna de texto. Con `scope` es un consecutivo por grupo.
 - Nunca dos entidades con el mismo plural ni el mismo `name` (error al definir).
 

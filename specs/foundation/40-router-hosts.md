@@ -15,7 +15,7 @@
 ### Ejecución común
 
 - **[W-RTR-05]** Para toda ruta y todo host, en orden: contexto (`context(req)` mezclado en el ctx; `state.route` y `state.basePath`), seguridad (ver abajo), `guard(route, req, ctx)` (un `Response` corta; lanzar `HttpError` responde su status), CORS y errores. Un `HttpError` responde su status con `{ error }`; un body o `q` que no es JSON → 400; cualquier otro error → 500 `{ error: "Error interno" }` (o el mensaje con `exposeErrors`), reportado por `onError` o `console.error`.
-- **[W-RTR-06]** Dispatch de acciones: `get`/`delete` arman el pojo con las pks de la URL; `put` con pks + body; `post` exige un objeto; listas exigen un arreglo; `query` toma el body o `?q=`; `?include=<json>` fija el include; `post`/`postList` responden 201; `null` → 404 `{ error: "No encontrado" }`; cfg y endpoints responden 200 con JSON; SSE responde el stream.
+- **[W-RTR-06]** Dispatch de acciones: `get`/`delete` arman el pojo con las pks de la URL; `put` con pks + body; `post` exige un objeto; listas exigen un arreglo; `GET plural` con `?q=` es `query` (el spec en base64url o JSON plano; se evalúa con la seguridad y el `expose` de `query`, no los de `list`) y sin `q` es `list`; `?include=` fija el include con la misma codificación; un `q`/`include` indescifrable → 400; `post`/`postList` responden 201; `null` → 404 `{ error: "No encontrado" }`; cfg y endpoints responden 200 con JSON; SSE responde el stream.
 - **[W-RTR-07]** CORS opcional: preflight `OPTIONS` (204 si alguna ruta atiende el path, 404 si no) y cabeceras `access-control-*` en toda respuesta, con `origin`, `methods`, `headers`, `maxAge` configurables.
 
 ### Seguridad por ruta
@@ -51,7 +51,7 @@
 - CORS (preflight y cabeceras) y `guard` por id de ruta.
 - Seguridad: sin `extract` todo se sirve; públicas vs protegidas; token inválido/vencido/ajeno/`alg: none` con códigos distintos; 403 con razón; `doc` pública por defecto y protegible; `state.can` sin plugins permite.
 - Documentación: `/doc` compuesto (fuentes locales, `file:`, http y función), encabezados bajados, `?v=1` con el pin y las hojas, índice del API con diagramas.
-- Azure: una función por ruta, nombres únicos, `OPTIONS` con CORS, SSE en stream y en bytes, prefijo reservado; Cloudflare: router por isolate y reintento.
+- Azure: una función por ruta, nombres únicos, `OPTIONS` con CORS, SSE en stream y en bytes, prefijo reservado; Cloudflare: router por isolate y reintento. En ambos, `GET plural?q=` consulta (pública → resultado; protegida → 401/403 en JSON) y `q` inválido → 400.
 
 ## 7. Notas
 

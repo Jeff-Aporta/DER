@@ -55,12 +55,12 @@ Ahí mismo viven las **puertas de seguridad** (`registry.secure({ extract, prote
 | `put` | PUT | `singular/pk1/pk2/...` | pojo en el body (parcial: lo `undefined` no se toca) |
 | `delete` | DELETE | `singular/pk1/pk2/...` | pojo (pks) |
 | `list` | GET | `plural` | — |
-| `query` | POST (o GET `?q=<json>`) | `plural/query` | `QuerySpec` |
+| `query` | GET | `plural?q=<QuerySpec en base64url>` | `QuerySpec` (la misma ruta de `list`: sin `q` es `list`) |
 | `postList` | POST | `plural` | pojo[] |
 | `putList` | PUT | `plural` | pojo[] |
 | `deleteList` | DELETE | `plural` | pojo[] (pks) |
 | endpoint `scope:"one"` | `def.method` | `singular/pks.../nombre` | pojo |
-| endpoint `scope:"many"` | `def.method` | `plural/nombre` | pojo[] (GET: `?q=`) |
+| endpoint `scope:"many"` | `def.method` | `plural/nombre` | pojo[] (GET: `?q=<base64url>`) |
 | `getCfg` | GET | `plural/cfg` | → JSON de la entidad (con los defaults del molde) |
 | `putCfg` | PUT | `plural/cfg` | JSON parcial (`Obj.update`) → JSON completo |
 | `doc` | GET | `plural/doc` | → markdown (autogenerado + secciones) |
@@ -68,11 +68,12 @@ Ahí mismo viven las **puertas de seguridad** (`registry.secure({ extract, prote
 | variante SSE | mismo método | ruta + `/sse` | igual a la acción |
 
 - **`/cfg` y `/doc` existen SOLO en el plural**: los singulares no los tienen.
-- **singular === plural**: el plural usa el sufijo `s` (`crisis/s`, `crisis/s/query`). Con `pluralSuffix`/`singularSuffix` se personaliza (`crisis/todas`, `crisis/una/x`).
+- **singular === plural**: el plural usa el sufijo `s` (`crisis/s`, `crisis/s?q=…`). Con `pluralSuffix`/`singularSuffix` se personaliza (`crisis/todas`, `crisis/una/x`).
   - **Límite de diseño:** una pk cuyo valor es literalmente `"s"` (`GET /crisis/s` → list, no get) colisiona con el plural por defecto. Para no chocar: o el plural usa otro sufijo (`pluralSuffix`), o la pk nunca vale `"s"` (p. ej. UUID).
 - Una ruta puede tener varios segmentos (`singular: "pedido/linea"` → `pedido/linea/1/2`).
 - Al resolver una ruta, el plural tiene prioridad sobre el singular.
-- Segmentos reservados para endpoints: `query`, `sse`, `cfg`, `doc`. Un endpoint tampoco puede llamarse como una acción CRUD.
+- Segmentos reservados para endpoints: `sse`, `cfg`, `doc`. Un endpoint tampoco puede llamarse como una acción CRUD.
+- **`query` no es una ruta aparte**: es `GET plural?q=` (ver [query.md](040-Query.md)). Comparte el id `GET:/plural` con `list` para permisos, pero su seguridad (`public`/`protected`) se decide por la acción `query`.
 - Respuestas: `post`/`postList` → 201; `null` en get/put/delete → 404; `/cfg` sin tabla de cfg en el server → 404; un `pre*` → 400 `{ error }`; sin sesión en ruta protegida → 401; permiso negado → 403; error interno → 500 (con el mensaje solo si `exposeErrors`).
 
 ## Rutas irregulares

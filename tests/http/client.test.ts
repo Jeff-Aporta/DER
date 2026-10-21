@@ -1,6 +1,6 @@
 /** ClientController: cabeceras (config y por llamada), AbortSignal, endpoints GET con `?q=`, 204 y errores 500. */
 import { assertEquals, assertRejects } from "@std/assert";
-import { ClientController, HttpError } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
+import { ClientController, decodeQuery, HttpError } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
 import { createRouter, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { defineEntity } from "@Jeff-Aporta/DER/index.ts";
@@ -80,7 +80,7 @@ Deno.test("client: endpoint GET viaja como ?q=, 204 da undefined, 500 llega como
     assertEquals(encontrados.map((c) => c.nombre), ["A", "C"]);
     const url = new URL(vistos.at(-1)?.url ?? "");
     assertEquals([vistos.at(-1)?.method, url.pathname], ["GET", "/api/cli/categorias/buscar"]);
-    assertEquals(JSON.parse(url.searchParams.get("q") ?? "null"), [{ nombre: "A" }, { nombre: "C" }]);
+    assertEquals(decodeQuery(url.searchParams.get("q") ?? ""), [{ nombre: "A" }, { nombre: "C" }]); // base64url, no JSON plano
     assertEquals(await cli.call("tocar", { icategoria: 1 }), undefined);
     const err = await assertRejects(() => cli.call("romper", []), HttpError);
     assertEquals([err.status, err.message], [500, "Error interno"]); // el detalle no se expone

@@ -118,7 +118,7 @@ export function entityContractMd(
     ["put", "PUT", `${S}/${P}`, `pojo parcial (body) · modo \`${meta.schema.put ?? "insert"}\``],
     ["delete", "DELETE", `${S}/${P}`, "pks"],
     ["list", "GET", L, "—"],
-    ["query", "POST · GET `?q=`", `${L}/query`, "QuerySpec"],
+    ["query", "GET", `${L}?q=<QuerySpec en base64url>`, "QuerySpec (sin `q` es `list`)"],
     ["postList", "POST", L, "pojo[]"],
     ["putList", "PUT", L, "pojo[]"],
     ["deleteList", "DELETE", L, "pojo[] (pks)"],

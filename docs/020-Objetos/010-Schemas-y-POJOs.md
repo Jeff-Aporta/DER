@@ -46,9 +46,11 @@ export const ProductoSchema = defineSchema({
 | `float`, `decimal` | number | double / numeric(p,s) | real / numeric | `toFloat` |
 | `bool` | boolean | boolean | integer 0/1 | `toBool` (`1`, `"true"`, `"si"`…) |
 | `date` | `"YYYY-MM-DD"` | date (se lee `::text`) | text | `toDate` |
-| `datetime` | `Date` | timestamptz | text ISO | `toDateTime` |
+| `datetime` | `Date` (JSON: ISO 8601 UTC `2024-02-29T10:00:00.000Z`) | timestamptz (se lee como ISO UTC) | text ISO UTC | `toDateTime` (solo ISO 8601; sin zona = UTC) |
 | `time` | `"HH:MM:SS"` | time | text | `toTime` |
 | `json` | inferido de `zod` o `any` | jsonb | text | identidad |
+
+**Fechas siempre ISO 8601.** Una `datetime` entra como `Date`, epoch o texto ISO (`2024-02-29T05:00:00-05:00`, `2024-02-29 10:00`, `2024-02-29`); cualquier otro formato (`29/02/2024`, `Feb 29`) es `null` y Zod lo rechaza. Un texto **sin zona se lee como UTC**, nunca con la zona del proceso. Se almacena y se transporta en UTC (`…Z`; en MySQL/MSSQL como `datetime` naive en UTC, y al leer se devuelve con la `Z`), así cambiar el país o la zona horaria del servidor o del cliente nunca corre los datos: la zona se aplica solo al mostrar (`toLocaleString`, `Intl`). `date` (`YYYY-MM-DD`) y `time` (`HH:MM:SS`) no llevan zona por diseño.
 
 Opciones: `pk`, `autoincrement` (solo pk entera; en SQLite exige pk única), `sequence` (ver [secuencias](../040-Servidor/010-Motores-seed-y-sync.md)), `nullable` (default `true`, salvo las pk), `length`, `precision`/`scale`, `unique`, `default` (literal o `{ sql }`), `enum`, `virtual`, `zod` (refina el tipo; en `json` es su molde).
 

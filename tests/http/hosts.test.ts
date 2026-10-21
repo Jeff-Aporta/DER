@@ -17,7 +17,7 @@ import { registerAzure } from "@Jeff-Aporta/DER/src/02-controllers/server/hosts/
 import { defineWorker } from "@Jeff-Aporta/DER/src/02-controllers/server/hosts/cloudflare.ts";
 import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
-import { defineEntity, defineSchema, registry } from "@Jeff-Aporta/DER/index.ts";
+import { defineEntity, defineSchema, encodeQuery, registry } from "@Jeff-Aporta/DER/index.ts";
 
 async function setup() {
   const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
@@ -38,8 +38,6 @@ Deno.test("rutas: la tabla expone cada acción del controller con id METHOD:/rut
         "POST:/productos",
         "PUT:/productos",
         "DELETE:/productos",
-        "POST:/productos/query",
-        "GET:/productos/query",
         "POST:/producto",
         "GET:/producto/{iproducto}",
         "PUT:/producto/{iproducto}",
@@ -230,6 +228,11 @@ Deno.test("azure: una función por ruta (nombres válidos y únicos) que atiende
     assertEquals(await text(sse), "data: Hola\n\ndata: mundo\ndata: multilínea\n\n");
     const bad = await az.invoke("POST", "producto", "http://h/api/producto", {}, { nombre: "x", precio: -1 });
     assertEquals(bad.status, 400);
+    // query = la misma función GET plural con ?q=<base64url>: consultable desde la barra del navegador
+    const q = encodeQuery({ where: { nombre: { contains: "caf" } }, select: ["nombre"] });
+    const consulta = await az.invoke("GET", "productos", `http://h/api/productos?q=${q}`, {});
+    assertEquals(JSON.parse(await text(consulta)), [{ nombre: "Café" }]);
+    assertEquals((await az.invoke("GET", "productos", "http://h/api/productos?q=no-es-json", {})).status, 400);
   } finally {
     await db.destroy();
   }
@@ -263,7 +266,36 @@ Deno.test("cloudflare: defineWorker crea el router una vez por isolate y lo rein
     const r2 = await worker.fetch(new Request("http://w/api/doc"), { PREFIX: "/api" }, ctx);
     assertEquals([r1.status, r2.status, calls], [200, 200, 2]);
     assertEquals((await worker.fetch(new Request("http://w/otra"), { PREFIX: "/api" }, ctx)).status, 404);
+    const q = encodeQuery({ where: { precio: { gte: 0 } }, orderBy: ["-precio"], pageSize: 1 });
+    const consulta = await worker.fetch(new Request(`http://w/api/productos?q=${q}`), { PREFIX: "/api" }, ctx);
+    assertEquals([consulta.status, Array.isArray(await consulta.json())], [200, true]);
   } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("GET plural?q=: público responde en el navegador; protegido explica con 401/403 en JSON (Azure y Cloudflare)", async () => {
+  const db = sqliteDatabase(":memory:");
+  const Nota = defineEntity({ schema: defineSchema({ columns: { id: { type: "int", pk: true, autoincrement: true }, texto: { type: "string" } } }), singular: "nota-q", plural: "notas-q" });
+  try {
+    const publica = new ServerController(Nota, { db, table: "notas_q", security: { public: ["list", "query"] } });
+    const protegida = new ServerController(Nota, { db, table: "notas_q", security: { public: ["list"], protected: ["query"] }, register: false });
+    await db.seed();
+    await publica.post(publica.pojo({ texto: "hola" }));
+    registry.secure({ extract: () => null });
+    const q = encodeQuery({ where: { texto: "hola" } });
+    const az = fakeAzure();
+    registerAzure(az.app, createRouter([publica], { basePath: "/api" }));
+    const abierta = await az.invoke("GET", "notas-q", `http://h/api/notas-q?q=${q}`, {});
+    assertEquals([abierta.status, JSON.parse(await text(abierta)).length], [200, 1]);
+    const worker = defineWorker(() => createRouter([protegida], { basePath: "/api" }));
+    const ctx = { waitUntil: () => {} };
+    const lista = await worker.fetch(new Request("http://w/api/notas-q"), {}, ctx);
+    assertEquals(lista.status, 200); // list sigue pública
+    const cerrada = await worker.fetch(new Request(`http://w/api/notas-q?q=${q}`), {}, ctx);
+    assertEquals([cerrada.status, await cerrada.json()], [401, { error: "Requiere autenticación: GET:/notas-q" }]);
+  } finally {
+    registry.secure(null);
     await db.destroy();
   }
 });

@@ -114,3 +114,22 @@ export function validateInclude(meta: SchemaMeta, inc: unknown, path: string): s
 export function isOpsObject(v: unknown): v is Record<string, unknown> {
   return v != null && typeof v === "object" && !Array.isArray(v) && !(v instanceof Date);
 }
+
+/** Valor del parámetro `?q=`: el JSON en base64url (sin relleno, UTF-8), pegable tal cual en la barra del navegador. */
+export function encodeQuery(value: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** Lee `?q=`: base64url (lo normal) o, por comodidad, JSON plano (`{…}`/`[…]`). Lanza `SyntaxError` si no es ninguno. */
+export function decodeQuery(text: string): unknown {
+  const plano = text.trim();
+  if (plano.startsWith("{") || plano.startsWith("[")) return JSON.parse(plano);
+  const b64 = plano.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(plano.length / 4) * 4, "=");
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return JSON.parse(new TextDecoder().decode(bytes));
+}

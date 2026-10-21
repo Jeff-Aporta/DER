@@ -32,7 +32,7 @@
 
 - **[W-CTL-10]** `ClientController({ baseUrl, fetch?, headers?, hooks?, actions? })`: los `pre*` compartidos corren ANTES del fetch (un pre que falla no sale a la red); `headers` puede ser fijo o una función (incluso asíncrona) y las cabeceras por llamada (`ctx.headers`) ganan; `baseUrl` normaliza la barra final; `ctx.signal` cancela la petición; `ctx.session` se toma de la sesión singleton.
 - **[W-CTL-11]** Respuestas: 400 → `ValidationError` con el mensaje del server; otros ≥ 400 → `HttpError(status, mensaje)` (500 llega como «Error interno» salvo que el server exponga errores); 404 en `get`/`put`/`delete` → `null`; 404 en `/cfg`, `doc`, endpoints o listas → `NotFoundError`; 204 en endpoint → `undefined`. El mensaje se toma de `{ error }` JSON, del texto plano o de `status statusText`.
-- **[W-CTL-12]** Transporte: `get` manda `?include=<json>` (el del ctx o el `getInclude` de la entidad); `query` por POST con body (o GET `?q=`); un endpoint GET manda su argumento como `?q=<json>`; las listas mandan el arreglo; `delete` y `list` no mandan body. Los resultados se castean a POJOs (`returns: "pojo" | "list" | "json"` en endpoints).
+- **[W-CTL-12]** Transporte: `get` manda `?include=<json>` (el del ctx o el `getInclude` de la entidad); `query` por GET `plural?q=<base64url del spec>` (siempre manda `q`, aunque sea `{}`); un endpoint GET manda su argumento como `?q=<base64url>`; las listas mandan el arreglo; `delete` y `list` no mandan body. Los resultados se castean a POJOs (`returns: "pojo" | "list" | "json"` en endpoints).
 
 ## 2. HOW débil
 

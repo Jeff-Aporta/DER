@@ -5,6 +5,7 @@
  */
 import { assert, assertEquals, assertMatch, assertNotEquals, assertThrows } from "@std/assert";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
+import { encodeQuery } from "@Jeff-Aporta/DER/src/01-objects/query.ts";
 import { createRouter, createServer, type Database, resolveEnv, ServerController, sql } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { identityServer, type LoginResult, permissionsServer, signJwt } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
@@ -94,8 +95,8 @@ Deno.test("identidad: usuarios con hash PBKDF2+pepper, nunca expuesto ni consult
     assertEquals([corta.status, corta.data.error], [400, "La contraseña debe tener al menos 8 caracteres"]);
     const got = await call(router, "GET", "usuario/ana", { token: admin });
     assertEquals(Object.keys(got.data).sort(), ["bactivo", "creado", "email", "iusuario", "jdata", "nombre"]);
-    assertEquals((await call(router, "POST", "usuarios/query", { token: admin, body: { select: ["hash"] } })).status, 400);
-    assertEquals((await call(router, "POST", "usuarios/query", { token: admin, body: { where: { hash: "x" } } })).status, 400);
+    assertEquals((await call(router, "GET", `usuarios?q=${encodeQuery({ select: ["hash"] })}`, { token: admin })).status, 400);
+    assertEquals((await call(router, "GET", `usuarios?q=${encodeQuery({ where: { hash: "x" } })}`, { token: admin })).status, 400);
     const { rows } = await sql<{ hash: string }>`select hash from identity_usuarios where iusuario = 'ana'`.execute(db.kysely);
     const hash = rows[0]?.hash ?? "";
     assertMatch(hash, /^pbkdf2-sha256\$10000\$[\w-]{22}\$[\w-]{43}$/);

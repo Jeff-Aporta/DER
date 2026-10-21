@@ -65,8 +65,6 @@ export function controllerRouteSpecs(ctrl: ServerController<any>): ActionRouteSp
   add("postList", "POST", L, false);
   add("putList", "PUT", L, false);
   add("deleteList", "DELETE", L, false);
-  add("query", "POST", `${L}/query`, false);
-  add("query", "GET", `${L}/query`, false);
   add("post", "POST", S, false);
   add("get", "GET", `${S}/${P}`, true);
   add("put", "PUT", `${S}/${P}`, true);

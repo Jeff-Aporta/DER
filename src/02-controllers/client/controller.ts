@@ -15,6 +15,7 @@ import type { Action, CfgAction, ClientConfig, ClientCtx, EndpointDef, HeadersSo
 import { HttpError, NotFoundError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import type { Pojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
+import { encodeQuery } from "@Jeff-Aporta/DER/src/01-objects/query.ts";
 import { parseEvents } from "@Jeff-Aporta/DER/src/00-common/sse.ts";
 
 const SINGULAR: ReadonlySet<string> = new Set(["get", "put", "delete"]);
@@ -78,9 +79,10 @@ export class ClientController<P extends Pojo> extends BaseController<P, ClientCt
     const params = new URLSearchParams();
     let body: unknown;
     const inc = ctx.include ?? this.entity.def.getInclude;
-    if (name === "get" && inc) params.set("include", JSON.stringify(inc));
+    if (name === "get" && inc) params.set("include", encodeQuery(inc));
     else if (name === "delete" || name === "list" || name === "get") body = undefined;
-    else if (method === "GET" && arg !== undefined) params.set("q", JSON.stringify(arg));
+    else if (name === "query") params.set("q", encodeQuery(arg ?? {}));
+    else if (method === "GET" && arg !== undefined) params.set("q", encodeQuery(arg));
     else if (method !== "GET") body = arg;
     const qs = params.toString();
     return { path: qs ? `${path}?${qs}` : path, body };

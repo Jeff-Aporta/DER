@@ -23,7 +23,7 @@ Los hosts no tienen dependencias: el `app` de `@azure/functions` lo pasa el cons
 | id | acción |
 |---|---|
 | `GET:/plural` · `POST/PUT/DELETE:/plural` | list · postList · putList · deleteList |
-| `POST:/plural/query` · `GET:/plural/query` | query |
+| `GET:/plural?q=<base64url>` | query (misma función que `list`; la acción cambia cuando llega `q`) |
 | `POST:/singular` · `GET/PUT/DELETE:/singular/{pk...}` | post · get · put · delete |
 | `METHOD:/singular/{pk...}/<ep>` · `METHOD:/plural/<ep>` | endpoints especiales (scope one / many) |
 | `GET/PUT:/plural/cfg` | getCfg / putCfg (si la entidad tiene `cfg` y el server una tabla de cfg) |

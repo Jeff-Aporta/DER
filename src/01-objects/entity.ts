@@ -12,7 +12,7 @@
  * | put         | PUT         | singular/pk1/pk2/...         | pojo (body)     |
  * | delete      | DELETE      | singular/pk1/pk2/...         | pojo (pks)      |
  * | list        | GET         | plural                       | —               |
- * | query       | POST (GET)  | plural/query                 | QuerySpec       |
+ * | query       | GET         | plural?q=<json base64url>    | QuerySpec       |
  * | postList    | POST        | plural                       | pojo[] (body)   |
  * | putList     | PUT         | plural                       | pojo[] (body)   |
  * | deleteList  | DELETE      | plural                       | pojo[] (body)   |
@@ -32,7 +32,7 @@ import type { z } from "zod";
 import { Obj } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { schemaZod } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 
-const RESERVED_SEGMENTS = new Set(["query", "sse", "cfg", "doc"]);
+const RESERVED_SEGMENTS = new Set(["sse", "cfg", "doc"]);
 const SEGMENT = /^[A-Za-z0-9_.~-]+(\/[A-Za-z0-9_.~-]+)*$/;
 
 /** Nombre de tabla a partir de un segmento de ruta (`permisos/roles` → `permisos_roles`). */
@@ -162,7 +162,7 @@ export class Entity<P extends Pojo = Pojo> {
       put: () => ({ method: "PUT", path: `${S}/${pks()}` }),
       delete: () => ({ method: "DELETE", path: `${S}/${pks()}` }),
       list: () => ({ method: "GET", path: L }),
-      query: () => ({ method: "POST", path: `${L}/query` }),
+      query: () => ({ method: "GET", path: L }),
       postList: () => ({ method: "POST", path: L }),
       putList: () => ({ method: "PUT", path: L }),
       deleteList: () => ({ method: "DELETE", path: L }),
@@ -201,7 +201,6 @@ export class Entity<P extends Pojo = Pojo> {
         if (name) return { name, pks: [], sse };
       }
       if (rest.length === 1) {
-        if (rest[0] === "query" && (M === "POST" || M === "GET")) return { name: "query", pks: [], sse };
         if (rest[0] === "doc" && M === "GET") return { name: "doc", pks: [], sse };
         if (rest[0] === "cfg" && this.def.cfg && M === "GET") return { name: "getCfg", pks: [], sse };
         if (rest[0] === "cfg" && this.def.cfg && M === "PUT") return { name: "putCfg", pks: [], sse };

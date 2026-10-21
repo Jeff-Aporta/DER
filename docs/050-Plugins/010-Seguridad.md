@@ -99,7 +99,7 @@ permisos_accionesrol   (irol pk, iaccion pk, valor json)                iaccion 
 3. Efectivo(R) = (base − ids de R) + R. Primero el id exacto y luego el comodín `"*"`. Un valor partido por verbo (`{ "GET": true, "PUT": false }`) aporta solo el del método.
 4. Decisión: sin valor o `{ "protected": true }` pasa (o se niega con `denyByDefault`); `false` → 403; `true`, un objeto o un texto pasan y el valor viaja en `ctx.state.permiso` (p.ej. `{ "descuentoMax": 10 }`).
 
-Los ids son los de la tabla de rutas: `DELETE:/producto/{iproducto}`, `POST:/productos/query`… **`/cfg` es una sola acción para GET y PUT: `CFG:/productos`.** Con `cfg.aliases` (`{ "DELETE:/producto/{iproducto}": "productos.borrar" }`) el consumidor personaliza el nombre que se quema en la BD: la puerta, el catálogo, el perfil y la carga usan el alias.
+Los ids son los de la tabla de rutas: `DELETE:/producto/{iproducto}`, `GET:/productos` (`list` y `query` comparten id: `query` es `GET plural?q=`)… **`/cfg` es una sola acción para GET y PUT: `CFG:/productos`.** Con `cfg.aliases` (`{ "DELETE:/producto/{iproducto}": "productos.borrar" }`) el consumidor personaliza el nombre que se quema en la BD: la puerta, el catálogo, el perfil y la carga usan el alias.
 
 ### Rutas
 

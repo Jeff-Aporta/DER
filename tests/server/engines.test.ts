@@ -30,7 +30,8 @@ Deno.test("mysql: json_object/json_arrayagg, lower() like sin escape, limit/offs
   assertStringIncludes(q.sql, "limit ? offset ?");
   assertEquals(q.parameters.slice(-2), [10, 20]);
   assertEquals([db.engine.returning, db.engine.columnType({ type: "bool" }), db.engine.columnType({ type: "string", length: 60 }), db.engine.columnType({ type: "json" })], ["none", "tinyint(1)", "varchar(60)", "json"]);
-  assertEquals(db.engine.toDb({ type: "datetime" }, new Date(0)) instanceof Date, true);
+  assertEquals(db.engine.toDb({ type: "datetime" }, new Date(0)), "1970-01-01T00:00:00.000"); // UTC sin zona: el driver no lo corre
+  assertStringIncludes(q.sql, "date_format(`t0`.`creado`, '%Y-%m-%dT%H:%i:%s.%fZ')");
   assertEquals(productos.table, "productos");
 });
 
@@ -46,6 +47,8 @@ Deno.test("mssql: for json path, json_query en lo anidado, offset/fetch, [corche
   assertStringIncludes(many.sql, "json_query(");
   assertStringIncludes(many.sql, "for json path), '[]')");
   assertEquals([db.engine.returning, db.engine.ifNotExists, db.engine.columnType({ type: "bool" }), db.engine.columnType({ type: "text" }), db.engine.columnType({ type: "datetime" })], ["output", false, "bit", "nvarchar(max)", "datetime2"]);
+  assertEquals(db.engine.toDb({ type: "datetime" }, "2024-02-29T05:00:00-05:00"), "2024-02-29T10:00:00.000");
+  assertStringIncludes(q.sql, `convert(varchar(23), "t0"."creado", 126) + 'Z'`);
 });
 
 /** Envuelve `node:sqlite` con la interfaz asíncrona de `sqlite3` (all/run con callback). */

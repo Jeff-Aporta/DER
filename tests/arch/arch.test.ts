@@ -255,8 +255,8 @@ Deno.test("jsdoc: todo lo exportado y todo método/propiedad público de clase l
       if (/^(export )?(abstract )?class /.test(l)) inClass = true;
       if (/^\}/.test(l)) inClass = false;
       const exportado = /^export (default |async |abstract )?(function|class|const|let)\s/.test(l);
-      const publico = inClass && /^  (static |readonly |get |set |async |\*)*[a-zA-Z]\w*(<[^>]*>)?\s*\(/.test(l) && !/^  (if|for|while|switch|return|constructor)\b/.test(l) && !l.includes(";") && !l.trim().startsWith("//");
-      const campo = inClass && /^  (static |readonly )+[a-zA-Z]\w*[?!]?\s*[:=]/.test(l);
+      const publico = inClass && /^ {2}(static |readonly |get |set |async |\*)*[a-zA-Z]\w*(<[^>]*>)?\s*\(/.test(l) && !/^ {2}(if|for|while|switch|return|constructor)\b/.test(l) && !l.includes(";") && !l.trim().startsWith("//");
+      const campo = inClass && /^ {2}(static |readonly )+[a-zA-Z]\w*[?!]?\s*[:=]/.test(l);
       if ((exportado || publico || campo) && !documented(i)) bad.push(`${f}:${i + 1} ${l.trim().slice(0, 70)}`);
     });
   }

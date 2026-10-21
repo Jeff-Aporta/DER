@@ -7,11 +7,20 @@
  */
 import { type Kysely, type RawBuilder, sql } from "kysely";
 import type { ColumnDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import { toIso } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import type { Engine, IdentifierCase, OutField, ResolvedIndex } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 
-/** `Date` → ISO; cualquier otro valor tal cual. */
+/** `Date` → ISO 8601 UTC; cualquier otro valor tal cual. */
 export function dateToIso(v: unknown): unknown {
   return v instanceof Date ? v.toISOString() : v;
+}
+
+/**
+ * Fecha-hora para motores sin zona (`datetime` de MySQL, `datetime2` de MSSQL): ISO 8601 en UTC sin la `Z`
+ * (`2024-02-29T10:00:00.000`). Nunca se entrega un `Date` al driver: lo convertiría a la zona local del proceso.
+ */
+export function naiveUtc(v: unknown): string | null {
+  return toIso(v)?.slice(0, 23) ?? null;
 }
 
 /** JSON.parse si es texto parseable; si no, el valor tal cual (lectura de json/relaciones). */
@@ -89,6 +98,7 @@ export const postgres: Engine = {
     return "jsonb";
   },
   selectExpr(ref, c) {
+    if (c.type === "datetime") return sql`to_char(${ref} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
     return c.type === "date" || c.type === "time" ? sql`${ref}::text` : ref;
   },
   toDb: toDbCommon,
@@ -205,13 +215,14 @@ export const mysql: Engine = {
   selectExpr(ref, c) {
     if (c.type === "date") return sql`date_format(${ref}, '%Y-%m-%d')`;
     if (c.type === "time") return sql`time_format(${ref}, '%H:%i:%s')`;
+    if (c.type === "datetime") return sql`date_format(${ref}, '%Y-%m-%dT%H:%i:%s.%fZ')`;
     return ref;
   },
   toDb(c, v) {
     if (v == null) return null;
     if (c.type === "json") return toDbCommon(c, v);
     if (typeof v === "boolean") return v ? 1 : 0;
-    if (c.type === "datetime") return v instanceof Date ? v : new Date(v as string);
+    if (c.type === "datetime") return naiveUtc(v);
     return toDbCommon(c, v);
   },
   readJson: parseMaybe,
@@ -272,11 +283,12 @@ export const mssql: Engine = {
   selectExpr(ref, c) {
     if (c.type === "date") return sql`convert(varchar(10), ${ref}, 23)`;
     if (c.type === "time") return sql`convert(varchar(8), ${ref}, 108)`;
+    if (c.type === "datetime") return sql`convert(varchar(23), ${ref}, 126) + 'Z'`;
     return ref;
   },
   toDb(c, v) {
     if (v == null) return null;
-    if (c.type === "datetime") return v instanceof Date ? v : new Date(v as string);
+    if (c.type === "datetime") return naiveUtc(v);
     return toDbCommon(c, v);
   },
   readJson: parseMaybe,

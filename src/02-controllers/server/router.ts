@@ -20,6 +20,7 @@ import { encodeEvent, TextChannel } from "@Jeff-Aporta/DER/src/00-common/sse.ts"
 import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import type { CanFn, Include, RouteMatch, SessionInfo } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
+import { decodeQuery } from "@Jeff-Aporta/DER/src/01-objects/query.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
 import { apiIndexMd, composeFromSources, vaultHtml } from "@Jeff-Aporta/DER/src/02-controllers/server/doc.ts";
 import { controllerRouteSpecs, controllerSecurity, entityPathRoutes, joinPath, literalCount, matchTemplate, routeId, routeKey, routeSecurity } from "@Jeff-Aporta/DER/src/02-controllers/server/routes.ts";
@@ -92,10 +93,15 @@ export class Router {
     for (const ctrl of this.controllers) {
       for (const spec of controllerRouteSpecs(ctrl)) {
         const info: RouteInfo = { id: routeId(spec.method, spec.path), method: spec.method, path: joinPath(spec.path), kind: spec.name === "doc" ? "doc" : "action", name: spec.name, entity: ctrl.entity.name, sse: spec.sse, security: controllerSecurity(ctrl, spec.name) };
+        // `GET plural` es `list`; con `?q=` es `query` (misma ruta, otra acción y su propia seguridad)
+        const queryExposed = !ctrl.config.expose || ctrl.config.expose.includes("query");
+        const queryInfo: RouteInfo = { ...info, name: "query", security: controllerSecurity(ctrl, "query") };
         const handle = (req: Request, params: Record<string, string>) => {
-          const m: RouteMatch = { name: spec.name, pks: spec.pkParams.map((k) => params[k] ?? ""), sse: spec.sse };
+          const esQuery = spec.name === "list" && !spec.sse && new URL(req.url).searchParams.has("q");
+          if (esQuery && !queryExposed) return Promise.resolve(this.#withCors(json(404, { error: "Ruta no encontrada" })));
+          const m: RouteMatch = { name: esQuery ? "query" : spec.name, pks: spec.pkParams.map((k) => params[k] ?? ""), sse: spec.sse };
           if (spec.endpoint) m.endpoint = spec.endpoint;
-          return this.#run(info, req, (ctx) => this.#dispatch(ctrl, m, req, ctx));
+          return this.#run(esQuery ? queryInfo : info, req, (ctx) => this.#dispatch(ctrl, m, req, ctx));
         };
         push({ ...info, handle }, ctrl.entity.name);
       }
@@ -288,20 +294,20 @@ export class Router {
   async #dispatch(ctrl: ServerController<any>, m: RouteMatch, req: Request, ctx: Partial<ServerCtx>): Promise<Response> {
     const url = new URL(req.url);
     const inc = url.searchParams.get("include");
-    if (inc) ctx.include = parseJson(inc, "include") as Include;
+    if (inc) ctx.include = parseQ(inc, "include") as Include;
     const e = ctrl.entity;
     if (m.name === "doc" && wantsView(url)) return html(await ctrl.docView(this.basePathStr, this.options.docView));
     if (m.name === "doc") return markdown(await ctrl.doc(ctx));
     const body = await readBody(req);
     const q = url.searchParams.get("q");
-    const qArg = q ? parseJson(q, "q") : undefined;
+    const qArg = q ? parseQ(q, "q") : undefined;
     if (m.name === "getCfg") return json(200, await ctrl.getCfg(ctx));
     if (m.name === "putCfg") return json(200, await ctrl.putCfg(requireObject(body), ctx));
     let arg: unknown;
     if (m.name === "get" || m.name === "delete") arg = e.pojoFromPks(m.pks);
     else if (m.name === "put") arg = e.pojoFromPks(m.pks, body);
     else if (m.name === "post") arg = requireObject(body);
-    else if (m.name === "query") arg = (req.method === "GET" ? qArg : body) ?? {};
+    else if (m.name === "query") arg = qArg ?? {};
     else if (m.name === "postList" || m.name === "putList" || m.name === "deleteList") arg = requireArray(body);
     else if (m.name !== "list") arg = m.endpoint?.scope === "one" ? e.pojoFromPks(m.pks, body ?? qArg) : requireArray(body ?? qArg ?? []);
     if (m.sse) return sseResponse(await ctrl.openStream(m.name, arg, ctx));
@@ -368,6 +374,15 @@ function parseJson(text: string, what: string): unknown {
     return JSON.parse(text);
   } catch {
     throw new ValidationError(`${what}: JSON inválido`);
+  }
+}
+
+/** Parámetro de URL (`q`, `include`): JSON en base64url o JSON plano. */
+function parseQ(text: string, what: string): unknown {
+  try {
+    return decodeQuery(text);
+  } catch {
+    throw new ValidationError(`${what}: debe ser JSON en base64url`);
   }
 }
 

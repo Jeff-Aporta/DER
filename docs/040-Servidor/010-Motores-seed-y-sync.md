@@ -25,6 +25,7 @@ tags: [servidor, motores, migraciones]
 | | PG / PGlite | SQLite | MySQL | MSSQL |
 |---|---|---|---|---|
 | tipos DDL | varchar/numeric/boolean/timestamptz/jsonb | text/integer/real/numeric | varchar/decimal(18,6)/tinyint(1)/datetime(3)/json | nvarchar/decimal(18,6)/bit/datetime2/nvarchar(max) |
+| `datetime` | `to_char(… at time zone 'UTC')` → ISO `Z` | texto ISO `Z` tal cual | se escribe UTC sin zona, se lee `date_format(…'%Y-%m-%dT%H:%i:%s.%fZ')` | se escribe UTC sin zona, se lee `convert(varchar(23), …, 126) + 'Z'` |
 | bool | boolean | 0/1 | 0/1 | bit |
 | date / time | `::text` | texto | `date_format` / `time_format` | `convert(varchar, …, 23/108)` |
 | json | jsonb | texto + `JSON.parse` | json | texto + `JSON.parse` |

@@ -41,6 +41,21 @@ Es una consulta al estilo `Obj`: `true` incluye el detalle, un objeto incluye ad
 
 `get()` acepta `ctx.include` (y por HTTP `?include=<json>`). Si no se pasa, usa `getInclude` de la entidad.
 
+## Por HTTP: `GET plural?q=<base64url>`
+
+No hay `POST /query`. La consulta viaja en la URL, así se puede pegar en la barra del navegador, guardar como marcador o compartir:
+
+```
+GET /api/productos?q=eyJ3aGVyZSI6eyJwcmVjaW8iOnsiZ3QiOjF9fX0
+```
+
+- `q` es el `QuerySpec` en JSON codificado en **base64url** (`encodeQuery(spec)` lo produce; `decodeQuery(q)` lo lee). Por comodidad también se acepta el JSON plano URL-encoded (`?q=%7B%22where%22…%7D`).
+- Sin `q`, la misma ruta es `list`. Un `q` que no es JSON → 400 `{ error: "q: debe ser JSON en base64url" }`.
+- Si la acción `query` es pública, el navegador muestra el resultado; si exige sesión o permisos, muestra el JSON del motivo (`401 { error: "Requiere autenticación: GET:/productos" }`, `403 { error: "Sin permiso: …" }`).
+- `?include=` usa la misma codificación.
+- El `ClientController` hace esto solo: `productos.query(spec)` → `GET plural?q=`.
+- Funciona igual en Deno, Azure Functions y Cloudflare Workers: es la misma función/ruta de `list`.
+
 ## `list()` frente a `query()`
 
 `list()` trae toda la colección, aplanada, con `listColumns` y sin relaciones ni filtros (para combos y catálogos). `query()` es la herramienta completa.
