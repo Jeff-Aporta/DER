@@ -1,5 +1,5 @@
 import { assertEquals, assertInstanceOf, assertThrows } from "@std/assert";
-import { defineSchema, Pojo, pojoOf, toStr } from "@Jeff-Aporta/DER/mod.ts";
+import { defineSchema, Pojo, pojoOf, toStr } from "@Jeff-Aporta/DER/index.ts";
 import { Categoria, Linea, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("pojo: los setters castean según el tipo de columna", () => {

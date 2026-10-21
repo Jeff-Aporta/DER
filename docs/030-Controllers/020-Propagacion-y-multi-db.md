@@ -6,7 +6,7 @@ tags: [controllers, propagacion, multidb]
 ---
 # Propagación de detalles (`getPropagation` / `setPropagation`)
 
-[← índice](../README.md) · `src/02 controllers/server/controller.ts` · tipos `WritePropagation` e `Include`
+[← índice](../README.md) · `src/02-controllers/server/controller.ts` · tipos `WritePropagation` e `Include`
 
 Las relaciones del schema (`kind: "one" | "many"`, `on`) definen la **cardinalidad**. El consumidor decide qué detalles se **leen** y cuáles se **escriben** junto al padre, que pueden ser distintos:
 

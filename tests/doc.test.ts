@@ -3,7 +3,7 @@
  * `/doc?v=1`: esa misma doc en la vista iswc. Fuentes locales, `file:` y http indistintamente.
  */
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
-import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
 import {
   composeDoc,
   createRouter,
@@ -11,8 +11,8 @@ import {
   ISWC_PIN,
   readDocSource,
   ServerController,
-} from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+} from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { buildControllers } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 

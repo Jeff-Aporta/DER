@@ -1,10 +1,10 @@
 /** Prioridad baja: mensajes de validación de query/include, Entity.patch/aplicar, config de plugins y Azure sin stream. */
 import { assertEquals, assertRejects, assertThrows } from "@std/assert";
-import { type AzureHttpRequest, createRouter, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { registerAzure } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/azure/mod.ts";
-import { pluginsFromConfig, resolveEnv } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
-import { defineEntity, defineSchema, pojoOf, validateQuery } from "@Jeff-Aporta/DER/mod.ts";
+import { type AzureHttpRequest, createRouter, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { registerAzure } from "@Jeff-Aporta/DER/src/02-controllers/server/hosts/azure.ts";
+import { pluginsFromConfig, resolveEnv } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
+import { defineEntity, defineSchema, pojoOf, validateQuery } from "@Jeff-Aporta/DER/index.ts";
 import { CategoriaEntity, ProductoEntity, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("validateQuery: mensajes claros para cada forma inválida", () => {

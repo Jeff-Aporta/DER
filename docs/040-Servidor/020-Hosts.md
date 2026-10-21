@@ -6,15 +6,15 @@ tags: [servidor, hosts]
 ---
 # Hosts: Azure Functions, Cloudflare Workers, Deno/Bun/Node
 
-[← índice](../README.md) · tabla: `src/02 controllers/server/router.ts` + `routes.ts` · hosts: `src/02 controllers/server/hosts/<host>/mod.ts` · tipos en `src/02 controllers/server/schemas.ts`
+[← índice](../README.md) · tabla: `src/02-controllers/server/router.ts` + `routes.ts` · hosts: `src/02-controllers/server/hosts/<host>/index.ts` · tipos en `src/02-controllers/server/schemas.ts`
 
 Mismo modelo que `registrarEntidad` de ISS: **cada acción definida en el controller es una ruta propia**, con parámetros `{pk}`, id estable `METHOD:/ruta` (para seguridad por ruta), sin duplicados ni ambigüedades. El `Router` construye esa **tabla de rutas** una vez y cada host la registra a su manera:
 
 | Host | Entrada | Cómo registra |
 |---|---|---|
-| Deno / Bun / Node / Hono… | `server/mod.ts` | `Deno.serve(router.fetch)`: matcher genérico sobre la tabla (los literales ganan a los parámetros) |
-| Azure Functions v4 | `server/hosts/azure/mod.ts` | `registerAzure(app, router)`: una `app.http` por ruta (+ `OPTIONS` si hay CORS) |
-| Cloudflare Workers | `server/hosts/cloudflare/mod.ts` | `export default defineWorker((env) => router)` |
+| Deno / Bun / Node / Hono… | `server/index.ts` | `Deno.serve(router.fetch)`: matcher genérico sobre la tabla (los literales ganan a los parámetros) |
+| Azure Functions v4 | `server/hosts/azure.ts` | `registerAzure(app, router)`: una `app.http` por ruta (+ `OPTIONS` si hay CORS) |
+| Cloudflare Workers | `server/hosts/cloudflare.ts` | `export default defineWorker((env) => router)` |
 
 Los hosts no tienen dependencias: el `app` de `@azure/functions` lo pasa el consumidor (tipos estructurales `AzureApp`, `AzureHttpRequest`, `AzureHttpResponseInit`), y Workers no necesita nada.
 
@@ -64,8 +64,8 @@ Respuesta: un `Response` pasa tal cual; `undefined` → 204; cualquier otro valo
 
 ```ts
 import { app } from "@azure/functions";
-import { createRouter, pgDatabase } from ".../src/02%20controllers/server/pg/mod.ts";
-import { registerAzure } from ".../src/02%20controllers/server/hosts/azure/mod.ts";
+import { createRouter, pgDatabase } from ".../src/02-controllers/server/pg.ts";
+import { registerAzure } from ".../src/02-controllers/server/hosts/azure.ts";
 
 app.setup({ enableHttpStream: true });                    // SSE en vivo (stream: true, el default)
 const router = createRouter(ctrls, { basePath: "/api", cors: true }); // basePath = routePrefix de host.json
@@ -79,8 +79,8 @@ registerAzure(app, router, { authLevel: "anonymous" });
 ## Cloudflare Workers
 
 ```ts
-import { createRouter, pgDatabase } from ".../src/02%20controllers/server/pg/mod.ts";
-import { defineWorker } from ".../src/02%20controllers/server/hosts/cloudflare/mod.ts";
+import { createRouter, pgDatabase } from ".../src/02-controllers/server/pg.ts";
+import { defineWorker } from ".../src/02-controllers/server/hosts/cloudflare.ts";
 
 export default defineWorker((env: Env) =>
   createRouter(buildControllers(pgDatabase(poolDesde(env))), { basePath: "/api", cors: true })

@@ -6,14 +6,14 @@ tags: [plugins, seguridad, jwt]
 ---
 # Seguridad: plugins de identidad y permisos
 
-[← índice](../README.md) · `src/03 plugins/` · tipos y Zod en `src/03 plugins/schemas.ts` · contrato de plugin (`Plugin`, `RouteSecurity`, `SecurityDef`) en `src/02 controllers/server/schemas.ts`
+[← índice](../README.md) · `src/03-plugins/` · tipos y Zod en `src/03-plugins/schemas.ts` · contrato de plugin (`Plugin`, `RouteSecurity`, `SecurityDef`) en `src/02-controllers/server/schemas.ts`
 
 Destilado de SEG de ISS-AyudasCPIA, con **ids únicos string** (sin pares `itercero/icontacto`) y como **plugins** del Router: si no se cargan, la seguridad se omite.
 
 ## Integración: un JSON global
 
 ```ts
-import { pluginsFromConfig } from ".../src/03%20plugins/mod.ts";
+import { pluginsFromConfig } from ".../src/03-plugins/index.ts";
 
 const plugins = pluginsFromConfig({
   identity: { secret: "env:JWT_SECRET", expiresIn: 86400, admin: { usuario: "admin", password: "env:ADMIN_PASSWORD" } },
@@ -49,7 +49,7 @@ routes: [{ method: "GET", path: "reportes/x", security: { protected: true, permi
 
 Orden en cada request: autenticación (identidad) → autorización (permisos) → `guard` → `pre*`/`preConfirm` → acción. En una ruta pública la identidad se intenta igual (`ctx.state.identity`), pero un token inválido no la bloquea. `ctx.state.identity` y `ctx.state.permiso` (el valor efectivo) llegan a los handlers y hooks.
 
-## Plugin de identidad (`src/03 plugins/identity/`)
+## Plugin de identidad (`src/03-plugins/identity/`)
 
 | Ruta | Seguridad | Qué hace |
 |---|---|---|
@@ -67,7 +67,7 @@ Orden en cada request: autenticación (identidad) → autorización (permisos) �
 - **`seed`:** crea `admin` si está configurado y no existe.
 - La secret key debe tener al menos 32 caracteres y nunca se versiona: va por `env:`.
 
-## Plugin de permisos (`src/03 plugins/permissions/`)
+## Plugin de permisos (`src/03-plugins/permissions/`)
 
 ### DER
 
@@ -145,7 +145,7 @@ pluginsFromConfig({ ..., permissions: { grupo: "API", actions: ["auditoria"] } }
 ## Estructura estándar de cada plugin
 
 ```
-src/03 plugins/<plugin>/
+src/03-plugins/<plugin>/
   schemas.ts        tipos y Zod compartidos (sólo zod: seguro para el cliente)
   Objetos/          un archivo por entidad (schema JSON, POJO, entidad) + mod.ts
   Controladores/    server.ts (ServerControllers + rutas del plugin), client.ts (ClientControllers), utilidades de servidor
@@ -153,12 +153,12 @@ src/03 plugins/<plugin>/
   client.ts         entrada de cliente (schemas + Objetos + Controladores/client): sólo zod
 ```
 
-`src/03 plugins/schemas.ts` tiene la configuración global y los contratos del lado servidor (`IdentityPlugin`, `PermissionsPlugin`); `src/03 plugins/client.ts` reúne los dos clientes. `tests/arch.test.ts` vigila la estructura y que ninguna entrada de cliente alcance nada del servidor (ni por `import type`).
+`src/03-plugins/schemas.ts` tiene la configuración global y los contratos del lado servidor (`IdentityPlugin`, `PermissionsPlugin`); `src/03-plugins/client.ts` reúne los dos clientes. `tests/arch.test.ts` vigila la estructura y que ninguna entrada de cliente alcance nada del servidor (ni por `import type`).
 
 ### Clientes
 
 ```ts
-import { IdentityClient, PermissionsClient } from ".../src/03%20plugins/client.ts";
+import { IdentityClient, PermissionsClient } from ".../src/03-plugins/client.ts";
 
 const auth = new IdentityClient({ baseUrl: "/api", onToken: (t) => guardar(t) });
 await auth.login({ usuario: "ana", password: "..." });        // valida con el mismo Zod que el server

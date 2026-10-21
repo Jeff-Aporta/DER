@@ -17,19 +17,19 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 
 | Capa | Carpeta | Entrada | Dependencias |
 |---|---|---|---|
-| Transversal: tipos, Zod, casteos, errores, `Obj`, SSE | `src/00 common/` | `src/00 common/mod.ts` | `zod` |
-| Objetos: schema → POJO / Zod, entidades, query | `src/01 objects/` | `src/01 objects/mod.ts` | `zod` |
-| Controller base (CRUD, query, list, listas, pre*, SSE, cfg) | `src/02 controllers/` | `src/02 controllers/mod.ts` | `zod` |
-| Client (fetch) | `src/02 controllers/client/` | `.../client/mod.ts` | `zod` |
-| Server core (agnóstico de motor) | `src/02 controllers/server/` | `.../server/mod.ts` | `zod`, `kysely` |
-| Motor SQLite (`node:sqlite`) | `.../server/sqlite/` | `.../server/sqlite/mod.ts` | `zod`, `kysely` |
-| Motor PostgreSQL (pool `pg` del consumidor) | `.../server/pg/` | `.../server/pg/mod.ts` | `zod`, `kysely` |
-| PostgreSQL embebido (PGlite, WASM) | `.../server/pglite/` | `.../server/pglite/mod.ts` | `zod`, `kysely`, `@electric-sql/pglite` |
-| Host Azure Functions (una función por ruta) | `.../server/hosts/azure/` | `.../server/hosts/azure/mod.ts` | — (el `app` lo pasa el consumidor) |
-| Host Cloudflare Workers | `.../server/hosts/cloudflare/` | `.../server/hosts/cloudflare/mod.ts` | — |
-| Plugins de seguridad (identidad + permisos) | `src/03 plugins/` | `src/03 plugins/mod.ts` (o `identity/`, `permissions/`) | `zod`, `kysely` |
+| Transversal: tipos, Zod, casteos, errores, `Obj`, SSE | `src/00-common/` | `src/00-common/index.ts` | `zod` |
+| Objetos: schema → POJO / Zod, entidades, query | `src/01-objects/` | `src/01-objects/index.ts` | `zod` |
+| Controller base (CRUD, query, list, listas, pre*, SSE, cfg) | `src/02-controllers/` | `src/02-controllers/index.ts` | `zod` |
+| Client (fetch) | `src/02-controllers/client/` | `.../client/index.ts` | `zod` |
+| Server core (agnóstico de motor) | `src/02-controllers/server/` | `.../server/index.ts` | `zod`, `kysely` |
+| Motor SQLite (`node:sqlite`) | `.../server/sqlite/` | `.../server/sqlite.ts` | `zod`, `kysely` |
+| Motor PostgreSQL (pool `pg` del consumidor) | `.../server/pg/` | `.../server/pg.ts` | `zod`, `kysely` |
+| PostgreSQL embebido (PGlite, WASM) | `.../server/pglite/` | `.../server/pglite.ts` | `zod`, `kysely`, `@electric-sql/pglite` |
+| Host Azure Functions (una función por ruta) | `.../server/hosts/azure/` | `.../server/hosts/azure.ts` | — (el `app` lo pasa el consumidor) |
+| Host Cloudflare Workers | `.../server/hosts/cloudflare/` | `.../server/hosts/cloudflare.ts` | — |
+| Plugins de seguridad (identidad + permisos) | `src/03-plugins/` | `src/03-plugins/index.ts` (o `identity/`, `permissions/`) | `zod`, `kysely` |
 
-`mod.ts` en la raíz equivale a `src/02 controllers/mod.ts` (el núcleo compartido, solo `zod`). Cada `mod.ts` reexporta todo lo de la capa anterior: con importar **una** entrada basta.
+`mod.ts` en la raíz equivale a `src/02-controllers/index.ts` (el núcleo compartido, solo `zod`). Cada `mod.ts` reexporta todo lo de la capa anterior: con importar **una** entrada basta.
 
 ## Documentos
 
@@ -54,7 +54,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 
 ```ts
 // shared/domain.ts: lo importan front y back
-import { defineEntity, defineSchema, pojoOf } from "<base>/mod.ts";
+import { defineEntity, defineSchema, pojoOf } from "<base>/index.ts";
 
 export const ProductoSchema = defineSchema({
   columns: {
@@ -76,7 +76,7 @@ export const ProductoEntity = defineEntity({
 
 ```ts
 // back
-import { createRouter, ServerController, sqliteDatabase } from "<base>/src/02%20controllers/server/sqlite/mod.ts";
+import { createRouter, ServerController, sqliteDatabase } from "<base>/src/02-controllers/server/sqlite.ts";
 const db = sqliteDatabase("app.db");
 const productos = new ServerController(ProductoEntity, { db, table: "productos" });
 await db.seed();
@@ -85,7 +85,7 @@ Deno.serve(createRouter([productos], { basePath: "/api" }).fetch);
 
 ```ts
 // front
-import { ClientController } from "<base>/src/02%20controllers/client/mod.ts";
+import { ClientController } from "<base>/src/02-controllers/client/index.ts";
 const productos = new ClientController(ProductoEntity, { baseUrl: "/api" });
 const caros = await productos.query({ where: { precio: { gt: 10 } }, include: { categoria: true } });
 ```
@@ -94,7 +94,7 @@ Ejemplo completo y ejecutable: `examples/domain.ts` (compartido) y `examples/bac
 
 ## Reglas para agentes
 
-1. **Tipos, interfaces y schemas Zod solo en `schemas.ts`.** Todo lo común va en `src/00 common/schemas.ts`. Lo del server que depende de Kysely va en `src/02 controllers/server/schemas.ts`. Los archivos de lógica no declaran `type`, `interface` ni `const Z...`. Lo vigila `tests/arch.test.ts`.
+1. **Tipos, interfaces y schemas Zod solo en `schemas.ts`.** Todo lo común va en `src/00-common/schemas.ts`. Lo del server que depende de Kysely va en `src/02-controllers/server/schemas.ts`. Los archivos de lógica no declaran `type`, `interface` ni `const Z...`. Lo vigila `tests/arch.test.ts`.
 2. **Capas:** `00 common ← 01 objects ← 02 controllers ← 03 plugins`, y `client ⟂ server`. Solo se importa hacia abajo. La excepción es `import type`, que se borra al compilar.
 3. **Dependencias por dimensión:** el client y el núcleo solo usan `zod`; el server agrega `kysely`; cada motor agrega lo suyo. Una dependencia nueva va en la carpeta más específica posible. Lo vigila `tests/arch.test.ts`.
 4. **Imports internos por el alias `@Jeff-Aporta/DER/…` (nunca relativos) y siempre con `.ts`**; especificadores desnudos (`"zod"`, `"kysely"`) para las dependencias. El alias y las dependencias los resuelve el import map (el de este repo apunta a `./`; el del consumidor, al CDN). Lo vigila `tests/arch.test.ts`.

@@ -3,9 +3,9 @@
  * Cada caso corre igual en ambos motores: misma definición, mismo resultado.
  */
 import { assert, assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
-import { type Database, NotFoundError, sql, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
+import { type Database, NotFoundError, sql, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/pglite.ts";
 import { PGlite } from "@electric-sql/pglite";
 import { at } from "@Jeff-Aporta/DER/tests/_util.ts";
 import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";

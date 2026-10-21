@@ -1,9 +1,9 @@
 /** ClientController: cabeceras (config y por llamada), AbortSignal, endpoints GET con `?q=`, 204 y errores 500. */
 import { assertEquals, assertRejects } from "@std/assert";
-import { ClientController, HttpError } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
-import { createRouter, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { defineEntity } from "@Jeff-Aporta/DER/mod.ts";
+import { ClientController, HttpError } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
+import { createRouter, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { defineEntity } from "@Jeff-Aporta/DER/index.ts";
 import { Categoria } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const CatEntity = defineEntity({

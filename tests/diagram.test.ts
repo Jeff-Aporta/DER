@@ -14,8 +14,8 @@ import {
   classDiagramPayload,
   diagramPayloads,
   erDiagramPayload,
-} from "@Jeff-Aporta/DER/src/01 objects/diagram.ts";
-import { apiIndexMd, entityContractMd } from "@Jeff-Aporta/DER/src/02 controllers/server/doc.ts";
+} from "@Jeff-Aporta/DER/src/01-objects/diagram.ts";
+import { apiIndexMd, entityContractMd } from "@Jeff-Aporta/DER/src/02-controllers/server/doc.ts";
 
 const entities = [CategoriaEntity, ProductoEntity, PedidoEntity, LineaEntity, CrisisEntity];
 

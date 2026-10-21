@@ -6,7 +6,7 @@ tags: [objetos, pojo, zod]
 ---
 # Schemas, POJOs y Zod
 
-[← índice](../README.md) · tipos en `src/00 common/schemas.ts` · lógica en `src/01 objects/{meta,pojo,zod}.ts`
+[← índice](../README.md) · tipos en `src/00-common/schemas.ts` · lógica en `src/01-objects/{meta,pojo,zod}.ts`
 
 ## Schema JSON
 
@@ -85,4 +85,4 @@ export class Producto extends pojoOf(ProductoSchema) {
 | `pk` | GET y DELETE |
 | `molde` | molde de `Obj.insert`: `null` → null si la columna admite null; si no, se quita |
 
-Los mensajes de error salen en español (`Falta el campo requerido "x"`, `"x" no puede ser nulo`, `"x" debe ser uno de: …`, `"x" supera N caracteres`). `ZQuerySpec`, `ZInclude`, `ZConsulta`, `ZJson`, `ZAccionObj` y `ZRefObj` están en `src/00 common/schemas.ts`. `z` se reexporta para que la app use la misma instancia.
+Los mensajes de error salen en español (`Falta el campo requerido "x"`, `"x" no puede ser nulo`, `"x" debe ser uno de: …`, `"x" supera N caracteres`). `ZQuerySpec`, `ZInclude`, `ZConsulta`, `ZJson`, `ZAccionObj` y `ZRefObj` están en `src/00-common/schemas.ts`. `z` se reexporta para que la app use la misma instancia.

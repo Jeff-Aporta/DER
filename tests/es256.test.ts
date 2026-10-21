@@ -7,7 +7,7 @@ import {
   importEs256PublicKey,
   signJwtEs256,
   verifyJwtEs256,
-} from "../src/03 plugins/identity/Controladores/crypto.ts";
+} from "@Jeff-Aporta/DER/src/03-plugins/identity/Controladores/crypto.ts";
 
 Deno.test("es256: sign/verify round-trip", async () => {
   const { privateKey, publicKey } = await generateEs256KeyPair();

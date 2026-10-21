@@ -5,13 +5,13 @@
  */
 import { assert, assertEquals, assertRejects } from "@std/assert";
 import { sql } from "kysely";
-import { controllerRouteSpecs } from "@Jeff-Aporta/DER/src/02 controllers/server/routes.ts";
-import { NotFoundError } from "@Jeff-Aporta/DER/src/00 common/errors.ts";
-import type { PutMode } from "@Jeff-Aporta/DER/src/00 common/schemas.ts";
-import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
-import { createRouter, HttpError, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { defineEntity, defineSchema, pojoOf, z } from "@Jeff-Aporta/DER/mod.ts";
+import { controllerRouteSpecs } from "@Jeff-Aporta/DER/src/02-controllers/server/routes.ts";
+import { NotFoundError } from "@Jeff-Aporta/DER/src/00-common/errors.ts";
+import type { PutMode } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
+import { createRouter, HttpError, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { defineEntity, defineSchema, pojoOf, z } from "@Jeff-Aporta/DER/index.ts";
 
 // ------------------------------------------------------------------ dominio de prueba (3 niveles)
 

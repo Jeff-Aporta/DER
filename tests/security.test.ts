@@ -3,15 +3,15 @@
  * (DER grupos/roles/acciones, vector de acciones, perfil, carga). Todo por HTTP sobre el Router.
  */
 import { assert, assertEquals, assertMatch, assertNotEquals } from "@std/assert";
-import { createRouter, type Database, type Router, ServerController, sql } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { createRouter, type Database, type Router, ServerController, sql } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import {
   type IdentityPlugin,
   type LoginResult,
   pluginsFromConfig,
   type PluginsConfig,
   signJwt,
-} from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+} from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const SECRET = "una-secret-key-de-pruebas-con-mas-de-32-caracteres";

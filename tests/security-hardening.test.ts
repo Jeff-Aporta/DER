@@ -4,8 +4,8 @@
  * `GET /events`. También valida la configuración `identity.security` con Zod y el cliente `IdentityClient`.
  */
 import { assert, assertEquals, assertThrows } from "@std/assert";
-import { createRouter, type Database, type Router, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { createRouter, type Database, type Router, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import {
   type IdentityPlugin,
   type IdentitySecurityConfig,
@@ -13,7 +13,7 @@ import {
   type LoginResult,
   pluginsFromConfig,
   type PluginsConfig,
-} from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+} from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const SECRET = "una-secret-key-de-pruebas-con-mas-de-32-caracteres";

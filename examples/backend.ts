@@ -2,7 +2,7 @@
  * Controllers de servidor para el dominio de ejemplo. Sólo aquí aparece lo específico de SQL:
  * nombre de tabla, caso de identificadores, columnas calculadas, acciones y SSE.
  */
-import { type CfgTableDef, type Database, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
+import { type CfgTableDef, type Database, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { CategoriaEntity, CrisisEntity, LineaEntity, PedidoEntity, ProductoEntity, type Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 /**

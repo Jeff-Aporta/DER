@@ -1,7 +1,7 @@
 /** `preConfirm`: regla general que corre en TODAS las acciones (antes del pre* específico). */
 import { assertEquals, assertRejects } from "@std/assert";
-import { type ConfirmInput, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { type ConfirmInput, ServerController, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { CategoriaEntity, ProductoEntity, type Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 import { CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 

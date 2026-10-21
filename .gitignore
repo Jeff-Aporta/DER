@@ -1,5 +1,3 @@
 node_modules/
 .tmp/
 
-# copia local de iswc para tsc (deno task sync)
-.iswc/

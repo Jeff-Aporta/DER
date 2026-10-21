@@ -4,9 +4,9 @@
  * capacidades sólo de código (`ctx.state.can`). Catálogo, perfil y carga del DER usan esos ids.
  */
 import { assert, assertEquals } from "@std/assert";
-import { type CanFn, createRouter, type Router, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { type CanFn, createRouter, type Router, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 import { CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 

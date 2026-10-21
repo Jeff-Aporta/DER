@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { clientIp } from "../src/03 plugins/identity/Controladores/device.ts";
+import { clientIp } from "@Jeff-Aporta/DER/src/03-plugins/identity/Controladores/device.ts";
 
 Deno.test("clientIp: trustProxy=0 legado toma el primer salto", () => {
   const req = new Request("http://x", { headers: { "x-forwarded-for": "1.2.3.4, 10.0.0.1, 10.0.0.2" } });

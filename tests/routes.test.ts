@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from "@std/assert";
-import { defineEntity } from "@Jeff-Aporta/DER/mod.ts";
+import { defineEntity } from "@Jeff-Aporta/DER/index.ts";
 import { CrisisEntity, LineaEntity, ProductoEntity, Crisis, Linea, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("rutas: singular con pks, plural sin pks", () => {

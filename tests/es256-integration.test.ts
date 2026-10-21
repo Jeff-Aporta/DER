@@ -1,9 +1,9 @@
 import { assertEquals } from "@std/assert";
-import { createRouter, type Database, type Router, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { createRouter, type Database, type Router, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { CategoriaEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
-import { b64urlDecode, importEs256PublicKey, verifyJwtEs256 } from "@Jeff-Aporta/DER/src/03 plugins/identity/Controladores/crypto.ts";
+import { b64urlDecode, importEs256PublicKey, verifyJwtEs256 } from "@Jeff-Aporta/DER/src/03-plugins/identity/Controladores/crypto.ts";
 
 const SECRET = "una-secret-key-de-pruebas-con-mas-de-32-caracteres";
 

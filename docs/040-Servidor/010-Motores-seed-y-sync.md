@@ -6,7 +6,7 @@ tags: [servidor, motores, migraciones]
 ---
 # Motores SQL
 
-[← índice](../README.md) · contrato `Engine` en `src/02 controllers/server/schemas.ts`
+[← índice](../README.md) · contrato `Engine` en `src/02-controllers/server/schemas.ts`
 
 | Carpeta | Fábrica | Driver | Dependencias extra |
 |---|---|---|---|
@@ -41,8 +41,8 @@ Los POJOs normalizan lo que llega (casteos), así el resultado es idéntico en a
 
 ## Agregar un motor (p. ej. MySQL)
 
-1. `src/02 controllers/server/mysql/engine.ts`: implementar `Engine` (`columnType`, `selectExpr`, `toDb`, `readJson`, `createSequence`, `nextValue`, `jsonOne`, `jsonMany`, `ilike`).
-2. `src/02 controllers/server/mysql/mod.ts`: fábrica con el dialecto de Kysely, `export * from "../mod.ts"` y la cabecera con el enlace a `docs/README.md`.
+1. `src/02-controllers/server/mysql/engine.ts`: implementar `Engine` (`columnType`, `selectExpr`, `toDb`, `readJson`, `createSequence`, `nextValue`, `jsonOne`, `jsonMany`, `ilike`).
+2. `src/02-controllers/server/mysql/index.ts`: fábrica con el dialecto de Kysely, `export * from "../index.ts"` y la cabecera con el enlace a `docs/README.md`.
 3. Registrar su dependencia permitida en `tests/arch.test.ts` y agregar el motor al arreglo `ENGINES` de `tests/server.test.ts`.
 
 ## `syncSchema()`: sincronizar la tabla con el POJO (migraciones)

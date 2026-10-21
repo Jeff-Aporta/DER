@@ -2,7 +2,7 @@
  * Definiciones COMPARTIDAS (front y back): schemas JSON, POJOs y entidades.
  * Este archivo no importa nada de SQL: el front lo puede importar tal cual.
  */
-import { defineEntity, defineSchema, pojoOf, z } from "@Jeff-Aporta/DER/mod.ts";
+import { defineEntity, defineSchema, pojoOf, z } from "@Jeff-Aporta/DER/index.ts";
 
 /**
  * Molde Zod del JSON propio de CADA producto (columna `jconfig`). Se ajusta con el PUT singular del producto, que

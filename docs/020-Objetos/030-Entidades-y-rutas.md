@@ -6,7 +6,7 @@ tags: [objetos, rutas, rest]
 ---
 # Entidades y rutas REST
 
-[← índice](../README.md) · `src/01 objects/entity.ts` · tipos `EntityDef`, `EndpointDef`, `CfgDef`, `Hooks`
+[← índice](../README.md) · `src/01-objects/entity.ts` · tipos `EntityDef`, `EndpointDef`, `CfgDef`, `Hooks`
 
 ```ts
 export const ProductoEntity = defineEntity({

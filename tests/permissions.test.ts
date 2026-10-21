@@ -4,9 +4,9 @@
  * usuario inactivo (no inicia sesión y sus tokens dejan de servir) y el valor del permiso en el handler.
  */
 import { assertEquals } from "@std/assert";
-import { createRouter, type Router, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { decide, effectiveValue, pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { createRouter, type Router, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { decide, effectiveValue, pluginsFromConfig } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const SECRET = "secret-de-pruebas-de-permisos-con-32-o-mas";

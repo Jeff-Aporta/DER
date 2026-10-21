@@ -34,16 +34,16 @@ const imports = (s: string): string[] => [
 ];
 
 /** `Obj` y sus contratos vienen de iswc por URL (permitido en toda la librería). */
-const ISWC = "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/";
+const ISWC = "@Jeff-Aporta/wc-base/";
 
 /** Paquetes externos permitidos por carpeta (el resto de imports deben ser relativos). */
 const ALLOWED: [string, string[]][] = [
-  ["src/02 controllers/server/pglite/", ["zod", "kysely", "@electric-sql/pglite"]],
+  ["src/02-controllers/server/pglite.ts", ["zod", "kysely", "@electric-sql/pglite"]],
   // doc.ts lee fuentes .md locales: sólo módulos node: incluidos en Deno/Node (sin instalar nada).
-  ["src/02 controllers/server/doc.ts", ["node:fs/promises", "node:path", "node:process", "node:url"]],
-  ["src/02 controllers/server/sqlite/", ["zod", "kysely", "node:sqlite"]],
-  ["src/02 controllers/server/", ["zod", "kysely"]],
-  ["src/03 plugins/", ["zod", "kysely"]],
+  ["src/02-controllers/server/doc.ts", ["node:fs/promises", "node:path", "node:process", "node:url"]],
+  ["src/02-controllers/server/sqlite.ts", ["zod", "kysely", "node:sqlite"]],
+  ["src/02-controllers/server/", ["zod", "kysely"]],
+  ["src/03-plugins/", ["zod", "kysely"]],
   ["src/", ["zod"]],
 ];
 
@@ -62,14 +62,14 @@ Deno.test("arch: las capas no importan hacia arriba (common ← objects ← cont
     // `import type` se borra al compilar: schemas.ts puede nombrar la clase Pojo sin depender de ella en runtime.
     const src = (await read(f)).replace(/import type [^;]+;/g, "");
     for (const spec of imports(src).filter(isInternal)) {
-      if (f.startsWith("src/00 common/")) {
+      if (f.startsWith("src/00-common/")) {
         assert(!spec.includes("01 objects"), `${f} → ${spec}`);
         assert(!spec.includes("02 controllers"), `${f} → ${spec}`);
         assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
       }
-      if (f.startsWith("src/01 objects/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
-      if (f.startsWith("src/02 controllers/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
-      if (f.startsWith("src/01 objects/")) assert(!spec.includes("02 controllers"), `${f} → ${spec}`);
+      if (f.startsWith("src/01-objects/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
+      if (f.startsWith("src/02-controllers/")) assert(!spec.includes("03 plugins"), `${f} → ${spec}`);
+      if (f.startsWith("src/01-objects/")) assert(!spec.includes("02 controllers"), `${f} → ${spec}`);
       if (f.includes("/client/")) assert(!spec.includes("server/"), `${f} → ${spec}`);
       if (f.includes("/server/")) assert(!spec.includes("client/"), `${f} → ${spec}`);
     }
@@ -77,7 +77,7 @@ Deno.test("arch: las capas no importan hacia arriba (common ← objects ← cont
 });
 
 Deno.test("arch: imports internos por alias @Jeff-Aporta/DER/ (nunca relativos) y siempre con .ts", async () => {
-  for (const f of [...SRC, "mod.ts"]) {
+  for (const f of [...SRC, "index.ts"]) {
     for (const spec of imports(await read(f)).filter(isInternal)) {
       assert(spec.startsWith(ALIAS), `${f}: "${spec}" es relativo; use ${ALIAS}<ruta>`);
       assert(spec.endsWith(".ts"), `${f}: "${spec}" sin .ts`);
@@ -99,8 +99,8 @@ Deno.test("arch: types, interfaces y Zod sólo en schemas.ts", async () => {
   assertEquals(bad, []);
 });
 
-Deno.test("arch: toda entrada mod.ts referencia docs/README.md", async () => {
-  const entries = ["mod.ts", ...SRC.filter((f) => f.endsWith("/mod.ts"))];
+Deno.test("arch: toda entrada index.ts referencia docs/README.md", async () => {
+  const entries = ["index.ts", ...SRC.filter((f) => f.endsWith("/index.ts"))];
   for (const f of entries) assert((await read(f)).includes(DOCS), `${f} no referencia ${DOCS}`);
   await Deno.stat(new URL("docs/README.md", ROOT));
 });
@@ -154,17 +154,17 @@ async function closure(entry: string): Promise<Map<string, string[]>> {
 
 Deno.test("arch: las entradas de cliente no alcanzan nada del servidor (ni kysely, pglite o node:)", async () => {
   const entries = [
-    "mod.ts",
-    "src/02 controllers/client/mod.ts",
-    "src/03 plugins/client.ts",
-    "src/03 plugins/identity/client.ts",
-    "src/03 plugins/permissions/client.ts",
+    "index.ts",
+    "src/02-controllers/client/index.ts",
+    "src/03-plugins/client.ts",
+    "src/03-plugins/identity/client.ts",
+    "src/03-plugins/permissions/client.ts",
   ];
   for (const entry of entries) {
     for (const [file, externos] of await closure(entry)) {
       assert(!file.includes("02 controllers/server/"), `${entry} alcanza ${file}`);
       assert(!/Controladores\/(server|crypto|rules)\.ts$/.test(file), `${entry} alcanza ${file}`);
-      assert(file !== "src/03 plugins/schemas.ts", `${entry} alcanza los contratos de servidor (${file})`);
+      assert(file !== "src/03-plugins/schemas.ts", `${entry} alcanza los contratos de servidor (${file})`);
       for (const ext of externos) if (!ext.startsWith(ISWC)) assertEquals(ext, "zod", `${entry} → ${file} importa "${ext}"`);
     }
   }
@@ -172,8 +172,8 @@ Deno.test("arch: las entradas de cliente no alcanzan nada del servidor (ni kysel
 
 Deno.test("arch: cada plugin tiene schemas.ts, Objetos/, Controladores/ (server + client), mod.ts y client.ts", async () => {
   for (const plugin of ["identity", "permissions"]) {
-    for (const f of ["schemas.ts", "Objetos/mod.ts", "Controladores/server.ts", "Controladores/client.ts", "mod.ts", "client.ts"]) {
-      await Deno.stat(new URL(`src/03 plugins/${plugin}/${f}`.replace(/ /g, "%20"), ROOT));
+    for (const f of ["schemas.ts", "Objetos/index.ts", "Controladores/server.ts", "Controladores/client.ts", "index.ts", "client.ts"]) {
+      await Deno.stat(new URL(`src/03-plugins/${plugin}/${f}`.replace(/ /g, "%20"), ROOT));
     }
   }
 });

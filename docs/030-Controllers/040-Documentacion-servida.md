@@ -6,7 +6,7 @@ tags: [controllers, doc]
 ---
 # Documentación servida (`/doc` y `/doc?v=1`)
 
-[← índice](../README.md) · `src/02 controllers/server/doc.ts` · tipos `DocSources`, `DocSheet`, `DocViewOptions` en `src/02 controllers/server/schemas.ts`
+[← índice](../README.md) · `src/02-controllers/server/doc.ts` · tipos `DocSources`, `DocSheet`, `DocViewOptions` en `src/02-controllers/server/schemas.ts`
 
 Cada controller expone su documentación para que humanos y agentes LLM se contextualicen. La base es **siempre el md autogenerado** (una utilidad de la librería). El controller solo agrega secciones.
 
@@ -71,7 +71,7 @@ Reglas de la traducción:
 | `nullableCards: true` + FK nullable | `zeroOrOne` / `zeroOrMany` |
 
 ```ts
-import { diagramPayloads } from "@Jeff-Aporta/DER/src/01 objects/diagram.ts";
+import { diagramPayloads } from "@Jeff-Aporta/DER/src/01-objects/diagram.ts";
 const { er, class: cls } = diagramPayloads([ProductoEntity, PedidoEntity, LineaEntity], {
   title: "Dominio",
   propagations: { pedido: ["lineas"] },

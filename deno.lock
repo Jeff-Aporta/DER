@@ -85,6 +85,10 @@
     }
   },
   "remote": {
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/a1df39adb9e421de874dd624901b72daa9e25e5c/src/vendor-distributions/shared/lib/obj.ts": "e31bd6c86a2e77225908edab0288d8482df8d71d9f4b6c1f2aa6e1e2eb7c721b",
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/a1df39adb9e421de874dd624901b72daa9e25e5c/src/vendor-distributions/shared/schemas.ts": "46453882350e955eb7ca649c95c84056eb91d9ccd502f6a7406235d75ec9c2a3",
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/lib/obj.ts": "78066151a12c053c7419d085c1cda22333b5534d8c6e3a423361c040b6d549e9",
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/schemas.ts": "d2537fe6089c7eec5af83af6f31efa0d4559287b5ed93e43fe21fde6f40f6f2c",
     "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/lib/obj.ts": "78066151a12c053c7419d085c1cda22333b5534d8c6e3a423361c040b6d549e9",
     "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/main/src/vendor-distributions/shared/schemas.ts": "d2537fe6089c7eec5af83af6f31efa0d4559287b5ed93e43fe21fde6f40f6f2c"
   },
@@ -99,10 +103,7 @@
       "dependencies": [
         "npm:@electric-sql/pglite@0.3.16",
         "npm:@jsr/std__assert@1.0.19",
-        "npm:@types/deno@2.7.0",
-        "npm:@types/node@24",
         "npm:kysely@0.28.17",
-        "npm:typescript@6.0.3",
         "npm:zod@4.6.7"
       ]
     }

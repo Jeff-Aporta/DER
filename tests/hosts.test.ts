@@ -11,10 +11,10 @@ import {
   type Database,
   HttpError,
   ServerController,
-} from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { registerAzure } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/azure/mod.ts";
-import { defineWorker } from "@Jeff-Aporta/DER/src/02 controllers/server/hosts/cloudflare/mod.ts";
+} from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { registerAzure } from "@Jeff-Aporta/DER/src/02-controllers/server/hosts/azure.ts";
+import { defineWorker } from "@Jeff-Aporta/DER/src/02-controllers/server/hosts/cloudflare.ts";
 import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 

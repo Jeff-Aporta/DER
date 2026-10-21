@@ -24,13 +24,13 @@ Las carpetas tienen espacios, que en la URL van como `%20`:
 | Quiero | Importar | Instalar |
 |---|---|---|
 | Definir entidades/POJOs (front o back) | `mod.ts` | `zod` |
-| Client fetch | `src/02%20controllers/client/mod.ts` | `zod` |
-| Server SQLite | `src/02%20controllers/server/sqlite/mod.ts` | `zod`, `kysely` |
-| Server PostgreSQL | `src/02%20controllers/server/pg/mod.ts` | `zod`, `kysely`, tu pool (`pg`, Neon…) |
-| Server PGlite | `src/02%20controllers/server/pglite/mod.ts` | `zod`, `kysely`, `@electric-sql/pglite` |
-| Host Azure Functions | `src/02%20controllers/server/hosts/azure/mod.ts` (+ un motor) | lo del motor + `@azure/functions` en la app |
-| Host Cloudflare Workers | `src/02%20controllers/server/hosts/cloudflare/mod.ts` (+ un motor) | lo del motor |
-| Solo `Obj`, Zod y tipos | `src/00%20common/mod.ts` | `zod` |
+| Client fetch | `src/02-controllers/client/index.ts` | `zod` |
+| Server SQLite | `src/02-controllers/server/sqlite.ts` | `zod`, `kysely` |
+| Server PostgreSQL | `src/02-controllers/server/pg.ts` | `zod`, `kysely`, tu pool (`pg`, Neon…) |
+| Server PGlite | `src/02-controllers/server/pglite.ts` | `zod`, `kysely`, `@electric-sql/pglite` |
+| Host Azure Functions | `src/02-controllers/server/hosts/azure.ts` (+ un motor) | lo del motor + `@azure/functions` en la app |
+| Host Cloudflare Workers | `src/02-controllers/server/hosts/cloudflare.ts` (+ un motor) | lo del motor |
+| Solo `Obj`, Zod y tipos | `src/00-common/index.ts` | `zod` |
 
 ## Deno
 
@@ -47,9 +47,9 @@ El consumidor mapea **tres cosas** en su `deno.json`: las dependencias que use y
 ```
 
 ```ts
-import { ClientController } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
-import { createRouter, ServerController, sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { IdentityClient } from "@Jeff-Aporta/DER/src/03 plugins/client.ts";
+import { ClientController } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
+import { createRouter, ServerController, sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { IdentityClient } from "@Jeff-Aporta/DER/src/03-plugins/client.ts";
 ```
 
 - Deno aplica el import map también a los módulos remotos: dentro de la librería, `"zod"` y `"@Jeff-Aporta/DER/…"` resuelven a lo que el consumidor mapeó. Hay una sola instancia de `z` en toda la app y una sola versión de la librería.
@@ -60,7 +60,7 @@ import { IdentityClient } from "@Jeff-Aporta/DER/src/03 plugins/client.ts";
 
 Los navegadores no ejecutan `.ts`. Hay dos opciones:
 
-- Empaquetar con tu bundler (Vite, esbuild, `deno bundle`) importando `client/mod.ts`.
+- Empaquetar con tu bundler (Vite, esbuild, `deno bundle`) importando `client/index.ts`.
 - Generar un bundle ESM del client con `zod` externo y mapear `zod` con `<script type="importmap">`.
 
 ## Node (≥ 22.6, `--experimental-strip-types`, o tsx)

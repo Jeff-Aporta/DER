@@ -1,5 +1,5 @@
 import { assertEquals, assertThrows } from "@std/assert";
-import { Obj, ValidationError, zodOf } from "@Jeff-Aporta/DER/mod.ts";
+import { Obj, ValidationError, zodOf } from "@Jeff-Aporta/DER/index.ts";
 import { Linea, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 Deno.test("obj: nomenclatura insert · insertIgnore · update · delete · get · getValue · replace", () => {

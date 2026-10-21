@@ -4,10 +4,10 @@
  * pueden filtrarse ni siquiera a través de una relación.
  */
 import { assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
-import { type Database, ServerController, sql, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
-import { defineEntity, defineSchema, pojoOf } from "@Jeff-Aporta/DER/mod.ts";
+import { type Database, ServerController, sql, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/pglite.ts";
+import { defineEntity, defineSchema, pojoOf } from "@Jeff-Aporta/DER/index.ts";
 
 const ItemSchema = defineSchema({
   columns: {

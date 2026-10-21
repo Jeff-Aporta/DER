@@ -6,7 +6,7 @@ tags: [objetos, query]
 ---
 # `query()`
 
-[← índice](../README.md) · tipos `QuerySpec`, `Where`, `FieldOps`, `Include` y Zod `ZQuerySpec` en `src/00 common/schemas.ts`
+[← índice](../README.md) · tipos `QuerySpec`, `Where`, `FieldOps`, `Include` y Zod `ZQuerySpec` en `src/00-common/schemas.ts`
 
 ```ts
 await productos.query({

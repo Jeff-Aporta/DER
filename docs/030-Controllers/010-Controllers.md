@@ -6,7 +6,7 @@ tags: [controllers]
 ---
 # Controllers
 
-[← índice](../README.md) · `src/02 controllers/controller.ts` (base) · `client/controller.ts` · `server/controller.ts`
+[← índice](../README.md) · `src/02-controllers/controller.ts` (base) · `client/controller.ts` · `server/controller.ts`
 
 ## API común (client y server)
 

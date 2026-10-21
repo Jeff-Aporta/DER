@@ -6,9 +6,9 @@
  * Filtros por relación cross-db, escritura propagada en la base de cada controller y seed propagado.
  */
 import { assert, assertEquals } from "@std/assert";
-import { createRouter, ServerController, sql } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
+import { createRouter, ServerController, sql } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/pglite.ts";
 import { CategoriaEntity, LineaEntity, PedidoEntity, ProductoEntity, type Linea, type Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 function setup() {

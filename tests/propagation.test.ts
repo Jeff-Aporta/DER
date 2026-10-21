@@ -3,8 +3,8 @@
  * post/put/delete, en transacción y en cascada), más el seed propagado a las tablas de los detalles.
  */
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { createRouter, ServerController, sql, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { createRouter, ServerController, sql, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { CategoriaEntity, LineaEntity, PedidoEntity, ProductoEntity, type Linea } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 function setup() {

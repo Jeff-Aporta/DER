@@ -1,6 +1,6 @@
 {
   "name": "@jeff-aporta/der",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Schemas JSON → POJOs tipados (Zod) → controllers REST compartidos client/server (SQL agnóstico). Docs: docs/README.md",
@@ -17,12 +17,6 @@
     "zod": "4.6.7",
     "kysely": "0.28.17",
     "@electric-sql/pglite": "0.3.16",
-    "@std/assert": "npm:@jsr/std__assert@1.0.19",
-    "@types/deno": "2.7.0",
-    "@types/node": "^24",
-    "typescript": "6.0.3"
-  },
-  "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "@std/assert": "npm:@jsr/std__assert@1.0.19"
   }
 }

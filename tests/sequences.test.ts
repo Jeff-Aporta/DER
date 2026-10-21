@@ -1,9 +1,9 @@
 /** Secuencias (globales, por ámbito, con formato) e índices (explícitos y automáticos) en ambos motores. */
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { type Database, ServerController, sql } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/pglite/mod.ts";
-import { defineEntity, defineSchema, pojoOf, zodOf } from "@Jeff-Aporta/DER/mod.ts";
+import { type Database, ServerController, sql } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/pglite.ts";
+import { defineEntity, defineSchema, pojoOf, zodOf } from "@Jeff-Aporta/DER/index.ts";
 import { CategoriaEntity, LineaEntity, PedidoEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 const FacturaSchema = defineSchema({

@@ -6,7 +6,7 @@
  *   curl localhost:8000/api/productos/cfg
  *   curl -X PUT localhost:8000/api/productos/cfg -d '{"catalogo":{"porPagina":12}}'
  */
-import { createRouter, sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { createRouter, sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 
 // con la tabla de configuración, las entidades que definen `cfg` exponen `plural/cfg`

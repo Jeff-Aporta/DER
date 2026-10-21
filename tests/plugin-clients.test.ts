@@ -3,11 +3,11 @@
  * contra el router real, importados desde la entrada de cliente (sólo zod).
  */
 import { assert, assertEquals, assertRejects } from "@std/assert";
-import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
-import { IdentityClient, PermissionsClient } from "@Jeff-Aporta/DER/src/03 plugins/client.ts";
-import { createRouter, ServerController } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
-import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03 plugins/mod.ts";
+import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
+import { IdentityClient, PermissionsClient } from "@Jeff-Aporta/DER/src/03-plugins/client.ts";
+import { createRouter, ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { pluginsFromConfig } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
 
 async function setup() {

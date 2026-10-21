@@ -3,9 +3,9 @@
  * Mismas entidades en ambos lados; el fetch del client va directo al handler (sin red).
  */
 import { assertEquals, assertInstanceOf, assertRejects } from "@std/assert";
-import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02 controllers/client/mod.ts";
-import { createRouter } from "@Jeff-Aporta/DER/src/02 controllers/server/mod.ts";
-import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02 controllers/server/sqlite/mod.ts";
+import { ClientController, HttpError, ValidationError } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
+import { createRouter } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { at } from "@Jeff-Aporta/DER/tests/_util.ts";
 import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { CategoriaEntity, CrisisEntity, LineaEntity, PedidoEntity, ProductoEntity, Categoria, Producto } from "@Jeff-Aporta/DER/examples/domain.ts";
