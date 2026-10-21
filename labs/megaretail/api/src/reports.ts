@@ -3,7 +3,7 @@
  * las agregaciones (ranking, top 10, cubo con subtotales) se calculan aquí porque DER no expone GROUP BY ni ROLLUP.
  */
 import { ValidationError, type ServerCtx } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
-import type { AlertaStock, ClienteFiel, CuboCelda, CuboReport, RankingReport, RankingVendedor } from "../../domain/index.ts";
+import type { AlertaStock, ClienteFiel, CuboCelda, CuboReport, RankingReport, RankingVendedor } from "./domain/index.ts";
 import type { Controllers } from "./schemas.ts";
 import { redondear, todas } from "./flows.ts";
 

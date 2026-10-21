@@ -2,7 +2,7 @@
  * schemas.ts (api) — tipos del servidor del lab (uno por línea): POJOs de cada entidad, el mapa de controllers y la app armada.
  */
 import type { PojoOf, ServerController, ServerPlugin, Router, Database } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
-import type { CategoriaSchema, ClienteSchema, DetalleVentaSchema, InventarioSedeSchema, MovimientoInventarioSchema, ProductoProveedorSchema, ProductoSchema, ProveedorSchema, SedeSchema, VendedorSchema, VentaSchema } from "../../domain/index.ts";
+import type { CategoriaSchema, ClienteSchema, DetalleVentaSchema, InventarioSedeSchema, MovimientoInventarioSchema, ProductoProveedorSchema, ProductoSchema, ProveedorSchema, SedeSchema, VendedorSchema, VentaSchema } from "./domain/index.ts";
 
 export type Sede = PojoOf<typeof SedeSchema>;
 export type Proveedor = PojoOf<typeof ProveedorSchema>;

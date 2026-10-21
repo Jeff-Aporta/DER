@@ -7,7 +7,7 @@ import { NotFoundError, ValidationError, zodMessage, type QuerySpec, type Server
 import type { Pojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
 import type { z } from "zod";
-import { type AjustePreciosResult, type LimpiezaResult, ZAjustePreciosInput, ZAnulacionInput, ZCompraInput, ZLimpiezaInput, ZTransferenciaInput, ZVentaInput } from "../../domain/index.ts";
+import { type AjustePreciosResult, type LimpiezaResult, ZAjustePreciosInput, ZAnulacionInput, ZCompraInput, ZLimpiezaInput, ZTransferenciaInput, ZVentaInput } from "./domain/index.ts";
 import type { Controllers, InventarioSede, Producto, Venta } from "./schemas.ts";
 
 /** Valida un body con el mismo Zod que usa el cliente; un fallo es 400. */

@@ -13,7 +13,8 @@
   "tasks": {
     "dev": "deno run -A --watch main.ts",
     "start": "deno run -A main.ts",
-    "check": "deno check main.ts src/ tests/",
+    "check": "deno check main.ts src/ scripts/ tests/",
+    "vendor": "deno run -A scripts/vendor.ts",
     "test": "deno test -A tests/",
     "front": "deno task --cwd ../front build"
   },

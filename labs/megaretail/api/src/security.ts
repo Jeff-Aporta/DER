@@ -8,7 +8,7 @@ import { createServer, HttpError, type Database } from "@Jeff-Aporta/DER/src/02-
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
 import { identityServer, permissionsServer } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import type { SessionInfo } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
-import { ENTIDADES } from "../../domain/index.ts";
+import { ENTIDADES } from "./domain/index.ts";
 import type { SecurityPlugins, UsuarioLab, UsuarioSemilla } from "./schemas.ts";
 
 /** Cabecera con la que el front "inicia sesión" (sin contraseña: es un laboratorio). */

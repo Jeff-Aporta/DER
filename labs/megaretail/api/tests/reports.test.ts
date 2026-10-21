@@ -1,7 +1,7 @@
 /** Reportes: ranking por sede, alertas de stock con proveedor principal, clientes fieles y cubo con subtotales. */
 import { assert, assertEquals } from "@std/assert";
 import { appDePrueba, at, call } from "./_setup.ts";
-import type { AlertaStock, ClienteFiel, CuboReport, RankingReport } from "../../domain/index.ts";
+import type { AlertaStock, ClienteFiel, CuboReport, RankingReport } from "../src/domain/index.ts";
 
 Deno.test("ranking: top 3 por sede del último trimestre con porcentaje del total de la sede", async () => {
   const app = await appDePrueba();

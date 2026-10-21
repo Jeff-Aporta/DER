@@ -3,7 +3,7 @@
  * reportes se cuelgan como handlers de los `paths` declarados en el dominio (`this` = el controller).
  */
 import { ServerController, type Database, type ExtraRouteInput, type ServerCtx } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
-import { CategoriaEntity, ClienteEntity, DetalleVentaEntity, InventarioSedeEntity, MovimientoInventarioEntity, ProductoEntity, ProductoProveedorEntity, ProveedorEntity, SedeEntity, VendedorEntity, VentaEntity } from "../../domain/index.ts";
+import { CategoriaEntity, ClienteEntity, DetalleVentaEntity, InventarioSedeEntity, MovimientoInventarioEntity, ProductoEntity, ProductoProveedorEntity, ProveedorEntity, SedeEntity, VendedorEntity, VentaEntity } from "./domain/index.ts";
 import type { Controllers, ProductoProveedor } from "./schemas.ts";
 import { ajustarPrecios, anularVenta, comprar, limpiarProductos, registrarVenta, transferir } from "./flows.ts";
 import { alertasStock, clientesFieles, cuboVentas, rankingVendedores } from "./reports.ts";
