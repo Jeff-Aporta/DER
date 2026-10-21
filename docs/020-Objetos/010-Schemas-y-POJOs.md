@@ -68,7 +68,7 @@ export class Producto extends pojoOf(ProductoSchema) {
 ```
 
 - `pojoOf(schema)` genera un getter/setter casteado por columna y relación. Los datos viven en `this.f`.
-- También se puede escribir a mano (`class X extends Pojo { static override schema = S; get/set ... }`), con los casteos de `cast.ts`.
+- También se puede escribir a mano (`class X extends Pojo { static override schema = S; get/set ... }`), con los casteos de `base.ts` (`toStr`, `toInt`, `toBool`…).
 - `undefined` significa "no definido": `toJSON()` lo omite y un PUT no lo toca. `null` es un valor.
 - API: `fromJSON`, `fromList`, `assign`, `toJSON`, `pkValues`, `pkOnly`, más las acciones JSON ([obj.md](020-Obj-y-acciones-JSON.md)): `insert`, `insertIgnore`, `update`, `delete`, `get`, `replace`.
 - Nombres reservados (no pueden ser columnas): `f`, `assign`, `toJSON`, `pkValues`, `pkOnly`, `insert`, `insertIgnore`, `update`, `delete`, `get`, `replace`.

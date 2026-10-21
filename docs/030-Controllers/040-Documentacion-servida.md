@@ -78,6 +78,8 @@ const { er, class: cls } = diagramPayloads([ProductoEntity, PedidoEntity, LineaE
 });
 ```
 
+Los tipos del payload (`ErSpec`, `ClassSpec`, `ErSpecEntity`, `ErSpecRelation`…) son **los del kit** is-webcomponents, importados por CDN (`@Jeff-Aporta/wc-diagrams/diagram-types.schemas.ts`): lo que DER genera es exactamente lo que el componente lee, ya normalizado (`direction`, `ratio`, ids de relación, `identifying`, `methods`).
+
 En el markdown de `/doc` va como bloque `json` (para agentes); en `/doc?v=1` se puede incrustar
 dentro de `<script type="application/json">` del componente. `entityContractMd` incluye el subgrafo
 de la entidad (ella y sus destinos directos); `apiIndexMd` incluye los dos diagramas completos.

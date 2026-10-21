@@ -2,18 +2,19 @@
 Titulo: Entidades y rutas REST
 Estado: vigente
 Autor:
-tags: [objetos, rutas, rest]
+tags: [objetos, rutas, rest, registro]
 ---
 # Entidades y rutas REST
 
-[← índice](../README.md) · `src/01-objects/entity.ts` · tipos `EntityDef`, `EndpointDef`, `CfgDef`, `Hooks`
+[← índice](../README.md) · `src/01-objects/entity.ts` · `src/01-objects/registry.ts` · tipos `EntityDef`, `EndpointDef`, `CfgDef`, `Hooks`, `SecurityDef`
 
 ```ts
 export const ProductoEntity = defineEntity({
-  pojo: Producto,
+  pojo: Producto,                   // clase; o `schema: ProductoSchema` y el POJO se genera (pojos indirectos: ctrl.pojo())
   singular: "producto",
   plural: "productos",
   name: "producto",                 // opcional (default singular): nombre para `target` en relaciones
+  table: "productos",               // opcional: default el plural (`permisos/roles` → `permisos_roles`), luego el singular
   singularSuffix: undefined,        // segmento extra tras el singular
   pluralSuffix: undefined,          // default "s" SOLO si singular === plural
   listColumns: ["iproducto", "nombre"], // lo que devuelve list() (aplanado)
@@ -25,9 +26,23 @@ export const ProductoEntity = defineEntity({
     importar:     { method: "POST", scope: "many", returns: "list" },
   },
   cfg: { zod: ZProductosCfg },      // configuración de la entidad: habilita plural/cfg (si el server define la tabla de cfg)
+  security: { public: ["list", "get", "doc"] },   // compartida con el client; el server puede sobreescribirla
   itemHooksOnLists: true,           // en las listas, corre también el pre singular por ítem
 });
 ```
+
+## Registro global
+
+`defineEntity` registra la entidad en el **registro global** (`registry`, singleton) por su plural (la ruta plural completa: `productos`, `permisos/roles`, `crisis/s`). Dos entidades con el mismo plural es un error: el consumidor define otro plural. También registra el POJO por `name` (lo que resuelve `target: "nombre"` en las relaciones); dos entidades con el mismo `name` es un error.
+
+```ts
+registry.entity("productos")              // la Entity
+registry.pojo("productos", { nombre: "A" }) // instancia del POJO (indirecta: nunca la clase)
+registry.entities()                       // [{ key, entity }]
+registry.has("productos")
+```
+
+Ahí mismo viven las **puertas de seguridad** (`registry.secure({ extract, protected, permissions })`) y la **sesión singleton** (`registry.session`): ver [seguridad.md](../050-Plugins/010-Seguridad.md).
 
 ## Tabla de rutas
 
@@ -52,12 +67,17 @@ export const ProductoEntity = defineEntity({
 | `docView` | GET | `plural/doc?v=1` | → HTML (la misma doc en la vista iswc) |
 | variante SSE | mismo método | ruta + `/sse` | igual a la acción |
 
+- **`/cfg` y `/doc` existen SOLO en el plural**: los singulares no los tienen.
 - **singular === plural**: el plural usa el sufijo `s` (`crisis/s`, `crisis/s/query`). Con `pluralSuffix`/`singularSuffix` se personaliza (`crisis/todas`, `crisis/una/x`).
   - **Límite de diseño:** una pk cuyo valor es literalmente `"s"` (`GET /crisis/s` → list, no get) colisiona con el plural por defecto. Para no chocar: o el plural usa otro sufijo (`pluralSuffix`), o la pk nunca vale `"s"` (p. ej. UUID).
 - Una ruta puede tener varios segmentos (`singular: "pedido/linea"` → `pedido/linea/1/2`).
 - Al resolver una ruta, el plural tiene prioridad sobre el singular.
 - Segmentos reservados para endpoints: `query`, `sse`, `cfg`, `doc`. Un endpoint tampoco puede llamarse como una acción CRUD.
-- Respuestas: `post`/`postList` → 201; `null` en get/put/delete → 404; `/cfg` sin tabla de cfg en el server → 404; un `pre*` → 400 `{ error }`; error interno → 500 (con el mensaje solo si `exposeErrors`).
+- Respuestas: `post`/`postList` → 201; `null` en get/put/delete → 404; `/cfg` sin tabla de cfg en el server → 404; un `pre*` → 400 `{ error }`; sin sesión en ruta protegida → 401; permiso negado → 403; error interno → 500 (con el mensaje solo si `exposeErrors`).
+
+## Rutas irregulares
+
+Las que no siguen REST (`login`, `permisos`, `reportes/{anio}`) se declaran en JSON (`IrregularRoute`) con `prefix`: `"none"` (default), `"singular"` o `"plural"` de una entidad del plugin (`entity`). En el server llevan `handler`/`sse`; en el client, `plugin.call("ruta", body?, params?)`. Ver [hosts.md](../040-Servidor/020-Hosts.md) y [seguridad.md](../050-Plugins/010-Seguridad.md).
 
 ## Endpoints especiales
 
@@ -65,7 +85,7 @@ La entidad declara el **contrato** (método, scope, retorno y `pre` compartido).
 
 ```ts
 // server
-new ServerController(ProductoEntity, { db, table: "productos", endpoints: {
+new ServerController(ProductoEntity, { db, endpoints: {
   ajustarStock: {
     async handler(p, ctx) { const a = await this.get(p.pkOnly(), ctx); a!.stock! += p.stock!; return this.put(a!, ctx); },
     async sse(p, send) { send("ajustando"); /* ... */ send("listo"); },
@@ -76,4 +96,4 @@ const r = await productos.call<Producto>("ajustarStock", { iproducto: 1, stock: 
 for await (const t of productos.stream("ajustarStock", { iproducto: 1, stock: 5 })) console.log(t);
 ```
 
-`this` es el controller y `ctx` trae `request`, `exec` (transacción), `state`, `include` y `signal`.
+`this` es el controller y `ctx` trae `request`, `exec` (transacción), `state`, `session`, `include` y `signal`.

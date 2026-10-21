@@ -6,7 +6,7 @@ tags: [objetos, obj, json]
 ---
 # `Obj` y acciones JSON de los POJOs
 
-[← índice](../README.md) · `src/00-common/obj.ts` importa `Obj` de `Jeff-Aporta/is-webcomponents` **por URL** (siempre la versión vigente; `deno task sync` la refresca) · contratos en `src/00-common/schemas.ts` § obj
+[← índice](../README.md) · `src/00-common/base.ts` reexporta `Obj` de `Jeff-Aporta/is-webcomponents` **por CDN** (alias `@Jeff-Aporta/wc-base/`, fijado a un SHA en `deno.json`) · contratos en `src/00-common/schemas.ts`
 
 `Obj` reúne las operaciones **virtuales**: transforman JSON **en memoria**, sin leer archivos ni la red. Las **físicas** (`RefObj`: referencias `{ path, query, actions }` que leen otros JSON) viven en iswc y DER no las usa.
 

@@ -181,6 +181,31 @@ Deno.test("arch: ninguna carpeta de src/, tests/ ni specs/ tiene menos de dos el
   assertEquals(pocos, []);
 });
 
+Deno.test("specs: cada spec del mapa de FOUNDATION existe, tiene IDs [W-*] y ningún ID se repite", async () => {
+  const foundation = await read("specs/FOUNDATION.md");
+  const mapa = [...foundation.matchAll(/\]\((foundation\/[^)]+\.md)\)/g)].map((m) => m[1]!).filter((p) => !p.includes("_BRIEF"));
+  assert(mapa.length >= 6, "el mapa de FOUNDATION.md debe listar las specs");
+  const vistos = new Map<string, string>();
+  const dup: string[] = [];
+  for (const rel of ["specs/FOUNDATION.md", ...mapa.map((p) => `specs/${p}`)]) {
+    const text = await read(rel);
+    const ids = [...text.matchAll(/\[(W|HW|HS)-[A-Z]+-\d+\]/g)].map((m) => m[0]);
+    assert(ids.some((id) => id.startsWith("[W-")), `${rel} sin requisitos [W-*]`);
+    for (const id of ids) {
+      const previo = vistos.get(id);
+      if (previo && previo !== rel) dup.push(`${id} en ${previo} y ${rel}`);
+      vistos.set(id, rel);
+    }
+    const propios = new Set<string>();
+    for (const m of text.matchAll(/- \*\*(\[(?:W|HW|HS)-[A-Z]+-\d+\])\*\*/g)) {
+      if (propios.has(m[1]!)) dup.push(`${m[1]} repetido en ${rel}`);
+      propios.add(m[1]!);
+    }
+  }
+  assertEquals(dup, []);
+  await Deno.stat(new URL("specs/W2H.md", ROOT));
+});
+
 Deno.test("arch: sin private/protected con nombre (los miembros privados usan #) salvo los abstractos del contrato", async () => {
   const bad: string[] = [];
   for (const f of SRC) {

@@ -11,6 +11,7 @@ tags: [controllers]
 ## API común (client y server)
 
 ```ts
+pojo(content?)             → P      (instancia del POJO de la entidad; pojos(list) → P[])
 get(pojo, ctx?)            → P | null          post(pojo, ctx?)        → P
 put(pojo, ctx?)            → P | null          delete(pojo, ctx?)      → P | null
 list(ctx?)                 → P[]   (aplanado, listColumns, sin relaciones)
@@ -21,9 +22,11 @@ stream(acción|endpoint, arg?, ctx?) → AsyncIterable<string>   (SSE)
 getCfg(ctx?)               → JSON              putCfg(parcial, ctx?)       → JSON   (config de la entidad, plural/cfg)
 doc(ctx?)                  → string (md autogenerado + secciones `doc`; ver doc-endpoint.md)
 verify(acción, arg, ctx)   → string | null     (ejecuta las verificaciones sin la acción)
+permissions(acción, ctx?)  → AuthDecision      (puerta `permissions()` del registro con la sesión del ctx o la singleton)
+assertPermission(acción)   → valor del permiso o lanza HttpError(403)
 ```
 
-Siempre reciben **pojos**: se aceptan objetos planos, pero se convierten al POJO de la entidad antes de verificar.
+Siempre reciben **pojos**: se aceptan objetos planos, pero se convierten al POJO de la entidad antes de verificar. Los pojos se crean de forma indirecta (`ctrl.pojo(...)`, `registry.pojo(plural, ...)`): no hace falta conocer la clase.
 
 ## Flujo de una acción
 
@@ -47,7 +50,7 @@ Recibe una entrada tipada como unión discriminada por `action` (`ConfirmInput<P
 ```ts
 hooks: {
   preConfirm(input, ctx) {
-    if (!ctx.state.user) return "Sesión requerida";                       // aplica a todo
+    if (!ctx.session) return "Sesión requerida";                          // aplica a todo
     if (input.action === "post" && input.arg.nombre === "x") return "Nombre inválido"; // arg: Producto
     if (input.action === "putCfg" && "secreto" in input.cambios) return "No editable";
     if (input.action === "endpoint" && input.name === "importar") { /* ... */ }
@@ -68,6 +71,10 @@ actions: {
 }
 ```
 
+### Sesión y permisos desde el controller
+
+`ctx.session` es la sesión del request (la pone el Router con `extract()`); fuera de un request (cliente, scripts) se usa `registry.session`, el singleton. `permissions(accion, ctx?, { method })` consulta la puerta `permissions()` del registro con esa sesión, el id de la acción y el nombre de la entidad; sin puerta, permitido. Ver [seguridad.md](../050-Plugins/010-Seguridad.md).
+
 ## ClientController
 
 ```ts
@@ -80,39 +87,42 @@ new ClientController(ProductoEntity, {
 });
 ```
 
-400 → `ValidationError`, otros ≥ 400 → `HttpError`, 404 en get/put/delete → `null` (en `/cfg` → `NotFoundError`: el server no la expone). `request()` es la utilidad de bajo nivel para fetch personalizados.
+400 → `ValidationError`, otros ≥ 400 → `HttpError`, 404 en get/put/delete → `null` (en `/cfg` → `NotFoundError`: el server no la expone). `request()` es la utilidad de bajo nivel para fetch personalizados (la misma `clientRequest` que usan los plugins).
 
 ## ServerController
 
 ```ts
 new ServerController(ProductoEntity, {
-  db,                               // Database (de server/sqlite, server/pg o server/pglite)
-  table: "productos",
+  db,                               // Database (de server/sqlite, pg, pglite, mysql o mssql)
+  table: "productos",               // opcional: default la de la entidad (plural)
   identifierCase: "lower",          // "preserve" | "lower" | "upper" para tabla y columnas (default: el del db)
   columnNames: { nombre: "nom_prod" },
   computed: { total: "{precio} * {stock}" },  // SQL a mano solo para columnas virtuales
   relations: { categoria: { controller: () => otroCtrl } }, // opcional
   defaultOrder: "-creado",
   hooks, actions, sse, endpoints,
+  security: { public: ["list"] },   // opcional: sobreescribe la de la entidad
   cfg: { table: "productos_cfg", columns: { pk: "id", json: "jcfg", fecha: "fhultact" } }, // opcional: sobreescribe la de la base (ver sse-y-cfg.md)
 });
 ```
 
-- **Relaciones:** las resuelve el controller registrado para el POJO destino (`db.controllerFor`). Cada controller se registra en su `db` al construirse.
-- **Columnas calculadas:** un string con `{campo}` se convierte en la referencia correcta según el motor, el alias y el caso. También aceptan `{ pg, sqlite }` por motor o una función `({ col, alias, engine }) => sql`.
+- **Relaciones:** las resuelve el controller registrado para el POJO destino (`db.controllerFor(pojo | plural)`). Cada controller se registra en su `db` al construirse.
+- **Columnas calculadas:** un string con `{campo}` se convierte en la referencia correcta según el motor, el alias y el caso. También aceptan `{ pg, sqlite, mysql, mssql }` por motor o una función `({ col, alias, engine }) => sql`.
 - **Transacciones:** las listas abren una transacción. Para compartir una entre controllers: `db.transaction(async (tx) => { await a.post(x, tx); await b.postList(ys, tx); })`.
-- **Utilidades públicas** para acciones a medida: `buildSelect`, `buildWhere`, `relationExpr`, `pkWhere`, `col`, `dbCol`, `fieldExpr`, `rows`, `select`, `selectOne`, `insertOne`, `updateOne`, `deleteOne`, `inTransaction`, `loadCfg`, `saveCfg`, `cfgTable`, `hasCfg`, `seed`.
+- **Escrituras según el motor:** `returning` (PG, SQLite), `output inserted/deleted` (MSSQL) o insertar/actualizar y releer por pk (MySQL). El resultado es idéntico.
+- **Utilidades públicas** para acciones a medida: `buildSelect`, `buildWhere`, `pkWhere`, `col`, `dbCol`, `fieldExpr`, `toDb`, `rows`, `select`, `selectOne`, `insertOne`, `updateOne`, `deleteOne`, `insertDeep`, `updateDeep`, `deleteDeep`, `inTransaction`, `loadCfg`, `saveCfg`, `cfgTable`, `hasCfg`, `hasStream`, `seed`, `seedTable`, `syncSchema`, `nextSequence`. Lo demás es `#` privado.
 
 ## Router
 
-Detalles anidados en lectura y escritura (`getPropagation` / `setPropagation`): ver [propagacion.md](020-Propagacion-y-multi-db.md). Seguridad por endpoint (`security`) con los plugins de identidad y permisos: ver [seguridad.md](../050-Plugins/010-Seguridad.md).
+Detalles anidados en lectura y escritura (`getPropagation` / `setPropagation`): ver [propagacion.md](020-Propagacion-y-multi-db.md). Seguridad por endpoint (`security`) con las puertas del registro y los plugins JSON: ver [seguridad.md](../050-Plugins/010-Seguridad.md).
 
 El Router arma la **tabla de rutas** (una por acción, con id `METHOD:/ruta`) que registran los hosts (Deno/Bun/Node, Azure Functions, Cloudflare Workers). Ver [hosts.md](../040-Servidor/020-Hosts.md): `expose`, rutas irregulares (`routes`), `guard` y `cors`.
 
 ```ts
 const router = createRouter([productos, categorias], {
   basePath: "/api",
-  context: async (req) => ({ state: { user: await auth(req) } }),
+  context: async (req) => ({ state: { tenant: await tenantDe(req) } }),
+  plugins: [auth, permisos],                 // createServer(...)
   exposeErrors: false,
 });
 Deno.serve(router.fetch);                    // o: (await router.handle(req)) ?? next()

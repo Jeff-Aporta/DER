@@ -6,7 +6,7 @@ tags: [servidor, hosts]
 ---
 # Hosts: Azure Functions, Cloudflare Workers, Deno/Bun/Node
 
-[← índice](../README.md) · tabla: `src/02-controllers/server/router.ts` + `routes.ts` · hosts: `src/02-controllers/server/hosts/<host>/index.ts` · tipos en `src/02-controllers/server/schemas.ts`
+[← índice](../README.md) · tabla: `src/02-controllers/server/router.ts` + `routes.ts` · hosts: `src/02-controllers/server/hosts/<host>.ts` · tipos en `src/02-controllers/server/schemas.ts`
 
 Mismo modelo que `registrarEntidad` de ISS: **cada acción definida en el controller es una ruta propia**, con parámetros `{pk}`, id estable `METHOD:/ruta` (para seguridad por ruta), sin duplicados ni ambigüedades. El `Router` construye esa **tabla de rutas** una vez y cada host la registra a su manera:
 
