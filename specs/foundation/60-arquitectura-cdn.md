@@ -18,7 +18,7 @@
 
 ## 3. HOW fuerte
 
-- **[HS-ARQ-01]** `deno.json`: `exports` por entrada, `imports` con los alias, tareas `test`, `check`, `example`; `compilerOptions` estrictas (`strict`, `noImplicitAny`, `noImplicitOverride`, `noUncheckedIndexedAccess`, `noImplicitReturns`, `noUnusedLocals`, `noUnusedParameters`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `useUnknownInCatchVariables`, `exactOptionalPropertyTypes`). `package.json` solo para `npm install` de `zod`, `kysely`, `@electric-sql/pglite` y `@std/assert`.
+- **[HS-ARQ-01]** `deno.json`: `exports` por entrada, `imports` con los alias, tareas `test`, `check`, `example`; `compilerOptions` estrictas (`strict`, `noImplicitAny`, `noImplicitOverride`, `noUncheckedIndexedAccess`, `noImplicitReturns`, `noUnusedLocals`, `noUnusedParameters`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `useUnknownInCatchVariables`, `exactOptionalPropertyTypes`). Solo Deno: no hay `package.json`, `node_modules` ni `tsconfig`; las dependencias npm las resuelve Deno desde `deno.json`. El editor usa el LSP de Deno (`.vscode/settings.json` con `deno.enable`).
 - **[HS-ARQ-02]** Guardianes: `tests/arch/arch.test.ts` (todo lo de `W-ARQ-01`, `03`, `05`, `06`) y `tests/arch/hermeticidad.test.mjs` (`W-ARQ-04`).
 
 ## 6. Pruebas

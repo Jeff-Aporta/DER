@@ -102,8 +102,8 @@ export const permissionsServer: ServerPluginDef = Obj.insert(permissions, {
   },
   security: {
     /** Puerta `permissions`: decide con la matriz del usuario de la sesión y el verbo de la petición. */
-    async permissions(this: ServerPlugin, info: SessionInfo | null, action: string, _entity: string | null, pctx: PermissionContext): Promise<AuthDecision> {
-      if (!info) return { allowed: false, reason: "Requiere autenticación" };
+    permissions(this: ServerPlugin, info: SessionInfo | null, action: string, _entity: string | null, pctx: PermissionContext): Promise<AuthDecision> {
+      if (!info) return Promise.resolve({ allowed: false, reason: "Requiere autenticación" });
       return this["can"](info, action, pctx.method ?? "GET");
     },
   },

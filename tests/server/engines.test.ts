@@ -15,9 +15,8 @@ const fakeMysql = () => mysqlDatabase({ getConnection: () => { throw new Error("
 const fakeMssql = () => mssqlDatabase({ tarn: { Pool: class {}, options: { min: 0, max: 1 } }, tedious: { Connection: class {}, Request: class {}, TYPES: {}, connectionFactory: () => { throw new Error("sin conexión en el test"); } } } as never);
 
 function compiled(db: Database) {
-  let productos: ServerController<any>;
-  const categorias = new ServerController(CategoriaEntity, { db, table: "categorias", register: false, relations: { productos: { controller: () => productos } } });
-  productos = new ServerController(ProductoEntity, { db, table: "productos", computed: { total: "{precio} * {stock}" }, relations: { categoria: { controller: () => categorias } }, register: false });
+  const productos: ServerController<any> = new ServerController(ProductoEntity, { db, table: "productos", computed: { total: "{precio} * {stock}" }, relations: { categoria: { controller: () => categorias } }, register: false });
+  const categorias: ServerController<any> = new ServerController(CategoriaEntity, { db, table: "categorias", register: false, relations: { productos: { controller: () => productos } } });
   const q = productos.buildSelect({ include: { categoria: true }, where: { nombre: { contains: "caf" }, precio: { gt: 1 } }, limit: 10, offset: 20 }).query.compile(db.kysely);
   return { q, productos, categorias };
 }

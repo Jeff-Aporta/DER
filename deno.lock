@@ -99,14 +99,6 @@
       "npm:@electric-sql/pglite@0.3.16",
       "npm:kysely@0.28.17",
       "npm:zod@4.6.7"
-    ],
-    "packageJson": {
-      "dependencies": [
-        "npm:@electric-sql/pglite@0.3.16",
-        "npm:@jsr/std__assert@1.0.19",
-        "npm:kysely@0.28.17",
-        "npm:zod@4.6.7"
-      ]
-    }
+    ]
   }
 }

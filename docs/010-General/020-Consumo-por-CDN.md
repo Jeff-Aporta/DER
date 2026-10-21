@@ -77,12 +77,11 @@ Instala `zod` (y `kysely` en el server) con npm, y vendoriza o descarga los arch
 ## Desarrollo local (este repo)
 
 ```bash
-npm install          # node_modules: zod, kysely, pglite, @std/assert
-deno task check      # deno check de todas las entradas, examples y tests
+deno task check      # Deno baja zod, kysely, pglite y @std/assert a su caché: no hay npm ni node_modules
+deno task test       # unit + SQLite + PGlite + SQL de MySQL/MSSQL + HTTP + plugins + guardianes
 deno task test
 ```
 
-`package.json` declara `zod` como peer obligatoria y `kysely` y `@electric-sql/pglite` como peers **opcionales**: un consumidor npm instala solo las de su dimensión.
 
 ## Reglas del contrato CDN (las vigila `tests/arch/arch.test.ts`)
 

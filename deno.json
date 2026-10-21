@@ -1,6 +1,6 @@
 {
   "name": "@jeff-aporta/der",
-  "version": "0.2.0",
+  "version": "0.0.0",
   "exports": {
     ".": "./index.ts",
     "./common": "./src/00-common/index.ts",
@@ -19,7 +19,6 @@
     "./plugins/permissions": "./src/03-plugins/permissions/index.ts",
     "./plugins/permissions/client": "./src/03-plugins/permissions/client.ts"
   },
-  "nodeModulesDir": "manual",
   "imports": {
     "@Jeff-Aporta/DER/": "./",
     "@Jeff-Aporta/wc-base/": "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/",
