@@ -156,6 +156,10 @@
     }
   },
   "remote": {
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@70e7e10ef91056214ffd92c708b3e9ba8f31d6b9/labs/megaretail/api/src/domain/domain.ts": "3ba87e75a049586384e7f5c64888d885cc0d4a54667aca4e5cb38db9426d1f3a",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@70e7e10ef91056214ffd92c708b3e9ba8f31d6b9/labs/megaretail/api/src/domain/index.ts": "973a72aa9cbd5a3b47840c6effa5a123068e926c6d2a2b23045aabc380980cf1",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@70e7e10ef91056214ffd92c708b3e9ba8f31d6b9/labs/megaretail/api/src/domain/schemas.ts": "11f58872256570216fae6db1c0c256a9eec8f7797b48fc45471d0a6764c83e9a",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@70e7e10ef91056214ffd92c708b3e9ba8f31d6b9/labs/megaretail/api/src/vendor.ts": "1c04117ea78b007a203d2c72de0f369a6ce851ed22b862e005d11d2ecf333c73",
     "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/index.ts": "732ea3589591a50fb3e937b6030959ac98648241069ce5bab4641701a92cb0cc",
     "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/00-common/base.ts": "ff095011985dab06186f983cb9dab366ddc583463f28360fff5239a8617b48ce",
     "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/00-common/index.ts": "d3c161480080b4bbdafe9aae331ceee7d4394939e01b245c7d93227d95bc9f1c",

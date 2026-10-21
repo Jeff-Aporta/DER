@@ -7,13 +7,16 @@
 <title>MegaRetail · Laboratorio DER</title>
 <meta name="description" content="MegaRetail Global S.A. — app de web components (kit iswc) generada desde el DER: grillas, formularios y flujos a partir de JSON.">
 
+<!-- 0) Import map: DER cliente + zod + dominio MegaRetail en UN vendor servido por CDN desde labs/megaretail/api (pineado por SHA). -->
+<script type="importmap">{ "imports": { "@megaretail/vendor": "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@70e7e10ef91056214ffd92c708b3e9ba8f31d6b9/labs/megaretail/api/vendor/megaretail.js" } }</script>
+
 <!-- Tema antes del primer pintado (claro por defecto). Script plano. -->
 <script src="./dist/boot.js"></script>
 <link rel="stylesheet" href="./dist/app.css">
 
 <!-- 1) Loader del kit por CDN pineado (un solo SHA en toda la app). -->
 <script type="module" src="https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@a1df39adb9e421de874dd624901b72daa9e25e5c/dist/cdn/core/loader.min.js"></script>
-<!-- 2) La app: un solo bundle (componentes mr-* + cliente DER + zod). Espera al loader, carga los tags del kit y monta. -->
+<!-- 2) La app: un solo bundle (componentes mr-*; DER, zod y el dominio llegan del vendor por CDN). Espera al loader, carga los tags del kit y monta. -->
 <script type="module" src="./dist/app.js"></script>
 </head>
 <body>

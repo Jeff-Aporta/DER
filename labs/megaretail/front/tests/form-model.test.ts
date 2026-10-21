@@ -1,6 +1,6 @@
 /** Generador de formularios: derivación desde el schema DER, personalización por JSON (Obj.insert), valores y validación Zod. */
 import { assert, assertEquals, assertMatch } from "@std/assert";
-import { ProductoEntity, ProductoSchema, VentaEntity, VentaSchema } from "../../domain/index.ts";
+import { ProductoEntity, ProductoSchema, VentaEntity, VentaSchema } from "@megaretail/vendor";
 import { aplicarUi, camposVisibles, cuerpoDe, isoALocal, localAIso, modeloDeSchema, plantilla, validarConZod } from "../src/js/core/form-model.ts";
 
 Deno.test("modelo base: tipos → controles, pk autoincrement oculta al crear, enum → select, relación one → selector", () => {

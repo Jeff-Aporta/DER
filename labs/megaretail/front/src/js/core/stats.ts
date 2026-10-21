@@ -2,7 +2,7 @@
  * stats.ts — valor de un indicador (`StatUi`) a partir del resultado de un reporte: consulta `Obj.getValue` + formato.
  * Sin DOM: lo usa `<mr-stats>` y las pruebas.
  */
-import { Obj } from "@Jeff-Aporta/DER/index.ts";
+import { Obj } from "@megaretail/vendor";
 import type { StatUi } from "../consts/schemas/ui.schemas.ts";
 
 const moneda = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });

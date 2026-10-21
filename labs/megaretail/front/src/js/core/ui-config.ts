@@ -3,7 +3,7 @@
  * `ui/flujos.json` y `ui/reportes.json`, con caché. Un JSON de entidad que no existe es `{}` (todo derivado del schema).
  */
 import { type AppUi, type EntidadUi, type FlujoUi, type ReporteUi, ZAppUi, ZEntidadUi, ZFlujosUi, ZReportesUi } from "../consts/schemas/ui.schemas.ts";
-import type { z } from "zod";
+import type { z } from "@megaretail/vendor";
 
 let base = "./ui/";
 const cache = new Map<string, Promise<unknown>>();

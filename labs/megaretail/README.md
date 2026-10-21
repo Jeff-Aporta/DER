@@ -6,9 +6,9 @@ rutas locales hacia `src/` de DER ni hacia el kit; se puede copiar la carpeta a 
 
 ```
 labs/megaretail/
-├── domain/      el DER (schemas JSON + entidades + Zod de los flujos) compartido por api y front
-├── api/         Deno + DER server + SQLite (node:sqlite) · flujos transaccionales · reportes · sirve el front en /app
-└── front/       web components mr-* (estándar iswc-foundation) · todo generado desde JSON
+├── api/         Deno + DER server + SQLite (node:sqlite) · dueño del DER del lab (src/domain/) · flujos · reportes ·
+│                vendor/megaretail.js (DER cliente + zod + dominio, para el navegador) · sirve el front en /app
+└── front/       web components mr-* (estándar iswc-foundation) · todo generado desde JSON · consume el vendor del api por CDN
 ```
 
 ## Levantar
@@ -22,7 +22,7 @@ cd ../api && deno task dev                      # http://localhost:8787/app  (fr
 
 - `deno task dev` crea `megaretail.db` (SQLite) con tablas, permisos, usuarios y datos de muestra la primera vez.
   `DB=:memory: deno task dev` para una base efímera; `PORT=9000` cambia el puerto.
-- `deno task front` (en `api/`) reconstruye el front; `deno task dev` (en `front/`) lo reconstruye al guardar.
+- `deno task vendor` (en `api/`) reconstruye `vendor/megaretail.js`; `deno task front` (en `api/`) reconstruye el front; `deno task dev` (en `front/`) lo reconstruye al guardar.
 - Documentación del API generada por DER: `http://localhost:8787/api/doc?v=1`.
 
 ## Probar
@@ -36,7 +36,7 @@ Prueba manual end to end (con `deno task dev` arriba): abrir `http://localhost:8
 **Catálogo → Productos → Nuevo** (formulario generado, modal de categoría), **Operaciones → Registrar venta** (carrito;
 pide una cantidad absurda y verás el 400 de stock sin que quede nada escrito), **Reportes → Cubo**.
 
-## El DER (`domain/domain.ts`)
+## El DER (`api/src/domain/domain.ts`)
 
 Once entidades definidas una sola vez con `defineSchema`/`defineEntity`: `sede`, `proveedor`, `categoria`, `producto`,
 `producto_proveedor` (N:M con `costo_compra`), `inventario_sede`, `vendedor`, `cliente`, `venta`, `detalle_venta` y
@@ -111,19 +111,33 @@ Componentes `mr-*` (prefijo del lab) sobre el kit `iswc` (`src/js/components/mr/
   Zod del path en el cliente) y tabla/indicadores desde JSON.
 
 Pines: DER `dd6d4b733c95c42c7e652a3cf78b0e957f2e530d`; `wc-base`/`wc-diagrams` (raw) `de72fa69…` (el que trae el
-`deno.json` de DER); kit en el navegador (`dist/cdn` + íconos) `a1df39adb9e421de874dd624901b72daa9e25e5c`.
+`deno.json` de DER); kit en el navegador (`dist/cdn` + íconos) `a1df39adb9e421de874dd624901b72daa9e25e5c`; vendor del api
+`70e7e10ef91056214ffd92c708b3e9ba8f31d6b9`.
+
+## Vendor del api por CDN
+
+El dominio vive sólo en `api/src/domain/`. El front no lo importa por ruta: `api/src/vendor.ts` (núcleo y cliente de DER,
+plugins `identity`/`permissions`, `z` y el dominio) se bundlea a `api/vendor/megaretail.js` y se versiona en git. El front
+importa todo de `@megaretail/vendor`:
+
+- En el navegador, el import map de `front/index.html` lo apunta a
+  `https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@<sha>/labs/megaretail/api/vendor/megaretail.js`.
+- Para `deno check`/`deno test`, `front/deno.json` lo apunta a `…@<sha>/labs/megaretail/api/src/vendor.ts`.
+
+Al cambiar el dominio: `deno task vendor` en `api/`, commit y push, y luego actualizar el SHA en `front/deno.json` y
+`front/index.html` (mismo SHA en ambos) y reconstruir el front.
 
 ## Hallazgos sobre DER (no se parchó la librería)
 
-- El kit no se puede importar como TS en el navegador: el front se **bundlea** (`deno bundle --platform browser`) con DER y
-  zod adentro; es el único paso de build.
+- El kit no se puede importar como TS en el navegador: el front se **bundlea** (`deno bundle --platform browser`) dejando
+  `@megaretail/vendor` como externo; DER, zod y el dominio llegan en un solo vendor por CDN (un solo `registry`).
 - El pin `f4356a41…` del kit (el de `docView` de DER) no trae `iswc-app-shell`/`iswc-app-nav` y su tarball excede el
   límite de jsDelivr (503 intermitentes): el front usa `a1df39ad…`, que lo corrige.
 - `query()` no devuelve el total de filas: el paginador del front no muestra "de N" (desactiva "siguiente" cuando la
   página viene incompleta). Un `count` opcional en `QuerySpec` lo resolvería.
 - No hay agregaciones (GROUP BY/ROLLUP) en `query()`: los reportes agregan en el handler sobre `query` paginada.
 - El `ClientController` no tiene `call()` para los `paths` de la entidad: se usa `createClient(plugin).call(...)`
-  (el dominio se expone también como `PluginDef` en `domain.ts` para eso).
+  (el dominio se expone también como `PluginDef` en `api/src/domain/domain.ts` para eso).
 - Las rutas irregulares del router cuelgan del `basePath` (`/api/app`); `main.ts` añade el alias `/app` en la raíz.
 - Las relaciones `many` del formulario (selección múltiple) viajan en el cuerpo pero el server no propaga la escritura
   salvo con `setPropagation`; en el lab se muestran como demostración del selector.

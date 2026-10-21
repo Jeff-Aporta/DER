@@ -2,7 +2,7 @@
  * componentes.schemas.ts — props de cada componente `mr-*` y tipos estructurales de los elementos del kit que la app toca
  * (uno por línea). Los elementos del kit se tipan por lo que se usa de ellos: nada de `as any`.
  */
-import type { QuerySpec } from "@Jeff-Aporta/DER/index.ts";
+import type { QuerySpec } from "@megaretail/vendor";
 import type { CampoUi, ColumnaUi, FlujoUi, FormModel, ReporteUi, SeccionUi, StatUi } from "./ui.schemas.ts";
 
 export type ValorEl = HTMLElement & { value: string };

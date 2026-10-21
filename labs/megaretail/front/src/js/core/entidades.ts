@@ -2,7 +2,7 @@
  * entidades.ts — resolución de una entidad para la UI: su `Entity` de DER, su JSON de UI, su título y la función de
  * etiqueta de filas; y la de las entidades destino de sus relaciones (para grillas y selectores).
  */
-import type { Entity } from "@Jeff-Aporta/DER/index.ts";
+import type { Entity } from "@megaretail/vendor";
 import type { EntidadUi } from "../consts/schemas/ui.schemas.ts";
 import { entidad, entidadPorNombre } from "./der.ts";
 import { etiquetaFila, relacionesUno } from "./grid-model.ts";

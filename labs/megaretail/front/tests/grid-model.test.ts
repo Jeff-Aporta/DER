@@ -1,6 +1,6 @@
 /** Columnas del grid derivadas del schema + JSON de UI, filas con id sintético y etiquetas de relaciones. */
 import { assert, assertEquals } from "@std/assert";
-import { InventarioSedeEntity, InventarioSedeSchema, ProductoEntity, ProductoSchema } from "../../domain/index.ts";
+import { InventarioSedeEntity, InventarioSedeSchema, ProductoEntity, ProductoSchema } from "@megaretail/vendor";
 import { aplanar, columnasDe, etiquetaFila, filaGrid, includeDe, ROW_ID } from "../src/js/core/grid-model.ts";
 import { valorStat } from "../src/js/core/stats.ts";
 

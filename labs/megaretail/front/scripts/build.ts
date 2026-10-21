@@ -30,7 +30,7 @@ async function scss(): Promise<void> {
 }
 
 async function bundle(entrada: string, salida: string): Promise<void> {
-  const cmd = new Deno.Command(Deno.execPath(), { args: ["bundle", "--platform", "browser", "--minify", "-o", ruta(new URL(salida, dist)), ruta(new URL(entrada, raiz))], cwd: ruta(raiz), stdout: "inherit", stderr: "inherit" });
+  const cmd = new Deno.Command(Deno.execPath(), { args: ["bundle", "--platform", "browser", "--minify", "--external", "@megaretail/vendor", "-o", ruta(new URL(salida, dist)), ruta(new URL(entrada, raiz))], cwd: ruta(raiz), stdout: "inherit", stderr: "inherit" });
   const { success } = await cmd.output();
   if (!success) throw new Error(`deno bundle falló: ${entrada}`);
 }

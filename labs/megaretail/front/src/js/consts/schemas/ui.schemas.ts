@@ -2,8 +2,7 @@
  * ui.schemas.ts — Zod y tipos (uno por línea) de TODO el JSON de UI del lab: `ui/app.json`, `ui/entidades/*.json`,
  * `ui/flujos.json` y `ui/reportes.json`. Todo lo que personaliza la app nace de estos JSON; el código es genérico.
  */
-import { z } from "zod";
-import type { Schema } from "@Jeff-Aporta/DER/index.ts";
+import { type Schema, z } from "@megaretail/vendor";
 
 /** Controles que sabe pintar el generador de formularios. */
 export const CONTROLES = ["texto", "numero", "entero", "select", "radio", "fecha", "fechahora", "hora", "bool", "textarea", "json", "relacion", "lista", "oculto"] as const;

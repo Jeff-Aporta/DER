@@ -1,9 +1,6 @@
 /** Los JSON de UI son válidos (Zod) y coherentes con el DER: entidades, paths de flujos/reportes y relaciones existen. */
 import { assert, assertEquals } from "@std/assert";
-import { registry } from "@Jeff-Aporta/DER/index.ts";
-import { identity, permissions } from "@Jeff-Aporta/DER/src/03-plugins/client.ts";
-import { createClient } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
-import { megaretail } from "../../domain/index.ts";
+import { createClient, identity, megaretail, permissions, registry } from "@megaretail/vendor";
 import { ZAppUi, ZEntidadUi, ZFlujosUi, ZReportesUi } from "../src/js/consts/schemas/ui.schemas.ts";
 import { archivoEntidad } from "../src/js/core/ui-config.ts";
 import { APP_TAGS, esTagApp, KIT_TAGS } from "../src/js/kit-tags.ts";

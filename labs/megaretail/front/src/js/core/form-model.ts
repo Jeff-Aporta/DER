@@ -5,7 +5,7 @@
  * convierte un campo en radio, lo oculta, le pone un valor por defecto, agrega campos extra…).
  * También convierte valores formulario ↔ API (fechas locales ↔ ISO 8601 UTC, números) y valida con el Zod de DER.
  */
-import { ISO_DATETIME, Obj, type ColumnDef, type Schema, type SchemaZod, zodMessage } from "@Jeff-Aporta/DER/index.ts";
+import { ISO_DATETIME, Obj, type ColumnDef, type Schema, type SchemaZod, zodMessage } from "@megaretail/vendor";
 import type { CampoOverride, CampoUi, Control, FormModel, Opcion } from "../consts/schemas/ui.schemas.ts";
 
 /** `id_sede` → `Id sede`, `razon_social` → `Razon social`, `fecha_venta` → `Fecha venta`. */

@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "exports": "./src/js/main.ts",
   "imports": {
+    "@megaretail/vendor": "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@70e7e10ef91056214ffd92c708b3e9ba8f31d6b9/labs/megaretail/api/src/vendor.ts",
     "@Jeff-Aporta/DER/": "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/",
     "@Jeff-Aporta/wc-base/": "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/",
     "@Jeff-Aporta/wc-diagrams/": "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/components/diagrams/schemas/",

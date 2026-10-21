@@ -4,7 +4,7 @@
  */
 import { crearComponente, define, emitir, html } from "../../base/componente.ts";
 import type { FormListaProps } from "../../consts/schemas/componentes.schemas.ts";
-import type { Schema } from "@Jeff-Aporta/DER/index.ts";
+import type { Schema } from "@megaretail/vendor";
 import { aplicarUi, modeloDeSchema } from "../../core/form-model.ts";
 
 const MrFormLista = crearComponente<FormListaProps>(import.meta.url, "mr-form-lista", { campo: null, filas: [] }, (root, props, host) => {

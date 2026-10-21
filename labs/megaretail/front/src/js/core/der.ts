@@ -3,14 +3,10 @@
  * `permissions` (roles) armados con `createClient` contra `/api`. Todas las peticiones llevan la cabecera `x-usuario`
  * del usuario seleccionado (sesión sin contraseña del lab). Las entidades se buscan por su plural en el registro de DER.
  */
-import { registry, type Entity } from "@Jeff-Aporta/DER/index.ts";
-import { type ClientController, type ClientPlugin, createClient } from "@Jeff-Aporta/DER/src/02-controllers/client/index.ts";
-import { identity, permissions } from "@Jeff-Aporta/DER/src/03-plugins/client.ts";
-import { megaretail } from "../../../../domain/index.ts";
+import { type ClientController, type ClientPlugin, createClient, type Entity, identity, megaretail, permissions, registry, z } from "@megaretail/vendor";
 import { estado } from "./estado.ts";
 import type { Perfil, UsuarioLab } from "../consts/schemas/ui.schemas.ts";
 import { ZUsuarioLab } from "../consts/schemas/ui.schemas.ts";
-import { z } from "zod";
 
 /** Cabecera de sesión del lab. */
 export const CABECERA_USUARIO = "x-usuario";

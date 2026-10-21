@@ -4,7 +4,7 @@
  */
 import { avisar, crearComponente, define, html, mensajeDe } from "../../base/componente.ts";
 import type { GridEl, ReportProps } from "../../consts/schemas/componentes.schemas.ts";
-import type { Schema } from "@Jeff-Aporta/DER/index.ts";
+import type { Schema } from "@megaretail/vendor";
 import { dominio } from "../../core/der.ts";
 import { estado, puede } from "../../core/estado.ts";
 import { aplicarUi, modeloDeSchema } from "../../core/form-model.ts";

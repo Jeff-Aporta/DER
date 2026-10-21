@@ -3,7 +3,7 @@
  * de UI de la entidad (`grid.columnas`, `grid.ocultar`, `grid.orden`), y utilidades de filas: id sintético para pks
  * compuestas, aplanado de relaciones incluidas (`categoria.nombre`) y etiqueta de una fila (plantilla de UI).
  */
-import type { ColumnDef, Entity, Schema } from "@Jeff-Aporta/DER/index.ts";
+import type { ColumnDef, Entity, Schema } from "@megaretail/vendor";
 import type { ColumnaUi, EntidadUi } from "../consts/schemas/ui.schemas.ts";
 import { etiquetaDe, plantilla } from "./form-model.ts";
 
