@@ -77,9 +77,8 @@ Instala `zod` (y `kysely` en el server) con npm, y vendoriza o descarga los arch
 ## Desarrollo local (este repo)
 
 ```bash
-deno task check      # Deno baja zod, kysely, pglite y @std/assert a su caché: no hay npm ni node_modules
+deno task check      # deno check de entradas, examples y tests (Deno baja zod, kysely y pglite a su caché: sin npm ni node_modules)
 deno task test       # unit + SQLite + PGlite + SQL de MySQL/MSSQL + HTTP + plugins + guardianes
-deno task test
 ```
 
 
