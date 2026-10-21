@@ -77,7 +77,9 @@ Ahí mismo viven las **puertas de seguridad** (`registry.secure({ extract, prote
 
 ## Rutas irregulares
 
-Las que no siguen REST (`login`, `permisos`, `reportes/{anio}`) se declaran en JSON (`IrregularRoute`) con `prefix`: `"none"` (default), `"singular"` o `"plural"` de una entidad del plugin (`entity`). En el server llevan `handler`/`sse`; en el client, `plugin.call("ruta", body?, params?)`. Ver [hosts.md](../040-Servidor/020-Hosts.md) y [seguridad.md](../050-Plugins/010-Seguridad.md).
+Los paths que no siguen REST (`IrregularPath`) se declaran en JSON. **Dentro de la entidad** (`paths`) cuelgan de su `plural` (default) o `singular`, y con `pks: true` llevan las pks (`usuario/{iusuario}/sufijo`; el handler las recibe en `input.pks`): `paths: { resumen: { method: "GET", path: "resumen" } }` → `productos/resumen`. En el server se implementan en `config.paths` (`this` = el controller) y en el client se llaman con `plugin.call("resumen", body?, pks?)` o con `fetch`. Los que no pertenecen a ninguna entidad (`irregularPaths` de un plugin, `routes` del router) van con su ruta completa. Ver [hosts.md](../040-Servidor/020-Hosts.md) y [seguridad.md](../050-Plugins/010-Seguridad.md).
+
+`exposed: false` no publica ninguna ruta de la entidad; `administrable: false` publica solo lecturas (list, get, query, doc, getCfg). Ambos son explícitos en las entidades de los plugins.
 
 ## Endpoints especiales
 

@@ -3,6 +3,8 @@
  * REST (singular/plural/rutas/hooks), registro global y query spec. Reusable tal cual en front y back.
  * Dependencias: sólo `zod`.
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 export * from "@Jeff-Aporta/DER/src/00-common/index.ts";
 export * from "@Jeff-Aporta/DER/src/01-objects/meta.ts";

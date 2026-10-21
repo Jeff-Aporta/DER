@@ -10,6 +10,8 @@
  * const router = createRouter(ctrls, { basePath: "/api", cors: true });   // basePath = routePrefix de host.json
  * registerAzure(app, router);
  * ```
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import type { Router } from "@Jeff-Aporta/DER/src/02-controllers/server/router.ts";
 import { joinPath } from "@Jeff-Aporta/DER/src/02-controllers/server/routes.ts";

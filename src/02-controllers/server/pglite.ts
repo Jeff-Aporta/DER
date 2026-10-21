@@ -2,6 +2,8 @@
  * Dimensión PGlite: PostgreSQL real embebido (WASM), sin servidor. Ideal para tests y apps locales.
  * Dependencias: `kysely` + `zod` + `@electric-sql/pglite`. Reusa el motor `postgres`.
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { PGlite } from "@electric-sql/pglite";
 import { PostgresDialect, type PostgresPool, type PostgresPoolClient } from "kysely";

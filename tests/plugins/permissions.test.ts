@@ -95,7 +95,7 @@ Deno.test("identidad: usuario inactivo no inicia sesión y sus tokens vigentes d
     await call(router, "PUT", "usuario/eva", { token: admin, body: { bactivo: false } });
     const r = await call(router, "GET", "categorias", { token: eva });
     assertEquals([r.status, r.data.error], [401, "Usuario inactivo"]);
-    const l = await call(router, "POST", "login", { body: { usuario: "eva", password: "eva-clave-123" } });
+    const l = await call(router, "POST", "usuarios/login", { body: { usuario: "eva", password: "eva-clave-123" } });
     assertEquals([l.status, l.data.error], [401, "Usuario o contraseña inválidos"]);
   } finally {
     await cerrar();

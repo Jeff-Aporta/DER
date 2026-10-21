@@ -7,6 +7,8 @@
  * - `plural/doc` → ese markdown compuesto, en texto plano.
  * - `plural/doc?v=1` → HTML con `<iswc-md-docs-vault>` (kit is-webcomponents por CDN, pineado por SHA).
  * Mismo patrón de página que `ISS-AyudasCPIA/docs/index.html`.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";
 import { resolvePojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";

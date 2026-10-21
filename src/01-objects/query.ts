@@ -16,11 +16,14 @@
  *   include: { categoria: true, detalles: { producto: true } },
  * }
  * ```
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import { resolvePojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import { FIELD_OPS, type FieldOps, type Include, type NormalizedOrder, type OrderBy, type PageLimits, type QuerySpec, type SchemaMeta, ZQuerySpec } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 
+/** `orderBy` normalizado: `"-campo"` → desc, `"campo"`/`"+campo"` → asc, `{ field, dir }` tal cual. */
 export function normalizeOrder(o: OrderBy | undefined): NormalizedOrder[] {
   if (o == null) return [];
   const list = Array.isArray(o) ? o : [o];
@@ -56,6 +59,7 @@ export function validateQuery(meta: SchemaMeta, q: QuerySpec, limits: PageLimits
   return validateWhere(meta, q.where, "where") ?? validateInclude(meta, q.include, "include");
 }
 
+/** Valida un `where` (campos, relaciones, operadores, formas de `in`/`nin`/`between`); mensaje con la ruta (`where.$and[0]`) o `null`. */
 export function validateWhere(meta: SchemaMeta, w: unknown, path: string): string | null {
   if (w === undefined) return null;
   if (w == null || typeof w !== "object" || Array.isArray(w)) return `${path} debe ser un objeto`;
@@ -89,6 +93,7 @@ export function validateWhere(meta: SchemaMeta, w: unknown, path: string): strin
   return null;
 }
 
+/** Valida un `include` (solo relaciones, anidado); mensaje con la ruta o `null`. */
 export function validateInclude(meta: SchemaMeta, inc: unknown, path: string): string | null {
   if (inc === undefined) return null;
   if (inc == null || typeof inc !== "object" || Array.isArray(inc)) return `${path} debe ser un objeto`;

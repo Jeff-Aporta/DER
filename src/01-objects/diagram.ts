@@ -7,6 +7,8 @@
  * - one  → la entidad origen guarda un destino (N:1): fromCard "many", toCard "one".
  * - many → el destino guarda la entidad origen (1:N): fromCard "one", toCard "many".
  * - Una relación marcada como propagación se emite con dashStyle "dashed" (ER) y kind "dependency" (clases).
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import type { ClassPayload, ClassSpec, ClassSpecClass, ClassSpecRelation, ColumnDef, DiagramOptions, ErCardinality, ErPayload, ErSpec, ErSpecAttribute, ErSpecEntity, ErSpecRelation, RelationDef, SchemaMeta } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";

@@ -1,4 +1,8 @@
-/** Resolución de un schema JSON: pks, columnas persistidas/virtuales, relaciones, secuencias y validaciones de definición. */
+/**
+ * Resolución de un schema JSON: pks, columnas persistidas/virtuales, relaciones, secuencias y validaciones de definición.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
+ */
 import type { ColumnDef, Schema, SchemaMeta, SequenceDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 
 /** Identidad tipada: conserva los literales del JSON para inferir los tipos de los campos. */
@@ -24,6 +28,7 @@ export function sequenceOf(name: string, c: ColumnDef): (SequenceDef & { base: n
   return { ...def, base, as };
 }
 
+/** Metadata de un schema (cacheada): valida nombres, pks, relaciones y secuencias; lanza con el detalle si algo está mal definido. */
 export function schemaMeta(schema: Schema): SchemaMeta {
   const cached = metaCache.get(schema);
   if (cached) return cached;

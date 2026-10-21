@@ -2,15 +2,19 @@
  * Motores incluidos: `postgres` (PG y PGlite), `sqlite` (node:sqlite, better-sqlite3, sqlite3), `mysql` (mysql2) y
  * `mssql` (tedious). El contrato `Engine` está en `./schemas.ts`; el ServerController arma la consulta sólo con estas
  * primitivas y Kysely compila la sintaxis y los parámetros. Un motor nuevo es otra constante aquí.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { type Kysely, type RawBuilder, sql } from "kysely";
 import type { ColumnDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import type { Engine, IdentifierCase, OutField, ResolvedIndex } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 
+/** `Date` → ISO; cualquier otro valor tal cual. */
 export function dateToIso(v: unknown): unknown {
   return v instanceof Date ? v.toISOString() : v;
 }
 
+/** JSON.parse si es texto parseable; si no, el valor tal cual (lectura de json/relaciones). */
 export function parseMaybe(v: unknown): unknown {
   if (typeof v !== "string") return v;
   try {
@@ -20,6 +24,7 @@ export function parseMaybe(v: unknown): unknown {
   }
 }
 
+/** Aplica `identifierCase` a un identificador. */
 export function applyCase(name: string, c: IdentifierCase): string {
   if (c === "lower") return name.toLowerCase();
   return c === "upper" ? name.toUpperCase() : name;
@@ -62,6 +67,7 @@ function toDbCommon(c: ColumnDef, v: unknown): unknown {
 
 // ===================================================================================== PostgreSQL (y PGlite)
 
+/** Motor PostgreSQL (también PGlite): `returning`, jsonb, `row_to_json`/`json_agg`, `ilike`, `CREATE SEQUENCE`. */
 export const postgres: Engine = {
   name: "pg",
   returning: "returning",
@@ -122,6 +128,7 @@ function sqlitePairs(alias: string, fields: OutField[]): RawBuilder<unknown> {
   }));
 }
 
+/** Motor SQLite: `returning`, `json_object`/`json_group_array`, booleanos 0/1, secuencias en `_sequences`. */
 export const sqlite: Engine = {
   name: "sqlite",
   returning: "returning",
@@ -174,6 +181,7 @@ function mysqlPairs(alias: string, fields: OutField[]): RawBuilder<unknown> {
   return sql.join(fields.map((f) => sql`${sql.lit(f.name)}, ${sql.ref(`${alias}.${f.name}`)}`));
 }
 
+/** Motor MySQL/MariaDB: sin `RETURNING` (relectura), `json_object`/`json_arrayagg`, `last_insert_id` para secuencias. */
 export const mysql: Engine = {
   name: "mysql",
   returning: "none",
@@ -240,6 +248,7 @@ function mssqlProjection(alias: string, fields: OutField[]): RawBuilder<unknown>
   }));
 }
 
+/** Motor SQL Server: `OUTPUT`, `FOR JSON PATH`, `OFFSET/FETCH`, `CREATE SEQUENCE`, catálogo `sys.*` en vez de `IF NOT EXISTS`. */
 export const mssql: Engine = {
   name: "mssql",
   returning: "output",

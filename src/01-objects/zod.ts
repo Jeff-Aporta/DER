@@ -8,6 +8,8 @@
  *   zodOf(Producto).molde   molde de `Obj.insert`: `null` → null si la columna es nullable; si no, se quita
  *
  * Una columna puede refinar su tipo con `zod: z.email()`; en columnas `json` el `zod` es su molde.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import { z } from "zod";
 import { isRequiredOnInsert, schemaMeta } from "@Jeff-Aporta/DER/src/01-objects/meta.ts";
@@ -64,6 +66,7 @@ export function columnZod(name: string, c: ColumnDef): z.ZodType {
 
 const cache = new WeakMap<Schema, SchemaZod>();
 
+/** Los cinco Zod de un schema (`row`, `insert`, `update`, `pk`, `molde`), cacheados por schema. */
 export function schemaZod(schema: Schema): SchemaZod {
   const cached = cache.get(schema);
   if (cached) return cached;
@@ -96,6 +99,7 @@ export function schemaZod(schema: Schema): SchemaZod {
   return r;
 }
 
+/** Los Zod del schema de una clase POJO. */
 export function zodOf(pojo: PojoClass<any>): SchemaZod {
   return schemaZod(pojo.schema);
 }

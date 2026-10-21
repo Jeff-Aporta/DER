@@ -13,6 +13,8 @@
  * request saca su sesión (`ctx.session`, `ctx.state.session`); una ruta `protected` exige sesión válida y, si además
  * evalúa `permissions`, consulta `permissions(sesión, acción, entidad)`; el valor efectivo viaja en `ctx.state.permiso`.
  * Los plugins (`createServer`) aportan sus puertas; entran al registro sólo donde el consumidor no definió la suya.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { encodeEvent, TextChannel } from "@Jeff-Aporta/DER/src/00-common/sse.ts";
 import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
@@ -20,7 +22,7 @@ import type { CanFn, Include, RouteMatch, SessionInfo } from "@Jeff-Aporta/DER/s
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
 import { apiIndexMd, composeFromSources, vaultHtml } from "@Jeff-Aporta/DER/src/02-controllers/server/doc.ts";
-import { controllerRouteSpecs, controllerSecurity, joinPath, literalCount, matchTemplate, routeId, routeKey, routeSecurity } from "@Jeff-Aporta/DER/src/02-controllers/server/routes.ts";
+import { controllerRouteSpecs, controllerSecurity, entityPathRoutes, joinPath, literalCount, matchTemplate, routeId, routeKey, routeSecurity } from "@Jeff-Aporta/DER/src/02-controllers/server/routes.ts";
 import type { CorsOptions, DocSheet, ExtraRoute, ExtraRouteInput, RouteDef, RouteInfo, RouterOptions, ServerCtx, ServerPlugin } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 
 /** `?v=1` (o cualquier valor salvo `0`/`false`) pide la vista HTML del mismo endpoint `/doc`. `?v=` vacío cuenta como truthy. */
@@ -41,13 +43,16 @@ function json(status: number, body: unknown): Response {
   return body === undefined ? new Response(null, { status: 204 }) : Response.json(body, { status });
 }
 
+/** Tabla de rutas + ejecución común (contexto, seguridad, guard, CORS, errores) para todo host. */
 export class Router {
+  /** Segmentos del `basePath` (`["api"]`). */
   readonly basePath: string[];
   /** Tabla de rutas (relativas al basePath): lo que registra cada host. */
   readonly routes: RouteDef[];
   readonly #cors: Required<CorsOptions> | null;
   /** Controllers propios + los que aportan los plugins. */
   readonly controllers: ServerController<any>[];
+  /** Plugins armados con `createServer` que aportan controllers, rutas y puertas. */
   readonly plugins: ServerPlugin[];
 
   constructor(controllers: ServerController<any>[], readonly options: RouterOptions = {}) {
@@ -94,7 +99,7 @@ export class Router {
         };
         push({ ...info, handle }, ctrl.entity.name);
       }
-      for (const extra of ctrl.config.routes ?? []) {
+      for (const extra of [...entityPathRoutes(ctrl), ...(ctrl.config.routes ?? [])]) {
         for (const def of this.#extraDefs(extra, ctrl, ctrl.entity.name)) push(def, ctrl.entity.name);
       }
     }
@@ -324,6 +329,7 @@ export class Router {
   }
 }
 
+/** Router listo para `Deno.serve(router.fetch)` o para registrar en un host. */
 export function createRouter(controllers: ServerController<any>[], options?: RouterOptions): Router {
   return new Router(controllers, options);
 }

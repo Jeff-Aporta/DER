@@ -1,6 +1,8 @@
 /**
  * Conexión (Kysely) + motor + registro de controllers (para resolver relaciones entre entidades, por POJO o por plural).
  * Agnóstico: las fábricas concretas viven en `server/sqlite.ts`, `pg.ts`, `pglite.ts`, `mysql.ts` y `mssql.ts`.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { Kysely } from "kysely";
 import type { Pojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
@@ -22,9 +24,13 @@ export function findController<P extends Pojo>(key: PojoClass<P> | string): Serv
   return registeredControllers().find((c) => c.entity.pluralPath.join("/") === key) as ServerController<P> | undefined;
 }
 
+/** Conexión Kysely + motor + registro de los controllers de esa base (y tabla de cfg por defecto). */
 export class Database {
+  /** Instancia de Kysely (ejecutor por defecto). */
   readonly kysely: Kysely<any>;
+  /** Motor (primitivas SQL) de esta base. */
   readonly engine: Engine;
+  /** Caso por defecto de tablas y columnas para sus controllers. */
   readonly identifierCase: IdentifierCase;
   /** Tabla de configuración de las entidades (`plural/cfg`) por defecto para sus controllers. */
   readonly cfg: CfgTableDef | undefined;
@@ -37,6 +43,7 @@ export class Database {
     this.cfg = opts.cfg;
   }
 
+  /** Registra un controller en esta base y en el registro global (lo hace el constructor del controller). */
   register(ctrl: ServerController<any>): void {
     this.#controllers.set(ctrl.entity.pojo, ctrl);
     globalRegistry.set(ctrl.entity.pojo, ctrl);
@@ -50,6 +57,7 @@ export class Database {
     return c as ServerController<P>;
   }
 
+  /** Controllers registrados en esta base. */
   get controllers(): ServerController<any>[] {
     return [...this.#controllers.values()];
   }
@@ -64,6 +72,7 @@ export class Database {
     return this.kysely.transaction().execute((trx) => fn({ exec: trx, inTransaction: true }));
   }
 
+  /** Cierra la conexión. */
   destroy(): Promise<void> {
     return this.kysely.destroy();
   }

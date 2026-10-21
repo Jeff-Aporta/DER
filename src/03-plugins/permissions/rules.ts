@@ -7,6 +7,8 @@
  *   no lo trae, cae al siguiente.
  * - Decisión (la ruta ya exigió sesión): sin valor o `{ "protected": true }` pasa; `false` niega; `true`, un objeto o un
  *   texto pasan y el valor viaja al handler (`ctx.state.permiso`).
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permissions.md
  */
 import type { AuthDecision } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 

@@ -1,10 +1,16 @@
 /**
  * Tabla de rutas: lo que cada host registra (Azure `app.http`, Workers, `Deno.serve`...).
  * Cada acción del controller es una ruta propia con parámetros `{pk}`, id estable `METHOD:/ruta`, sin duplicados ni ambigüedades.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
-import type { ActionRouteSpec } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import type { ActionRouteSpec, ExtraRoute, ExtraRouteInput } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import type { ExposedName, HttpMethod, RouteSecurity, SecurityDef, SecurityInput } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import { routePath } from "@Jeff-Aporta/DER/src/02-controllers/plugin.ts";
+
+/** Acciones que escriben: una entidad `administrable: false` no las publica (solo lectura por API). */
+const WRITES: ReadonlySet<string> = new Set(["post", "put", "delete", "postList", "putList", "deleteList", "putCfg"]);
 
 /** Une segmentos de ruta sin barras repetidas (`["a/", "/b"]` → `a/b`). */
 export function joinPath(...parts: string[]): string {
@@ -40,9 +46,10 @@ export function literalCount(template: string): number {
   return joinPath(template).split("/").filter((p) => p && !/^\{\w+\}$/.test(p)).length;
 }
 
-/** Rutas de las acciones de un controller, derivadas de su entidad y filtradas por `expose`. */
+/** Rutas de las acciones de un controller, derivadas de su entidad y filtradas por `exposed`, `administrable` y `expose`. */
 export function controllerRouteSpecs(ctrl: ServerController<any>): ActionRouteSpec[] {
   const e = ctrl.entity;
+  if (e.def.exposed === false) return [];
   const S = e.singularPath.join("/");
   const L = e.pluralPath.join("/");
   const pks = e.meta.pks;
@@ -73,26 +80,52 @@ export function controllerRouteSpecs(ctrl: ServerController<any>): ActionRouteSp
   if (ctrl.hasCfg()) add("getCfg", "GET", `${L}/cfg`, false);
   if (ctrl.hasCfg()) add("putCfg", "PUT", `${L}/cfg`, false);
   specs.push({ name: "doc", method: "GET", path: `${L}/doc`, pkParams: [], sse: false });
+  const readOnly = e.def.administrable === false ? specs.filter((s) => !WRITES.has(s.name)) : specs;
   const expose = ctrl.config.expose;
-  if (!expose) return specs;
+  if (!expose) return readOnly;
   const allowed = new Set<ExposedName>(expose);
-  return specs.filter((s) => allowed.has(s.name));
+  return readOnly.filter((s) => allowed.has(s.name));
+}
+
+/** Los `paths` declarados en la entidad, ya colgados de su singular/plural, con la implementación de `config.paths` (`this` = el controller). */
+export function entityPathRoutes(ctrl: ServerController<any>): ExtraRoute<ServerController<any>>[] {
+  if (ctrl.entity.def.exposed === false) return [];
+  const out: ExtraRoute<ServerController<any>>[] = [];
+  for (const [name, p] of Object.entries(ctrl.entity.def.paths ?? {})) {
+    const impl = ctrl.config.paths?.[name];
+    if (!impl?.handler && !impl?.sse) throw new Error(`"${ctrl.entity.name}": el path "${name}" no tiene handler ni sse en el server (config.paths)`);
+    const pks = ctrl.entity.meta.pks;
+    const withPks = (input: ExtraRouteInput): ExtraRouteInput => (p.pks ? { ...input, pks: pks.map((k) => input.params[k] ?? "") } : input);
+    const route: ExtraRoute<ServerController<any>> = { method: p.method, path: routePath(p, ctrl.entity), security: p.security, id: p.id ?? undefined, prefix: "none" };
+    const handler = impl.handler;
+    const sse = impl.sse;
+    if (handler) route.handler = function (input, ctx) { return handler.call(this, withPks(input), ctx); };
+    if (sse) route.sse = function (input, send, ctx) { return sse.call(this, withPks(input), send, ctx); };
+    out.push(route);
+  }
+  return out;
 }
 
 const PUBLIC: RouteSecurity = { protected: false, permissions: false };
+
+/** Acción de seguridad de `/cfg`: una sola para GET y PUT (`CFG:/plural`), salvo que el registro la personalice. */
+export function cfgAction(ctrl: ServerController<any>): string {
+  return `CFG:/${ctrl.entity.pluralPath.join("/")}`;
+}
 
 /** Seguridad de una acción según `config.security` del controller (default: la `security` de la entidad). */
 export function controllerSecurity(ctrl: ServerController<any>, name: string): RouteSecurity {
   const sec: boolean | SecurityDef | undefined = ctrl.config.security ?? ctrl.entity.def.security;
   if (!sec) return PUBLIC;
-  if (sec === true) return name === "doc" ? PUBLIC : { protected: true, permissions: true };
+  const cfg = name === "getCfg" || name === "putCfg" ? { action: cfgAction(ctrl) } : {};
+  if (sec === true) return name === "doc" ? PUBLIC : { protected: true, permissions: true, ...cfg };
   if (sec.public?.includes(name)) return PUBLIC;
   // la documentación es pública salvo que se proteja explícitamente (sirve para contextualizar a los agentes)
   if (name === "doc" && !(Array.isArray(sec.protected) && sec.protected.includes("doc"))) return PUBLIC;
   const isProtected = sec.protected === undefined || sec.protected === true || sec.protected.includes(name);
   if (!isProtected) return PUBLIC;
   const action = sec.actions?.[name];
-  return { protected: true, permissions: sec.permissions ?? true, ...(action ? { action } : {}) };
+  return { protected: true, permissions: sec.permissions ?? true, ...cfg, ...(action ? { action } : {}) };
 }
 
 /** Seguridad de una ruta irregular: `"protected"` sólo sesión; `true` sesión + permisos; detalle con `{ protected, permissions, action }`. */

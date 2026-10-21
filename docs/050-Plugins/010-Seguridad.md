@@ -62,18 +62,20 @@ Orden en cada request: `extract` → (ruta protegida) `protected` → (con `perm
 
 ## Plugin de identidad (`src/03-plugins/identity/`)
 
-| Ruta | Seguridad | Qué hace |
-|---|---|---|
-| `POST /login` `{ usuario, password }` | pública | `{ token, tipo: "Bearer", expira, usuario }` · 401 «Usuario o contraseña inválidos» · 429 bloqueado |
-| `DELETE /logout` | sesión | revoca la sesión del token (204); el mismo token responde 401 después |
-| `DELETE /logout/all` | sesión | revoca **todas** las sesiones del usuario y devuelve `{ revocadas }` |
-| `GET /sessions` | sesión | sesiones vigentes con IP, dispositivo, SO, navegador, último acceso y `actual` |
-| `PUT /password` `{ actual, nueva }` | sesión | exige la actual, aplica la política, revoca las demás sesiones |
-| `GET /events` | sesión | auditoría filtrable por `iusuario`, `accion`, `desde`, `hasta`, `limit`, `offset` |
-| `GET /.well-known/jwks.json` | pública | llave pública (solo con `jwt.alg: "ES256"`) |
-| CRUD + list `usuario` / `usuarios` | sesión + permisos | alta/edición de usuarios; `password` se recibe y nunca se guarda ni devuelve |
+Las acciones de sesión son **paths de la entidad `usuarios`**: las que aún no conocen al usuario cuelgan del plural (`usuarios/…`); las del usuario de la sesión cuelgan del singular **sin pks** (`usuario/…`: el usuario es el del token). Solo el JWKS es un path irregular del plugin (ruta estándar).
 
-- **Usuarios:** `identity_usuarios (iusuario string pk, nombre, email, bactivo, jdata, creado, hash)`. `hash` es una columna `hidden`: no se selecciona, no se retorna y no se puede pedir ni filtrar en `query()` (400).
+| Path (op) | Ruta | Seguridad | Qué hace |
+|---|---|---|---|
+| `login` | `POST usuarios/login` `{ usuario, password }` | pública | `{ token, tipo: "Bearer", expira, usuario }` · 401 «Usuario o contraseña inválidos» · 429 bloqueado |
+| `logout` | `DELETE usuario/logout` | sesión | revoca la sesión del token (204); el mismo token responde 401 después |
+| `logoutAll` | `DELETE usuario/logout/all` | sesión | revoca **todas** las sesiones del usuario y devuelve `{ revocadas }` |
+| `sessions` | `GET usuario/sessions` | sesión | sesiones vigentes con IP, dispositivo, SO, navegador, último acceso y `actual` |
+| `changePassword` | `PUT usuario/password` `{ actual, nueva }` | sesión | exige la actual, aplica la política, revoca las demás sesiones |
+| `events` | `GET usuarios/events` | sesión | auditoría filtrable por `iusuario`, `accion`, `desde`, `hasta`, `limit`, `offset` |
+| `jwks` (irregular) | `GET /.well-known/jwks.json` | pública | llave pública (solo con `jwt.alg: "ES256"`) |
+| CRUD + list `usuario` / `usuarios` | REST | sesión + permisos | `usuarios` es `exposed` y `administrable`; `password` se recibe y nunca se guarda ni devuelve |
+
+- **Usuarios:** `identity_usuarios (iusuario string pk, nombre, email, bactivo, jdata, creado, hash)`. `hash` es una columna `hidden`: no se selecciona, no se retorna y no se puede pedir ni filtrar en `query()` (400). `sesiones`, `intentos` y `eventos` son `exposed: false`: solo se tocan por los paths de arriba.
 - **Hash:** PBKDF2-SHA256 (100 000 iteraciones por defecto, el máximo de Workers) sobre `HMAC-SHA256(pepper, contraseña)`; `pepper` separado del `secret` (si falta, se usa el `secret`). Sal aleatoria de 16 bytes. Formato: `pbkdf2-sha256$<iter>$<sal>$<hash>`. Comparación en tiempo constante.
 - **JWT HS384** (o **ES256** con `jwt: { alg, kid, privateJwk, publicJwk }` y `trustedIssuers` para aceptar tokens de otros emisores vía JWKS) con `sub` (iusuario), `jti` (sesión), `iat`, `exp`, `iss?` y `nombre?`. La verificación solo acepta el algoritmo configurado (un `alg: none` se rechaza), distingue «Token vencido» de «Token inválido: …» y exige la sesión `identity_sesiones` vigente y el usuario activo. **El rol no viaja en el token:** se lee en cada request.
 - **`extract`:** `Authorization: Bearer <token>` → `{ id: sub, claims }`; sin cabecera → `null` (anónimo).
@@ -92,11 +94,12 @@ permisos_accionesrol   (irol pk, iaccion pk, valor json)                iaccion 
 
 ### Vector de acciones
 
-1. Roles del usuario **vigentes** (`finicial ≤ ahora < ffinal`), **activos** y de roles del **grupo configurado**. El principal va primero. Sin rol vigente, el usuario es el rol base.
-2. Efectivo(R) = (base − ids de R) + R. Primero el id exacto y luego el comodín `"*"`. Un valor partido por verbo (`{ "GET": true, "PUT": false }`) aporta solo el del método.
-3. Decisión: sin valor o `{ "protected": true }` pasa (o se niega con `denyByDefault`); `false` → 403; `true`, un objeto o un texto pasan y el valor viaja en `ctx.state.permiso` (p.ej. `{ "descuentoMax": 10 }`).
+1. **Rol base** (`rolBase`, default `USR`, personalizable): define los valores por defecto de TODOS los roles. Un rol particular solo escribe sus diferencias: cargar en un rol un valor igual al del base (ya vigente o en la misma carga) es un 400 «Acciones que repiten el valor del rol base …».
+2. Roles del usuario **vigentes** (`finicial ≤ ahora < ffinal`), **activos** y de roles del **grupo configurado**. El principal va primero. Sin rol vigente, el usuario es el rol base.
+3. Efectivo(R) = (base − ids de R) + R. Primero el id exacto y luego el comodín `"*"`. Un valor partido por verbo (`{ "GET": true, "PUT": false }`) aporta solo el del método.
+4. Decisión: sin valor o `{ "protected": true }` pasa (o se niega con `denyByDefault`); `false` → 403; `true`, un objeto o un texto pasan y el valor viaja en `ctx.state.permiso` (p.ej. `{ "descuentoMax": 10 }`).
 
-Los ids son los de la tabla de rutas: `DELETE:/producto/{iproducto}`, `POST:/productos/query`…
+Los ids son los de la tabla de rutas: `DELETE:/producto/{iproducto}`, `POST:/productos/query`… **`/cfg` es una sola acción para GET y PUT: `CFG:/productos`.** Con `cfg.aliases` (`{ "DELETE:/producto/{iproducto}": "productos.borrar" }`) el consumidor personaliza el nombre que se quema en la BD: la puerta, el catálogo, el perfil y la carga usan el alias.
 
 ### Rutas
 
@@ -143,14 +146,15 @@ createServer(permissionsServer, { db, cfg: { grupo: "API", actions: ["auditoria"
 ```
 src/03-plugins/<plugin>/
   schemas.ts   tipos (uno por línea) y Zod compartidos (sólo zod: seguro para el cliente)
-  index.ts     el JSON TRANSVERSAL (`PluginDef`): entities (schema, singular/plural, table, security, hooks…), routes (irregulares) y ops del cliente
-  server.ts    `Obj.insert(transversal, { ...particularidades })`: handlers de las rutas, hidden/actions/expose por entidad, security (puertas), cfg (Zod), seed, setup
+  index.ts     el JSON TRANSVERSAL (`PluginDef`): entities (schema, singular/plural, table, exposed, administrable, security, hooks, paths…) e irregularPaths
+  server.ts    `Obj.insert(transversal, { ...particularidades })`: handlers de los paths, hidden/actions/expose por entidad, security (puertas), cfg (Zod), seed, setup
 ```
 
-- **El client y el server hablan el mismo idioma:** el server no es otro JSON, es el transversal con un push encima. Lo que el JSON define de la entidad (`EntityDef`) va a la entidad; lo demás (`hidden`, `actions`, `expose`, `sse`, `handler`/`sse` de endpoints…) a la config del `ServerController`.
+- **El client y el server hablan el mismo idioma:** el server no es otro JSON, es el transversal con un push encima. Lo que el JSON define de la entidad (`EntityDef`) va a la entidad; lo demás (`hidden`, `actions`, `expose`, `sse`, `handler`/`sse` de endpoints y paths…) a la config del `ServerController`.
+- **`exposed` y `administrable` explícitos por entidad:** `exposed: false` no publica ninguna ruta de la entidad; `administrable: false` publica solo lecturas (list, get, query, doc, getCfg): así el consumidor decide qué entidades del plugin se administran por CRUD (y el DER de permisos puede dar permisos sobre ellas).
 - **Pojos indirectos:** `plugin.controllers.usuarios.pojo({ iusuario: "ana" })` o `registry.pojo("usuarios", ...)`; el plugin nunca exporta clases.
-- **Rutas irregulares:** `{ method, path, prefix?: "singular" | "plural" | "none", entity?, security?, zod?, returns? }`. El client las llama con `plugin.call("ruta", body?, params?)` (valida `zod` antes del fetch); el server les pone `handler(input, ctx)` / `sse(input, send, ctx)` con `this` = el plugin armado.
-- **`ops`:** funciones con `this` = el plugin armado (`ClientPlugin` o `ServerPlugin`); el server puede sobreescribir las del cliente.
+- **Paths irregulares** (`IrregularPath`: `{ method, path, prefix?, pks?, security?, zod?, returns?, ops? }`): dentro de una entidad (`paths`) cuelgan de su `plural` (default) o `singular`, y con `pks: true` llevan las pks (`usuario/{iusuario}/sufijo`, el handler las recibe en `input.pks`); a nivel de plugin (`irregularPaths`) no pertenecen a ninguna entidad. El client los llama con `plugin.call("path", body?, pks?)` (valida `zod` antes del fetch); el server les pone `handler(input, ctx)` / `sse(input, send, ctx)` con `this` = el plugin armado.
+- **`ops` de cada path:** funciones con `this` = el plugin armado (`ClientPlugin` o `ServerPlugin`) que quedan como métodos (`auth.login()`); las del `index.ts` son de cliente, las del `server.ts` de server, y el server puede sobreescribir las del cliente.
 - `tests/arch/arch.test.ts` vigila la estructura y que ninguna entrada de cliente alcance nada del servidor (ni por `import type`).
 
 ### Clientes
@@ -167,7 +171,7 @@ await permisos.load({ roles: [...], acciones: [...] });         // PUT /permisos
 await permisos.catalog();                                       // GET /permisos?catalogo=1
 await permisos.controllers.roles.query({ include: { acciones: true } });    // CRUD/list del DER
 await auth.controllers.usuarios.post({ iusuario: "beto", password: "..." });
-await auth.logout();                                            // DELETE /logout, olvida el token y la sesión singleton
+await auth.logout();                                            // DELETE usuario/logout, olvida el token y la sesión singleton
 ```
 
 ## Escribir un plugin propio
@@ -175,12 +179,18 @@ await auth.logout();                                            // DELETE /logou
 ```ts
 export const auditoria: PluginDef = {
   name: "auditoria",
-  entities: { registros: { singular: "auditoria/registro", plural: "auditoria/registros", schema: {...}, security: true } },
-  routes: { resumen: { method: "GET", path: "auditoria/resumen", security: "protected", prefix: "none" } },
-  ops: { resumen(this: ClientPlugin) { return this.call("resumen"); } },
+  entities: {
+    registros: {
+      singular: "auditoria/registro", plural: "auditoria/registros", schema: {...}, security: true,
+      exposed: true, administrable: false,                                   // solo lectura por CRUD
+      paths: { resumen: { method: "GET", path: "resumen", security: "protected", ops: { resumen(this: ClientPlugin) { return this.call("resumen"); } } } },   // auditoria/registros/resumen
+    },
+  },
+  irregularPaths: { salud: { method: "GET", path: "auditoria/salud" } },     // no pertenece a una entidad
 };
 export const auditoriaServer: ServerPluginDef = Obj.insert(auditoria, {
-  routes: { resumen: { async handler(this: ServerPlugin) { return this.controllers.registros.query({ pageSize: 10 }); } } },
+  entities: { registros: { paths: { resumen: { async handler(this: ServerPlugin) { return this.controllers.registros.query({ pageSize: 10 }); } } } } },
+  irregularPaths: { salud: { handler: () => ({ ok: true }) } },
   security: { permissions(this: ServerPlugin, info, action) { /* otra capa más */ return { allowed: true }; } },
   async seed(this: ServerPlugin) { /* datos iniciales */ },
 });

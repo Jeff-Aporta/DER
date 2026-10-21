@@ -3,6 +3,8 @@
  * Dependencias: `kysely` + `zod`. Importa una dimensión (`server/sqlite.ts`, `pg.ts`, `pglite.ts`, `mysql.ts`, `mssql.ts`)
  * para obtener la fábrica de conexión; cada una reexporta todo este módulo.
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 export * from "@Jeff-Aporta/DER/src/02-controllers/index.ts";
 export * from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";

@@ -17,6 +17,7 @@ import { registerAzure } from "@Jeff-Aporta/DER/src/02-controllers/server/hosts/
 import { defineWorker } from "@Jeff-Aporta/DER/src/02-controllers/server/hosts/cloudflare.ts";
 import { buildControllers, CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
+import { defineEntity, defineSchema, registry } from "@Jeff-Aporta/DER/index.ts";
 
 async function setup() {
   const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
@@ -262,6 +263,27 @@ Deno.test("cloudflare: defineWorker crea el router una vez por isolate y lo rein
     const r2 = await worker.fetch(new Request("http://w/api/doc"), { PREFIX: "/api" }, ctx);
     assertEquals([r1.status, r2.status, calls], [200, 200, 2]);
     assertEquals((await worker.fetch(new Request("http://w/otra"), { PREFIX: "/api" }, ctx)).status, 404);
+  } finally {
+    await db.destroy();
+  }
+});
+
+Deno.test("paths de entidad: prefijo singular/plural, con pks, y entidad administrable: false (solo lectura) o no expuesta", async () => {
+  const db = sqliteDatabase();
+  try {
+    const Lectura = defineEntity({ schema: defineSchema({ columns: { id: { type: "int", pk: true }, nombre: { type: "string" } } }), singular: "lectura", plural: "lecturas", administrable: false, paths: { resumen: { method: "GET", path: "resumen" }, saludo: { method: "GET", path: "saludo", prefix: "singular", pks: true } } });
+    const Oculta = defineEntity({ schema: defineSchema({ columns: { id: { type: "int", pk: true } } }), singular: "oculta", plural: "ocultas", exposed: false });
+    new ServerController(Lectura, { db, paths: { resumen: { handler() { return { total: this.entity.plural }; } }, saludo: { handler({ pks }) { return { hola: pks?.[0] }; } } } });
+    new ServerController(Oculta, { db });
+    await db.seed();
+    const router = createRouter(db.controllers, { basePath: "/api" });
+    const ids = router.routes.map((r) => r.id);
+    assert(ids.includes("GET:/lecturas") && ids.includes("GET:/lectura/{id}") && ids.includes("GET:/lecturas/doc"));
+    assert(!ids.includes("POST:/lectura") && !ids.includes("DELETE:/lectura/{id}") && !ids.includes("PUT:/lecturas"), "administrable: false no publica escrituras");
+    assert(!ids.some((id) => id.includes("oculta")), "exposed: false no publica nada");
+    assertEquals(await (await router.fetch(new Request("http://t/api/lecturas/resumen"))).json(), { total: "lecturas" });
+    assertEquals(await (await router.fetch(new Request("http://t/api/lectura/7/saludo"))).json(), { hola: "7" });
+    assertThrows(() => defineEntity({ schema: defineSchema({ columns: { id: { type: "int", pk: true } } }), singular: "mal", plural: "malos", paths: { x: { method: "GET", path: "x", pks: true } } }) && createRouter([new ServerController(registry.entity("malos"), { db, paths: { x: { handler: () => 1 } } })]), Error, "singular");
   } finally {
     await db.destroy();
   }

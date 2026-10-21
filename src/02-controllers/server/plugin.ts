@@ -1,15 +1,17 @@
 /**
  * `createServer(json, { db, cfg, env })`: arma el lado servidor de un plugin JSON. El JSON del server es el transversal
  * con las particularidades inyectadas (`Obj.insert`): por cada entidad un `ServerController` en `db` (lo transversal va a
- * la entidad, el resto a la config del controller: hidden, actions, expose, sse, handlers de endpoints...), las rutas
- * irregulares con su `handler`/`sse` (`this` = el plugin), las puertas de seguridad enlazadas (`plugin.security`), la
- * configuración validada con `cfg` (Zod) y con `"env:NOMBRE"` resuelto, `seed()` y las `ops` como métodos.
+ * la entidad, el resto a la config del controller: hidden, actions, expose, sse, handlers de endpoints y de `paths`...),
+ * los `irregularPaths` con su `handler`/`sse` (`this` = el plugin), las puertas de seguridad enlazadas (`plugin.security`),
+ * la configuración validada con `cfg` (Zod) y con `"env:NOMBRE"` resuelto, `seed()` y las `ops` de los paths como métodos.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";
 import { ENTITY_KEYS, pluginEntity, routePath } from "@Jeff-Aporta/DER/src/02-controllers/plugin.ts";
 import { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
-import type { ExtraRoute, ServerControllerConfig, ServerEndpoint, ServerPlugin, ServerPluginDef, ServerPluginRuntime } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import type { ExtraRoute, PathImpl, ServerControllerConfig, ServerEndpoint, ServerPath, ServerPlugin, ServerPluginDef, ServerPluginRuntime } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 
 /** Lee `"env:NOMBRE"` del `env` dado o del entorno del proceso (Deno / Node); otro texto se devuelve tal cual. */
 export function resolveEnv(value: string, env?: Record<string, string | undefined>): string {
@@ -29,6 +31,15 @@ function resolveEnvDeep(v: unknown, env?: Record<string, string | undefined>): u
   return v;
 }
 
+/** `handler`/`sse` de un path con `this` fijado al plugin (los paths de entidad corren desde el controller). */
+function bound(p: ServerPath, plugin: ServerPlugin): PathImpl<any> {
+  const impl: PathImpl<any> = {};
+  if (p.handler) impl.handler = p.handler.bind(plugin);
+  if (p.sse) impl.sse = p.sse.bind(plugin);
+  return impl;
+}
+
+/** Arma el lado servidor de un plugin JSON: controllers por entidad, rutas de los paths, puertas enlazadas, `ops` y `seed()`. */
 export function createServer(def: ServerPluginDef, runtime: ServerPluginRuntime): ServerPlugin {
   const raw = runtime.cfg ?? {};
   const parsed = def.cfg ? def.cfg.safeParse(raw) : { success: true as const, data: raw };
@@ -52,7 +63,7 @@ export function createServer(def: ServerPluginDef, runtime: ServerPluginRuntime)
   } as ServerPlugin;
   const entities = new Map<string, Entity<any>>();
   for (const [key, e] of Object.entries(def.entities ?? {})) {
-    const entity = pluginEntity(def.name, key, e);
+    const entity = pluginEntity(def.name, key, e as never);
     entities.set(key, entity);
     const config: Record<string, unknown> = { db: runtime.db };
     for (const k of Object.keys(e)) if (!ENTITY_KEYS.has(k)) config[k] = (e as Record<string, unknown>)[k];
@@ -64,23 +75,27 @@ export function createServer(def: ServerPluginDef, runtime: ServerPluginRuntime)
       if (ep.handler || ep.sse) endpoints[n] = impl;
     }
     if (Object.keys(endpoints).length) config["endpoints"] = endpoints;
+    const paths: Record<string, PathImpl<any>> = {};
+    for (const [n, p] of Object.entries(e.paths ?? {})) {
+      if (!p.handler && !p.sse) throw new Error(`El path "${n}" de "${key}" en el plugin "${def.name}" no tiene handler ni sse en el server`);
+      paths[n] = bound(p, plugin);
+    }
+    if (Object.keys(paths).length) config["paths"] = paths;
+    if (e.exposed === false) config["expose"] = [];
     const ctrl = new ServerController(entity, config as ServerControllerConfig<any>);
     plugin.controllers[key] = ctrl;
     plugin.list.push(ctrl);
   }
-  for (const [name, r] of Object.entries(def.routes ?? {})) {
-    const entity = r.entity ? entities.get(r.entity) : undefined;
-    const route: ExtraRoute<ServerPlugin> = { method: r.method, path: routePath(r, entity), security: r.security, id: r.id ?? undefined, prefix: "none" };
-    if (r.handler) route.handler = r.handler;
-    if (r.sse) route.sse = r.sse;
-    if (!route.handler && !route.sse) throw new Error(`La ruta "${name}" del plugin "${def.name}" no tiene handler ni sse en el server`);
-    plugin.routes.push(route);
+  for (const [name, p] of Object.entries(def.irregularPaths ?? {})) {
+    if (!p.handler && !p.sse) throw new Error(`El path irregular "${name}" del plugin "${def.name}" no tiene handler ni sse en el server`);
+    plugin.routes.push({ method: p.method, path: routePath(p), security: p.security, id: p.id ?? undefined, prefix: "none", ...bound(p, plugin) });
   }
   const sec = def.security ?? {};
   if (sec.extract) plugin.security.extract = sec.extract.bind(plugin);
   if (sec.protected) plugin.security.protected = sec.protected.bind(plugin);
   if (sec.permissions) plugin.security.permissions = sec.permissions.bind(plugin);
-  for (const [name, fn] of Object.entries(def.ops ?? {})) plugin[name] = fn.bind(plugin);
+  const allPaths = [...Object.values(def.irregularPaths ?? {}), ...Object.values(def.entities ?? {}).flatMap((e) => Object.values(e.paths ?? {}))];
+  for (const p of allPaths) for (const [name, fn] of Object.entries(p.ops ?? {})) plugin[name] = fn.bind(plugin);
   def.setup?.call(plugin);
   return plugin;
 }

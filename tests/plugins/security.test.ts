@@ -9,6 +9,7 @@ import { createRouter, createServer, type Database, resolveEnv, ServerController
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { identityServer, type LoginResult, permissionsServer, signJwt } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { CategoriaEntity, ProductoEntity } from "@Jeff-Aporta/DER/examples/domain.ts";
+import { CFG_TABLA } from "@Jeff-Aporta/DER/examples/backend.ts";
 import { ADMIN, apiConPlugins, call, identityCfg, login, SECRET } from "@Jeff-Aporta/DER/tests/_util.ts";
 
 function controllers(db: Database) {
@@ -28,7 +29,7 @@ Deno.test("seguridad: sin plugins no aplica (skip), aunque las rutas declaren se
     assertEquals(registry.secured, false);
     assertEquals((await call(router, "POST", "producto", { body: { nombre: "A", precio: 1 } })).status, 201);
     assertEquals((await call(router, "DELETE", "producto/1")).status, 200);
-    assertEquals((await call(router, "POST", "login", { body: {} })).status, 404); // sin plugin no hay /login
+    assertEquals((await call(router, "POST", "usuarios/login", { body: {} })).status, 404); // sin plugin no hay /login
   } finally {
     await cerrar();
   }
@@ -37,11 +38,11 @@ Deno.test("seguridad: sin plugins no aplica (skip), aunque las rutas declaren se
 Deno.test("identidad: login/logout, rutas públicas vs protegidas y validación del token", async () => {
   const { router, cerrar } = await setup();
   try {
-    const mal = await call(router, "POST", "login", { body: { usuario: "admin", password: "otra-cosa" } });
+    const mal = await call(router, "POST", "usuarios/login", { body: { usuario: "admin", password: "otra-cosa" } });
     assertEquals([mal.status, mal.data.error], [401, "Usuario o contraseña inválidos"]);
-    assertEquals((await call(router, "POST", "login", { body: { usuario: "nadie", password: "x" } })).status, 401);
-    assertEquals((await call(router, "POST", "login", { body: { usuario: "admin" } })).status, 400);
-    const ok = await call(router, "POST", "login", { body: { usuario: "admin", password: "admin-12345" } });
+    assertEquals((await call(router, "POST", "usuarios/login", { body: { usuario: "nadie", password: "x" } })).status, 401);
+    assertEquals((await call(router, "POST", "usuarios/login", { body: { usuario: "admin" } })).status, 400);
+    const ok = await call(router, "POST", "usuarios/login", { body: { usuario: "admin", password: "admin-12345" } });
     const res = ok.data as LoginResult;
     assertEquals([ok.status, res.tipo, res.usuario.iusuario], [200, "Bearer", "admin"]);
     assertMatch(res.token, /^[\w-]+\.[\w-]+\.[\w-]+$/);
@@ -55,10 +56,10 @@ Deno.test("identidad: login/logout, rutas públicas vs protegidas y validación 
     assertMatch(basura.data.error, /^Token inválido/);
     assertEquals((await call(router, "POST", "producto", { token: res.token, body: { nombre: "A", precio: 1 } })).status, 201);
     // logout revoca: el mismo token deja de servir
-    assertEquals((await call(router, "DELETE", "logout", { token: res.token })).status, 204);
+    assertEquals((await call(router, "DELETE", "usuario/logout", { token: res.token })).status, 204);
     const tras = await call(router, "POST", "producto", { token: res.token, body: { nombre: "B", precio: 1 } });
     assertEquals([tras.status, tras.data.error], [401, "Sesión cerrada o inexistente"]);
-    assertEquals((await call(router, "DELETE", "logout")).status, 401);
+    assertEquals((await call(router, "DELETE", "usuario/logout")).status, 401);
   } finally {
     await cerrar();
   }
@@ -103,11 +104,11 @@ Deno.test("identidad: usuarios con hash PBKDF2+pepper, nunca expuesto ni consult
     await call(router, "POST", "usuario", { token: admin, body: { iusuario: "bea", password: "ana-secreta-1" } });
     const { rows: r2 } = await sql<{ hash: string }>`select hash from identity_usuarios where iusuario = 'bea'`.execute(db.kysely);
     assertNotEquals(r2[0]?.hash, hash);
-    assertEquals((await call(router, "POST", "login", { body: { usuario: "ana", password: "ana-secreta-1" } })).status, 200);
+    assertEquals((await call(router, "POST", "usuarios/login", { body: { usuario: "ana", password: "ana-secreta-1" } })).status, 200);
     // cambio de contraseña por PUT
     await call(router, "PUT", "usuario/ana", { token: admin, body: { password: "nueva-clave-2" } });
-    assertEquals((await call(router, "POST", "login", { body: { usuario: "ana", password: "ana-secreta-1" } })).status, 401);
-    assertEquals((await call(router, "POST", "login", { body: { usuario: "ana", password: "nueva-clave-2" } })).status, 200);
+    assertEquals((await call(router, "POST", "usuarios/login", { body: { usuario: "ana", password: "ana-secreta-1" } })).status, 401);
+    assertEquals((await call(router, "POST", "usuarios/login", { body: { usuario: "ana", password: "nueva-clave-2" } })).status, 200);
     // el plugin no expone clases: los pojos salen del controller o del registro por su plural
     const u = auth.controllers["usuarios"]!.pojo({ iusuario: "caro" });
     assertEquals([u.iusuario, registry.pojo<{ iusuario: string } & typeof u>("usuarios", { iusuario: "dani" }).iusuario], ["caro", "dani"]);
@@ -263,5 +264,33 @@ Deno.test("config: JSON inválido, env ausente, secret corto, env del runtime y 
   } finally {
     db.destroy();
     registry.secure(null);
+  }
+});
+
+Deno.test("permisos: un rol particular no repite el valor del rol base; aliases renombran lo que se quema en la BD; cfg es una sola acción", async () => {
+  const db = sqliteDatabase(":memory:", { cfg: CFG_TABLA });
+  const productos = new ServerController(ProductoEntity, { db, table: "productos", security: true });
+  const { router, cerrar } = await apiConPlugins(db, [new ServerController(CategoriaEntity, { db, table: "categorias" }), productos], { identity: identityCfg(), permissions: { grupo: "API", rolBase: "BASE", admins: ["admin"], aliases: { "DELETE:/producto/{iproducto}": "productos.borrar", "CFG:/productos": "productos.config" } } });
+  try {
+    const admin = await login(router, "admin", "admin-12345");
+    await call(router, "POST", "usuario", { token: admin, body: { iusuario: "ana", password: "ana-clave-123" } });
+    // el id de la ruta ya no existe en la BD: se carga por su alias; el base se llama BASE
+    const malo = await call(router, "PUT", "permisos", { token: admin, body: { acciones: [{ irol: "BASE", iaccion: "DELETE:/producto/{iproducto}", valor: false }] } });
+    assertEquals([malo.status, malo.data.error], [400, "Acciones no declaradas: DELETE:/producto/{iproducto}"]);
+    const ok = await call(router, "PUT", "permisos", { token: admin, body: { roles: [{ irol: "EDITOR", igrupo: "API" }], rolesusuario: [{ iusuario: "ana", irol: "EDITOR", bprincipal: true }], acciones: [{ irol: "BASE", iaccion: "productos.borrar", valor: false }, { irol: "EDITOR", iaccion: "productos.borrar", valor: true }] } });
+    assertEquals(ok.status, 200);
+    // repetir en un rol el valor del base se rechaza
+    const rep = await call(router, "PUT", "permisos", { token: admin, body: { acciones: [{ irol: "EDITOR", iaccion: "productos.borrar", valor: false }] } });
+    assertEquals([rep.status, rep.data.error], [400, "Acciones que repiten el valor del rol base BASE: EDITOR:productos.borrar"]);
+    const ana = await login(router, "ana", "ana-clave-123");
+    const p = (await call(router, "POST", "producto", { token: admin, body: { nombre: "A", precio: 1 } })).data;
+    assertEquals((await call(router, "DELETE", `producto/${p.iproducto}`, { token: ana })).status, 200);
+    assertEquals((await call(router, "GET", "permisos")).data.irol, "BASE");
+    // cfg: GET y PUT comparten una acción (CFG:/productos → alias productos.config) en el catálogo
+    const cat = (await call(router, "GET", "permisos?catalogo=1", { token: admin })).data as { id: string; routes: { method: string }[] }[];
+    assertEquals(cat.find((a) => a.id === "productos.config")?.routes.map((r) => r.method).sort(), ["GET", "PUT"]);
+    assert(cat.some((a) => a.id === "productos.borrar"));
+  } finally {
+    await cerrar();
   }
 });

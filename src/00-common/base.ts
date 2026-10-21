@@ -12,6 +12,8 @@
  *   Obj.aplicar(base, acciones)        las anteriores en orden (`TAccionObj[]`).
  *
  * Doc de Obj: https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@main/src/vendor-distributions/shared/lib/obj.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import type { ColumnType } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 
@@ -19,6 +21,7 @@ export { Obj, ObjError } from "@Jeff-Aporta/wc-base/lib/obj.ts";
 
 // ===================================================================================== errores
 
+/** Error con status HTTP: el Router lo responde tal cual (`{ error: message }`) y el client lo relanza. */
 export class HttpError extends Error {
   constructor(readonly status: number, message: string) {
     super(message);
@@ -34,6 +37,7 @@ export class ValidationError extends HttpError {
   }
 }
 
+/** No encontrado (404): en el client, cuando una ruta que no es get/put/delete singular responde 404. */
 export class NotFoundError extends HttpError {
   constructor(message = "No encontrado") {
     super(404, message);
@@ -44,6 +48,7 @@ export class NotFoundError extends HttpError {
 // ===================================================================================== casteos
 // Todos reciben `unknown` y devuelven el tipo destino o `null`. `undefined` nunca llega: el setter lo conserva.
 
+/** Texto: `Date` → ISO, objeto → JSON, `null`/`undefined` → `null`. */
 export function toStr(v: unknown): string | null {
   if (v == null) return null;
   if (typeof v === "string") return v;
@@ -52,6 +57,7 @@ export function toStr(v: unknown): string | null {
   return String(v);
 }
 
+/** Entero truncado (`"3.9"` → 3, `true` → 1); no numérico → `null`. */
 export function toInt(v: unknown): number | null {
   if (v == null || v === "") return null;
   if (typeof v === "boolean") return v ? 1 : 0;
@@ -59,6 +65,7 @@ export function toInt(v: unknown): number | null {
   return Number.isFinite(n) ? Math.trunc(n) : null;
 }
 
+/** Número decimal; no numérico → `null`. */
 export function toFloat(v: unknown): number | null {
   if (v == null || v === "") return null;
   if (typeof v === "boolean") return v ? 1 : 0;
@@ -68,6 +75,7 @@ export function toFloat(v: unknown): number | null {
 
 const TRUE_STRINGS = new Set(["1", "true", "t", "yes", "y", "si", "sí", "s", "on"]);
 
+/** Booleano permisivo: números ≠ 0, `"1" "true" "si" "s" "on"…` → `true`. */
 export function toBool(v: unknown): boolean | null {
   if (v == null || v === "") return null;
   if (typeof v === "boolean") return v;
@@ -86,6 +94,7 @@ export function toDate(v: unknown): string | null {
   return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
+/** Fecha-hora como `Date` (copia); inválida → `null`. */
 export function toDateTime(v: unknown): Date | null {
   if (v == null || v === "") return null;
   const d = v instanceof Date ? new Date(v.getTime()) : new Date(v as string | number);
@@ -107,4 +116,5 @@ export function toJson(v: unknown): unknown {
   return v === undefined ? null : v;
 }
 
+/** Casteo por tipo de columna (lo que aplica cada setter del POJO). */
 export const CASTS: Record<ColumnType, (v: unknown) => unknown> = { string: toStr, text: toStr, uuid: toStr, int: toInt, bigint: toInt, float: toFloat, decimal: toFloat, bool: toBool, date: toDate, datetime: toDateTime, time: toTime, json: toJson };

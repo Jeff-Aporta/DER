@@ -3,6 +3,8 @@
  * Cada `send(texto)` es un evento `message` cuyo `data` es TEXTO plano; qué representa
  * (json, xml, tokens de un LLM...) lo decide quien consume.
  * El fin del stream es el cierre de la conexión. Un error se envía como `event: error`.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 
 import type { SseEvent } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
@@ -61,6 +63,7 @@ export class TextChannel implements AsyncIterable<string> {
   #done = false;
   #error: unknown = undefined;
 
+  /** Emite un texto al consumidor (lo entrega si está esperando o lo encola). Sin efecto si ya se cerró. */
   push(text: string): void {
     if (this.#done) return;
     if (this.#waiting) {
@@ -70,6 +73,7 @@ export class TextChannel implements AsyncIterable<string> {
     } else this.#items.push(String(text));
   }
 
+  /** Termina el stream; con `error`, el consumidor recibe el rechazo tras lo ya emitido. */
   close(error?: unknown): void {
     if (this.#done) return;
     this.#done = true;

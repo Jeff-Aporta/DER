@@ -3,11 +3,13 @@
  * de Kysely: así el cliente nunca necesita instalarlo.
  *
  * Secciones: motor · controller · database / router · rutas · plugins · hosts · doc · drivers
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import type { ColumnDefinitionBuilder, Dialect, Kysely, RawBuilder } from "kysely";
 import type { z } from "zod";
 import type { Pojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
-import type { Action, AuthDecision, BaseCtx, ColumnDef, ControllerOptions, EndpointDef, ExposedName, HttpMethod, Include, IrregularRoute, OrderBy, PermissionContext, PluginDef, PluginEntity, RouteSecurity, SecurityDef, SecurityHooks, SecurityInput, SessionInfo, Where } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import type { Action, AuthDecision, BaseCtx, ColumnDef, ControllerOptions, EndpointDef, ExposedName, HttpMethod, Include, IrregularPath, OrderBy, PermissionContext, PluginDef, PluginEntity, RouteSecurity, SecurityDef, SecurityHooks, SecurityInput, SessionInfo, Where } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import type { Database } from "@Jeff-Aporta/DER/src/02-controllers/server/database.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
 import type { Router } from "@Jeff-Aporta/DER/src/02-controllers/server/router.ts";
@@ -52,7 +54,9 @@ export type WritePropagation = { [relation: string]: true | WritePropagation };
  * tabla de `/cfg` (o `false`); `expose` qué rutas se registran; `routes` irregulares; `security` (default: la de la
  * entidad); `hidden` columnas que nunca salen; `getPropagation`/`setPropagation` detalles que se leen/escriben con el padre.
  */
-export type ServerControllerConfig<P extends Pojo> = ControllerOptions<P, ServerController<P>, ServerCtx> & { db: Database; table?: string; doc?: DocSources<ServerController<P>>; docBase?: string | URL; identifierCase?: IdentifierCase; columnNames?: Record<string, string>; computed?: Record<string, ComputedSql>; relations?: Record<string, { controller?: () => ServerController<any> }>; sse?: Partial<Record<Action, SseHandler<ServerController<P>>>>; endpoints?: Record<string, ServerEndpoint<P>>; cfg?: CfgTableDef | false; expose?: ExposedName[]; routes?: ExtraRoute<ServerController<P>>[]; security?: boolean | SecurityDef; hidden?: string[]; indexes?: IndexDef[]; autoIndexes?: boolean; getPropagation?(this: ServerController<P>): Include; setPropagation?(this: ServerController<P>): WritePropagation; defaultOrder?: OrderBy; register?: boolean };
+export type ServerControllerConfig<P extends Pojo> = ControllerOptions<P, ServerController<P>, ServerCtx> & { db: Database; table?: string; doc?: DocSources<ServerController<P>>; docBase?: string | URL; identifierCase?: IdentifierCase; columnNames?: Record<string, string>; computed?: Record<string, ComputedSql>; relations?: Record<string, { controller?: () => ServerController<any> }>; sse?: Partial<Record<Action, SseHandler<ServerController<P>>>>; endpoints?: Record<string, ServerEndpoint<P>>; paths?: Record<string, PathImpl<any>>; cfg?: CfgTableDef | false; expose?: ExposedName[]; routes?: ExtraRoute<ServerController<P>>[]; security?: boolean | SecurityDef; hidden?: string[]; indexes?: IndexDef[]; autoIndexes?: boolean; getPropagation?(this: ServerController<P>): Include; setPropagation?(this: ServerController<P>): WritePropagation; defaultOrder?: OrderBy; register?: boolean };
+/** Implementación en el server de un `path` declarado en la entidad (`this` = el controller, o el plugin si viene de uno). */
+export type PathImpl<Ctl> = { handler?(this: Ctl, input: ExtraRouteInput, ctx: ServerCtx): unknown; sse?(this: Ctl, input: ExtraRouteInput, send: (text: string) => void, ctx: ServerCtx): Promise<void> | void };
 export type SelectOptions = { alias?: string | undefined; fields?: string[] | undefined; where?: Where | undefined; orderBy?: OrderBy | undefined; limit?: number | undefined; offset?: number | undefined; include?: Include | undefined; extra?: Raw[] | undefined };
 /** Opciones de `syncSchema()`: `migrate` recibe la fila ANTERIOR y retorna los valores nuevos; `keepExtra` no borra columnas sobrantes; `dryRun` sólo planea. */
 export type SyncSchemaOptions = { migrate?(previous: Record<string, unknown>): Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>; keepExtra?: boolean | undefined; dryRun?: boolean | undefined };
@@ -76,9 +80,9 @@ export type CorsOptions = { origin?: string; methods?: string; headers?: string;
 
 // ===================================================================================== rutas
 
-export type ExtraRouteInput = { request: Request; params: Record<string, string>; query: URLSearchParams; body: unknown };
-/** Ruta irregular del server: la transversal (`IrregularRoute`) más `handler` (un `Response` pasa tal cual; `undefined` → 204; otro valor → JSON 200) y/o `sse`. */
-export type ExtraRoute<Ctl = unknown> = IrregularRoute & { handler?(this: Ctl, input: ExtraRouteInput, ctx: ServerCtx): unknown; sse?(this: Ctl, input: ExtraRouteInput, send: (text: string) => void, ctx: ServerCtx): Promise<void> | void };
+export type ExtraRouteInput = { request: Request; params: Record<string, string>; query: URLSearchParams; body: unknown; pks?: string[] | undefined };
+/** Ruta irregular del server: el path transversal (`IrregularPath`) más `handler` (un `Response` pasa tal cual; `undefined` → 204; otro valor → JSON 200) y/o `sse`. */
+export type ExtraRoute<Ctl = unknown> = IrregularPath & PathImpl<Ctl>;
 export type ActionRouteSpec = { name: string; method: HttpMethod; path: string; pkParams: string[]; sse: boolean; endpoint?: EndpointDef | undefined };
 /** Descripción de una ruta registrada: `id` estable `METHOD:/ruta` (seguridad por ruta), `kind`, `name`, `entity` dueña, `security` efectiva. */
 export type RouteInfo = { id: string; method: HttpMethod; path: string; kind: "action" | "extra" | "doc"; name: string; entity?: string; sse: boolean; security: RouteSecurity };
@@ -87,17 +91,18 @@ export type RouteDef = RouteInfo & { handle(req: Request, params: Record<string,
 
 // ===================================================================================== plugins (server)
 
+/** Path de plugin en el server: el transversal más `handler`/`sse` con `this` = el plugin armado. */
+export type ServerPath = IrregularPath & PathImpl<ServerPlugin>;
 /** Particularidades de servidor de una entidad de plugin (todo lo de `ServerControllerConfig` salvo `db`), inyectadas sobre la transversal. */
-export type ServerEntityExtras = Omit<ServerControllerConfig<any>, "db" | "endpoints"> & { endpoints?: Record<string, EndpointDef<any> & ServerEndpoint<any>> };
-export type ServerPluginEntity = PluginEntity & ServerEntityExtras;
-export type ServerRoute = IrregularRoute & { handler?(this: ServerPlugin, input: ExtraRouteInput, ctx: ServerCtx): unknown; sse?(this: ServerPlugin, input: ExtraRouteInput, send: (text: string) => void, ctx: ServerCtx): Promise<void> | void };
+export type ServerEntityExtras = Omit<ServerControllerConfig<any>, "db" | "endpoints" | "paths"> & { endpoints?: Record<string, EndpointDef<any> & ServerEndpoint<any>>; paths?: Record<string, ServerPath> };
+export type ServerPluginEntity = Omit<PluginEntity, "paths"> & ServerEntityExtras;
 /** Implementaciones de las puertas que el plugin ofrece (`this` = el plugin armado). El consumidor decide cuáles usa. */
 export type ServerSecurityDef = { extract?(this: ServerPlugin, req: Request): Promise<SessionInfo | null> | SessionInfo | null; protected?(this: ServerPlugin, info: SessionInfo | null): boolean | Promise<boolean>; permissions?(this: ServerPlugin, info: SessionInfo | null, action: string, entity: string | null, ctx: PermissionContext): AuthDecision | Promise<AuthDecision> };
 /** JSON del server de un plugin: el transversal con sus particularidades, `cfg` (Zod de la configuración), `security`, `seed` y `setup`. */
-export type ServerPluginDef = Omit<PluginDef, "entities" | "routes"> & { entities?: Record<string, ServerPluginEntity> | undefined; routes?: Record<string, ServerRoute> | undefined; cfg?: z.ZodType | undefined; security?: ServerSecurityDef | undefined; seed?(this: ServerPlugin): Promise<void> | void; setup?(this: ServerPlugin): void };
+export type ServerPluginDef = Omit<PluginDef, "entities" | "irregularPaths"> & { entities?: Record<string, ServerPluginEntity> | undefined; irregularPaths?: Record<string, ServerPath> | undefined; cfg?: z.ZodType | undefined; security?: ServerSecurityDef | undefined; seed?(this: ServerPlugin): Promise<void> | void; setup?(this: ServerPlugin): void };
 /** `db` donde viven las tablas del plugin; `cfg` su configuración (admite `"env:NOMBRE"`); `env` variables para resolverlas (default: el proceso). */
 export type ServerPluginRuntime = { db: Database; cfg?: Record<string, unknown> | undefined; env?: Record<string, string | undefined> | undefined };
-/** Plugin armado en el server: `controllers.<clave>`, `list`, `routes` ya resueltas, `security` enlazada, `seed()`, `state` y las `ops` como métodos. */
+/** Plugin armado en el server: `controllers.<clave>`, `list`, `routes` ya resueltas (irregulares y de entidades), `security` enlazada, `seed()`, `state` y las `ops` de los paths como métodos. */
 export type ServerPlugin = { name: string; def: ServerPluginDef; db: Database; cfg: Record<string, any>; env: Record<string, string | undefined> | undefined; controllers: Record<string, ServerController<any>>; list: ServerController<any>[]; routes: ExtraRoute<ServerPlugin>[]; security: SecurityHooks; state: Record<string, unknown>; router: Router | null; seed(): Promise<void> } & Record<string, any>;
 /** Seguridad de una ruta de plugin o irregular, en JSON. */
 export type PluginRouteSecurity = SecurityInput;

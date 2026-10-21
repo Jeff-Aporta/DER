@@ -28,6 +28,8 @@
  *   p.get(query)           JSON con sólo lo marcado (estructura desde la raíz)
  *   p.replace(obj)         reemplazo directo de todo el contenido
  * Una columna `json` SIN `zod` no tiene molde: cualquier acción la reemplaza completa (replace directo).
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import { CASTS, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { schemaMeta } from "@Jeff-Aporta/DER/src/01-objects/meta.ts";
@@ -37,7 +39,9 @@ import { pojoValues, schemaZod, zodMessage } from "@Jeff-Aporta/DER/src/01-objec
 
 const RESERVED = new Set(["f", "assign", "toJSON", "pkValues", "pkOnly", "constructor", "insert", "insertIgnore", "update", "delete", "get", "replace"]);
 
+/** Base de todo POJO: campos en `f`, casteo por setters, serialización y acciones JSON parciales validadas con el molde. */
 export abstract class Pojo {
+  /** Schema JSON de la clase (lo fija `pojoOf` o la subclase manual). */
   static schema: Schema;
   /** Almacenamiento de los campos. */
   protected declare f: Record<string, unknown>;
@@ -62,6 +66,7 @@ export abstract class Pojo {
     return new this((obj ?? {}) as PojoInit);
   }
 
+  /** Lista de instancias a partir de un arreglo de objetos planos (no arreglo → lista vacía). */
   static fromList<T extends Pojo>(this: new (init?: PojoInit) => T, list: unknown): T[] {
     if (!Array.isArray(list)) return [];
     return list.map((o) => (o instanceof this ? o : new this((o ?? {}) as PojoInit)));
@@ -112,26 +117,32 @@ export abstract class Pojo {
 
   // ------------------------------------------------------------------ acciones JSON (Obj + Zod)
 
+  /** Upsert profundo: lo no mencionado se conserva; `null` → null si la columna lo admite, si no se quita. Valida con el molde. */
   insert(cambios: Patch<this>): this {
     return this.#partial("insert", cambios);
   }
 
+  /** Agrega solo lo que no está definido (nunca pisa). */
   insertIgnore(cambios: Patch<this>): this {
     return this.#partial("insertIgnore", cambios);
   }
 
+  /** Cambia solo lo que ya está definido (no crea llaves). */
   update(cambios: Patch<this>): this {
     return this.#partial("update", cambios);
   }
 
+  /** Quita (deja sin definir) lo que marque la consulta; en json con molde quita dentro del json. */
   delete(query: PojoQuery<this>): this {
     return this.#commit(Obj.delete(this.toJSON(), query as TConsulta) as Record<string, unknown>);
   }
 
+  /** JSON con solo lo marcado por la consulta (estructura desde la raíz). */
   get(query: PojoQuery<this>): Record<string, unknown> {
     return Obj.get(this.toJSON(), query as TConsulta) as Record<string, unknown>;
   }
 
+  /** Reemplazo directo de todo el contenido (validado con el molde). */
   replace(obj: PojoInit | Pojo): this {
     return this.#commit(obj instanceof Pojo ? obj.toJSON() : obj);
   }

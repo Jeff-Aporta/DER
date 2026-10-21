@@ -13,6 +13,8 @@
  * });
  * ```
  * Escrituras: `returning` (PG/SQLite), `output inserted/deleted` (MSSQL) o relectura por pk (MySQL), según el motor.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { type Kysely, sql } from "kysely";
 import { CASTS, HttpError, NotFoundError, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
@@ -33,6 +35,7 @@ import type { BuiltSelect, CfgTableDef, ComputedSql, DeferredInclude, DocSheet, 
 /** Generador de alias únicos por consulta. */
 class Aliases {
   #n = 0;
+  /** Siguiente alias (`t0`, `t1`…). */
   next(): string {
     return `t${this.#n++}`;
   }
@@ -45,9 +48,13 @@ export function formatSequence(pattern: string, n: string): string {
   return pattern.replace(/\{n(?::(\d+))?\}/g, (_m, w: string | undefined) => (w ? n.padStart(Number(w), "0") : n));
 }
 
+/** Controller del lado servidor: arma el SQL con las primitivas del motor y lo ejecuta con Kysely. */
 export class ServerController<P extends Pojo> extends BaseController<P, ServerCtx> {
+  /** Base (conexión + motor) donde vive la tabla. */
   readonly db: Database;
+  /** Nombre de la tabla ya con el caso aplicado (config o el de la entidad). */
   readonly table: string;
+  /** Caso de tabla y columnas (config o el de la base). */
   readonly identifierCase: IdentifierCase;
 
   constructor(entity: Entity<P>, readonly config: ServerControllerConfig<P>) {
@@ -61,6 +68,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     if (config.register !== false) config.db.register(this);
   }
 
+  /** Motor de la base. */
   get engine(): Engine {
     return this.db.engine;
   }
@@ -208,6 +216,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   // ================================================================ WHERE
 
+  /** `WHERE` de un `Where` para el alias `A` (relaciones como `EXISTS`); `null` si no hay condiciones. */
   buildWhere(A: string, where: Where | undefined, aliases = new Aliases()): Raw | null {
     if (!where) return null;
     const meta = this.entity.meta;
@@ -294,6 +303,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     return this.toPojos(rows as Record<string, unknown>[]);
   }
 
+  /** Filas crudas → POJOs (parsea json y relaciones según el motor). */
   toPojos(rows: Record<string, unknown>[]): P[] {
     const meta = this.entity.meta;
     const jsonCols = Object.keys(meta.columns).filter((k) => meta.column(k).type === "json");
@@ -305,6 +315,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     });
   }
 
+  /** Un registro por pks con el `include` dado (relaciones cross-db resueltas). */
   async selectOne(pojo: P, include: Include | undefined, exec?: Kysely<any>): Promise<P | null> {
     const aliases = new Aliases();
     const A = aliases.next();
@@ -415,6 +426,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   // ================================================================ escrituras
 
+  /** INSERT de un pojo (completa secuencias) y devuelve la fila guardada según el modo del motor. */
   async insertOne(pojo: P, exec: Kysely<any> = this.db.kysely): Promise<P> {
     const meta = this.entity.meta;
     const self = pojo as unknown as Record<string, unknown>;
@@ -476,6 +488,7 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     return this.selectOne(pojo, {}, exec);
   }
 
+  /** DELETE por pks y devuelve la fila borrada (`null` si no existía). */
   async deleteOne(pojo: P, exec: Kysely<any> = this.db.kysely): Promise<P | null> {
     const tbl = sql.table(this.table);
     const mode = this.engine.returning;

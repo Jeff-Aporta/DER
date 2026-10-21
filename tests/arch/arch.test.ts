@@ -160,6 +160,7 @@ Deno.test("arch: cada plugin es JSON: schemas.ts, index.ts (transversal) y serve
     for (const f of ["schemas.ts", "index.ts", "server.ts"]) await Deno.stat(new URL(`src/03-plugins/${plugin}/${f}`, ROOT));
     const index = await read(`src/03-plugins/${plugin}/index.ts`);
     assert(/export const \w+: PluginDef = \{/.test(index), `${plugin}/index.ts debe exportar el JSON transversal (PluginDef)`);
+    assert(!/^\s+(routes|ops): \{/m.test(index.replace(/^\s+ops: \{/gm, "")), `${plugin}/index.ts: las rutas van en irregularPaths o en paths de la entidad (no routes/ops sueltos)`);
     assert(!/\bclass\b/.test(index.replace(/\/\*[\s\S]*?\*\//g, "")), `${plugin}/index.ts no debe definir clases`);
     const server = await read(`src/03-plugins/${plugin}/server.ts`);
     assert(/export const \w+Server: ServerPluginDef = Obj\.insert\(/.test(server), `${plugin}/server.ts debe ser el transversal con push (Obj.insert)`);
@@ -212,6 +213,51 @@ Deno.test("arch: sin private/protected con nombre (los miembros privados usan #)
     (await read(f)).split("\n").forEach((l, i) => {
       if (/^\s+private\s+\w/.test(l)) bad.push(`${f}:${i + 1} ${l.trim()}`);
       if (/^\s+protected\s+(?!abstract|declare|async\s+\*?\w+\(|\*?\w+\()/.test(l)) bad.push(`${f}:${i + 1} ${l.trim()}`);
+    });
+  }
+  assertEquals(bad, []);
+});
+
+Deno.test("skills: cada archivo de src/ enlaza por CDN la skill general y la particular de su carpeta", async () => {
+  const BASE = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/";
+  const particular = (f: string) => f.startsWith("src/03-plugins/identity/") ? "identity.md" : f.startsWith("src/03-plugins/permissions/") ? "permissions.md" : f.startsWith("src/03-plugins/") ? "plugins.md" : f.startsWith("src/02-controllers/server/") ? "servidor.md" : f.startsWith("src/02-controllers/") ? "controllers.md" : "objetos.md";
+  const bad: string[] = [];
+  for (const f of SRC) {
+    const head = (await read(f)).split("\nimport ")[0] ?? "";
+    if (!head.includes(`${BASE}README.md`)) bad.push(`${f}: sin skill general`);
+    if (!head.includes(`${BASE}${particular(f)}`)) bad.push(`${f}: sin skill particular ${particular(f)}`);
+  }
+  assertEquals(bad, []);
+  const index = await read("skills/README.md");
+  for (const s of ["consumo-cdn", "objetos", "controllers", "servidor", "plugins", "identity", "permissions", "estilo"]) {
+    assert(index.includes(`${BASE}${s}.md`), `skills/README.md no enlaza ${s}.md por CDN`);
+    await Deno.stat(new URL(`skills/${s}.md`, ROOT));
+  }
+});
+
+Deno.test("jsdoc: todo lo exportado y todo método/propiedad público de clase lleva un comentario /** */", async () => {
+  const bad: string[] = [];
+  for (const f of SRC) {
+    const lines = (await read(f)).split("\n");
+    const documented = (i: number): boolean => {
+      for (let j = i - 1; j >= 0; j--) {
+        const l = lines[j]!.trim();
+        if (l === "") continue;
+        if (l.endsWith("*/")) return true;
+        // sobrecargas: la primera firma lleva el doc
+        if (/^export (async )?function \w+/.test(l) && /^export (async )?function \w+/.test(lines[i]!.trim())) return true;
+        return l.startsWith("@") || l.startsWith("//") && documented(j);
+      }
+      return false;
+    };
+    let inClass = false;
+    lines.forEach((l, i) => {
+      if (/^(export )?(abstract )?class /.test(l)) inClass = true;
+      if (/^\}/.test(l)) inClass = false;
+      const exportado = /^export (default |async |abstract )?(function|class|const|let)\s/.test(l);
+      const publico = inClass && /^  (static |readonly |get |set |async |\*)*[a-zA-Z]\w*(<[^>]*>)?\s*\(/.test(l) && !/^  (if|for|while|switch|return|constructor)\b/.test(l) && !l.includes(";") && !l.trim().startsWith("//");
+      const campo = inClass && /^  (static |readonly )+[a-zA-Z]\w*[?!]?\s*[:=]/.test(l);
+      if ((exportado || publico || campo) && !documented(i)) bad.push(`${f}:${i + 1} ${l.trim().slice(0, 70)}`);
     });
   }
   assertEquals(bad, []);

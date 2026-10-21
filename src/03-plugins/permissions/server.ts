@@ -4,11 +4,16 @@
  * necesita `info.id` de la sesión, venga de donde venga.
  *
  * ```ts
- * const permisos = createServer(permissionsServer, { db, cfg: { grupo: "API", admins: ["admin"] } });
+ * const permisos = createServer(permissionsServer, { db, cfg: { grupo: "API", rolBase: "BASE", admins: ["admin"], aliases: { "DELETE:/producto/{iproducto}": "productos.borrar" } } });
  * const router = createRouter(ctrls, { basePath: "/api", plugins: [auth, permisos] });
- * await router.seed();   // grupo, rol base, rol administrador ("*": true) y los admins
+ * await router.seed();                       // grupo, rol base, rol administrador ("*": true) y los admins
+ * const d = await permisos.can(sesion, "productos.borrar", "DELETE");   // en proceso
  * ```
+ * Reglas: el rol base define los defaults de todos; un rol particular no puede repetir un valor del base (la carga lo
+ * rechaza); `aliases` personaliza el nombre que se quema en la BD para cada acción (las rutas y el catálogo lo usan).
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permissions.md
  */
 import { HttpError, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import type { AuthDecision, PermissionContext, SessionInfo } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
@@ -23,9 +28,15 @@ import { type CatalogEntry, type DerLoad, type DerLoadResult, type PermissionMat
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/rules.ts";
 
+/** Configuración con los defaults aplicados. */
 function cfg(p: ServerPlugin): PermissionsResolved {
   const c = p.cfg as PermissionsConfig;
-  return { grupo: c.grupo ?? "API", rolBase: c.rolBase ?? "USR", rolAdmin: c.rolAdmin ?? "ADMIN", denyByDefault: c.denyByDefault ?? false, admins: c.admins ?? [], actions: c.actions ?? [] };
+  return { grupo: c.grupo ?? "API", rolBase: c.rolBase ?? "USR", rolAdmin: c.rolAdmin ?? "ADMIN", denyByDefault: c.denyByDefault ?? false, admins: c.admins ?? [], actions: c.actions ?? [], aliases: c.aliases ?? {} };
+}
+
+/** Nombre que se quema en la BD para una acción: su alias si el consumidor definió uno, o el id tal cual. */
+function aliasOf(p: ServerPlugin, action: string): string {
+  return cfg(p).aliases[action] ?? action;
 }
 
 /** Roles vigentes del usuario en el grupo configurado (activos, dentro de su vigencia), el principal primero. */
@@ -40,6 +51,7 @@ async function rolesVigentes(p: ServerPlugin, iusuario: string): Promise<string[
     .flatMap((a) => (a.rol?.irol ? [String(a.rol.irol)] : []));
 }
 
+/** Mapa acción → valor de un rol. */
 async function mapaDe(p: ServerPlugin, irol: string): Promise<Map<string, unknown>> {
   const filas = await p.controllers["acciones"]!.select({ where: { irol } });
   return new Map(filas.flatMap((f) => (f.iaccion ? [[String(f.iaccion), f.valor] as const] : [])));
@@ -55,19 +67,19 @@ async function matrix(p: ServerPlugin, iusuario: string | null): Promise<Permiss
   return { base, rol, irol: principal, roles };
 }
 
-/** Acción de seguridad de una ruta: la personalizada del registro o el id autogenerado. */
-function accionDe(route: RouteInfo): string {
-  return route.security.action ?? route.id;
+/** Acción de seguridad de una ruta (ya con alias): la personalizada del registro o el id autogenerado. */
+function accionDe(p: ServerPlugin, route: RouteInfo): string {
+  return aliasOf(p, route.security.action ?? route.id);
 }
 
 /** Catálogo: cada acción (de rutas evaluables o sólo de código) con las rutas que la usan. */
 function catalogo(p: ServerPlugin): CatalogEntry[] {
   const map = new Map<string, { id: string; method: string; path: string }[]>();
   for (const route of p.router?.routes.filter((x) => x.security.permissions) ?? []) {
-    const k = accionDe(route);
+    const k = accionDe(p, route);
     map.set(k, [...(map.get(k) ?? []), { id: route.id, method: route.method, path: route.path }]);
   }
-  for (const a of cfg(p).actions) if (!map.has(a)) map.set(a, []);
+  for (const a of cfg(p).actions) if (!map.has(aliasOf(p, a))) map.set(aliasOf(p, a), []);
   return [...map].map(([id, routes]) => ({ id, routes }));
 }
 
@@ -79,9 +91,15 @@ async function upsert<P extends Pojo>(ctrl: ServerController<P>, data: Record<st
   else await ctrl.post(pojo, tx);
 }
 
+/** Igualdad JSON de dos valores de acción. */
+function mismoValor(a: unknown, b: unknown): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/** JSON del server de permisos: `permissions` + particularidades. */
 export const permissionsServer: ServerPluginDef = Obj.insert(permissions, {
   cfg: ZPermissionsConfig,
-  routes: {
+  irregularPaths: {
     profile: {
       async handler(this: ServerPlugin, { query }: ExtraRouteInput, ctx: ServerCtx) {
         const info = (ctx.state["session"] as SessionInfo | null | undefined) ?? null;
@@ -89,69 +107,79 @@ export const permissionsServer: ServerPluginDef = Obj.insert(permissions, {
         // `?catalogo=1`: lo administra quien puede cargar el DER (misma acción que `PUT /permisos`)
         if (!info) throw new HttpError(401, "Requiere autenticación");
         const carga = this.router?.routes.find((r) => r.method === "PUT" && r.path === "permisos");
-        const d = await this["can"](info, carga ? accionDe(carga) : "PUT:/permisos", "PUT");
+        const d = await this["can"](info, carga ? accionDe(this, carga) : "PUT:/permisos", "PUT");
         if (!d.allowed) throw new HttpError(403, d.reason ?? "Sin permiso");
         return catalogo(this);
+      },
+      ops: {
+        /** Decisión para una acción de seguridad (ruta o capacidad de código; se le aplica su alias) y un verbo. */
+        async can(this: ServerPlugin, info: SessionInfo, action: string, method = "GET"): Promise<AuthDecision> {
+          const m = await matrix(this, info.id);
+          return decide(m.base, m.rol, aliasOf(this, action), method, cfg(this).denyByDefault);
+        },
+        /** Perfil de la sesión (lo mismo que `GET /permisos`): rol efectivo, roles vigentes y valor por acción del catálogo. */
+        async profile(this: ServerPlugin, info: SessionInfo | null): Promise<SessionProfile> {
+          const m = await matrix(this, info?.id ?? null);
+          const perms: Record<string, unknown> = {};
+          if (info) {
+            for (const { id, routes } of catalogo(this)) {
+              // una acción compartida por varios verbos se informa por verbo (como un valor partido)
+              const metodos = [...new Set(routes.length ? routes.map((r) => r.method) : ["GET"])];
+              const valor = (verbo: string) => {
+                const d = decide(m.base, m.rol, id, verbo, cfg(this).denyByDefault);
+                return d.allowed ? d.value ?? true : false;
+              };
+              perms[id] = metodos.length === 1 ? valor(metodos[0] ?? "GET") : Object.fromEntries(metodos.map((x) => [x, valor(x)]));
+            }
+          }
+          return { usuario: info?.id ?? null, irol: m.irol, igrupo: cfg(this).grupo, roles: m.roles, perms };
+        },
+        /** Catálogo de acciones evaluables (rutas con `permissions` + las de código), con sus alias aplicados. */
+        catalog(this: ServerPlugin): CatalogEntry[] {
+          return catalogo(this);
+        },
       },
     },
     load: {
       handler(this: ServerPlugin, { body }: ExtraRouteInput) {
         return this["load"](body);
       },
+      ops: {
+        /**
+         * Carga del DER (lo mismo que `PUT /permisos`): upsert de grupos, roles, rolesusuario y acciones en una transacción.
+         * Rechaza acciones no declaradas y valores de un rol particular que repitan el del rol base (ya vigente o en esta carga).
+         */
+        async load(this: ServerPlugin, der: unknown): Promise<DerLoadResult> {
+          const parsed = ZDerLoad.safeParse(der);
+          if (!parsed.success) throw new ValidationError(zodMessage(parsed.error));
+          const data: DerLoad = parsed.data;
+          const { rolBase } = cfg(this);
+          if (this.router) {
+            const ids = new Set(catalogo(this).map((a) => a.id));
+            const desconocidas = (data.acciones ?? []).map((a) => a.iaccion).filter((id) => id !== "*" && !ids.has(id));
+            if (desconocidas.length) throw new ValidationError(`Acciones no declaradas: ${[...new Set(desconocidas)].join(", ")}`);
+          }
+          const base = await mapaDe(this, rolBase);
+          for (const a of data.acciones ?? []) if (a.irol === rolBase) base.set(a.iaccion, a.valor);
+          const repetidas = (data.acciones ?? []).filter((a) => a.irol !== rolBase && base.has(a.iaccion) && mismoValor(base.get(a.iaccion), a.valor)).map((a) => `${a.irol}:${a.iaccion}`);
+          if (repetidas.length) throw new ValidationError(`Acciones que repiten el valor del rol base ${rolBase}: ${repetidas.join(", ")}`);
+          const c = this.controllers;
+          await this.db.transaction(async (tx) => {
+            for (const g of data.grupos ?? []) await upsert(c["grupos"]!, { ...g }, tx);
+            for (const r of data.roles ?? []) await upsert(c["roles"]!, { ...r }, tx);
+            for (const ru of data.rolesusuario ?? []) await upsert(c["rolesUsuario"]!, { ...ru }, tx);
+            for (const a of data.acciones ?? []) await upsert(c["acciones"]!, { ...a }, tx);
+          });
+          return { grupos: data.grupos?.length ?? 0, roles: data.roles?.length ?? 0, rolesusuario: data.rolesusuario?.length ?? 0, acciones: data.acciones?.length ?? 0 };
+        },
+      },
     },
   },
   security: {
-    /** Puerta `permissions`: decide con la matriz del usuario de la sesión y el verbo de la petición. */
+    /** Puerta `permissions`: decide con la matriz del usuario de la sesión, el alias de la acción y el verbo de la petición. */
     permissions(this: ServerPlugin, info: SessionInfo | null, action: string, _entity: string | null, pctx: PermissionContext): Promise<AuthDecision> {
       if (!info) return Promise.resolve({ allowed: false, reason: "Requiere autenticación" });
       return this["can"](info, action, pctx.method ?? "GET");
-    },
-  },
-  ops: {
-    /** Decisión para una acción de seguridad (ruta o capacidad de código) y un verbo. */
-    async can(this: ServerPlugin, info: SessionInfo, action: string, method = "GET"): Promise<AuthDecision> {
-      const m = await matrix(this, info.id);
-      return decide(m.base, m.rol, action, method, cfg(this).denyByDefault);
-    },
-    /** Perfil de la sesión (lo mismo que `GET /permisos`). */
-    async profile(this: ServerPlugin, info: SessionInfo | null): Promise<SessionProfile> {
-      const m = await matrix(this, info?.id ?? null);
-      const perms: Record<string, unknown> = {};
-      if (info) {
-        for (const { id, routes } of catalogo(this)) {
-          // una acción compartida por varios verbos se informa por verbo (como un valor partido)
-          const metodos = [...new Set(routes.length ? routes.map((r) => r.method) : ["GET"])];
-          const valor = (verbo: string) => {
-            const d = decide(m.base, m.rol, id, verbo, cfg(this).denyByDefault);
-            return d.allowed ? d.value ?? true : false;
-          };
-          perms[id] = metodos.length === 1 ? valor(metodos[0] ?? "GET") : Object.fromEntries(metodos.map((x) => [x, valor(x)]));
-        }
-      }
-      return { usuario: info?.id ?? null, irol: m.irol, igrupo: cfg(this).grupo, roles: m.roles, perms };
-    },
-    /** Carga del DER (lo mismo que `PUT /permisos`): upsert de grupos, roles, rolesusuario y acciones en una transacción. */
-    async load(this: ServerPlugin, der: unknown): Promise<DerLoadResult> {
-      const parsed = ZDerLoad.safeParse(der);
-      if (!parsed.success) throw new ValidationError(zodMessage(parsed.error));
-      const data: DerLoad = parsed.data;
-      if (this.router) {
-        const ids = new Set(catalogo(this).map((a) => a.id));
-        const desconocidas = (data.acciones ?? []).map((a) => a.iaccion).filter((id) => id !== "*" && !ids.has(id));
-        if (desconocidas.length) throw new ValidationError(`Acciones no declaradas: ${[...new Set(desconocidas)].join(", ")}`);
-      }
-      const c = this.controllers;
-      await this.db.transaction(async (tx) => {
-        for (const g of data.grupos ?? []) await upsert(c["grupos"]!, { ...g }, tx);
-        for (const r of data.roles ?? []) await upsert(c["roles"]!, { ...r }, tx);
-        for (const ru of data.rolesusuario ?? []) await upsert(c["rolesUsuario"]!, { ...ru }, tx);
-        for (const a of data.acciones ?? []) await upsert(c["acciones"]!, { ...a }, tx);
-      });
-      return { grupos: data.grupos?.length ?? 0, roles: data.roles?.length ?? 0, rolesusuario: data.rolesusuario?.length ?? 0, acciones: data.acciones?.length ?? 0 };
-    },
-    /** Catálogo de acciones evaluables (rutas con `permissions` + las de código). */
-    catalog(this: ServerPlugin): CatalogEntry[] {
-      return catalogo(this);
     },
   },
   /** Grupo, rol base, rol administrador (`"*": true`) y los admins configurados. */

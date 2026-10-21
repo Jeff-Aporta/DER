@@ -5,6 +5,8 @@
  * Los tipos propios del servidor que dependen de Kysely viven en `02-controllers/server/schemas.ts`.
  *
  * Secciones: columnas · pojo · query · entidad · seguridad · controller · client · plugins · sse · zod · diagramas
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import { z } from "zod";
 import type { Pojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
@@ -59,6 +61,7 @@ export type PojoQuery<P> = { [K in FieldsOf<P>]?: TConsulta } & Record<string, T
 // ===================================================================================== query
 
 export type FieldOps = { eq?: unknown; ne?: unknown; gt?: unknown; gte?: unknown; lt?: unknown; lte?: unknown; in?: unknown[]; nin?: unknown[]; between?: [unknown, unknown]; like?: string; ilike?: string; contains?: string; startsWith?: string; endsWith?: string; isNull?: boolean };
+/** Operadores admitidos en `where` (`campo: { op: valor }`). */
 export const FIELD_OPS: ReadonlySet<string> = new Set(["eq", "ne", "gt", "gte", "lt", "lte", "in", "nin", "between", "like", "ilike", "contains", "startsWith", "endsWith", "isNull"]);
 /** Filtro: `campo: valor` (igualdad; `null` → IS NULL; array → IN), `campo: { op: valor }`, `relacion: { ...filtro del detalle }` (EXISTS) y los lógicos `$and`, `$or`, `$not`. */
 export type Where<P = any> = { [K in FieldsOf<P>]?: unknown } & { $and?: Where<P>[]; $or?: Where<P>[]; $not?: Where<P> };
@@ -74,6 +77,7 @@ export type PageLimits = { pageSize: number; maxPageSize: number };
 // ===================================================================================== entidad
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+/** Las nueve acciones CRUD/colección de todo controller. */
 export const ACTIONS = ["get", "post", "put", "delete", "list", "query", "postList", "putList", "deleteList"] as const;
 export type Action = typeof ACTIONS[number];
 /** Acciones de configuración JSON (`plural/cfg`). */
@@ -96,7 +100,7 @@ export type EndpointDef<P extends Pojo = any> = { method: HttpMethod; scope: "on
  * `singular`); `table` nombre en BD (default: plural, luego singular, con `/` → `_`); `security` compartida con el
  * client (qué acciones son públicas/protegidas); `doc` fuentes `.md` para `plural/doc`.
  */
-export type EntityDef<P extends Pojo = Pojo> = { pojo?: PojoClass<P>; schema?: Schema; name?: string; singular: string; plural: string; table?: string; singularSuffix?: string; pluralSuffix?: string; listColumns?: string[]; getInclude?: Include; pageSize?: number; maxPageSize?: number; hooks?: Hooks<P>; endpoints?: Record<string, EndpointDef<P>>; cfg?: CfgDef; doc?: string[]; itemHooksOnLists?: boolean; security?: boolean | SecurityDef };
+export type EntityDef<P extends Pojo = Pojo> = { pojo?: PojoClass<P>; schema?: Schema; name?: string; singular: string; plural: string; table?: string; singularSuffix?: string; pluralSuffix?: string; listColumns?: string[]; getInclude?: Include; pageSize?: number; maxPageSize?: number; hooks?: Hooks<P>; endpoints?: Record<string, EndpointDef<P>>; paths?: Record<string, IrregularPath>; cfg?: CfgDef; doc?: string[]; itemHooksOnLists?: boolean; security?: boolean | SecurityDef; exposed?: boolean; administrable?: boolean };
 export type RouteMatch = { name: Action | string; endpoint?: EndpointDef; pks: string[]; sse: boolean };
 
 // ===================================================================================== seguridad (transversal)
@@ -145,21 +149,28 @@ export type ClientConfig<P extends Pojo, Ctl = any> = ControllerOptions<P, Ctl, 
 
 // ===================================================================================== plugins (JSON transversal)
 
+/** Dónde cuelga un path: del `singular` de la entidad, de su `plural` o de ninguna entidad (`none`). */
 export type RoutePrefix = "singular" | "plural" | "none";
-/** Ruta irregular (no sigue REST): `prefix` la cuelga del singular/plural de `entity` (clave del plugin) o de nada; `zod` valida el body en el client; `returns` cómo castea el client (`pojo`/`list` exigen `entity`). */
-export type IrregularRoute = { method: HttpMethod; path: string; prefix?: RoutePrefix | undefined; entity?: string | undefined; security?: SecurityInput | undefined; zod?: z.ZodType | undefined; returns?: "pojo" | "list" | "json" | "void" | undefined; id?: string | undefined };
-/** Entidad de un plugin: la definición compartida con su schema JSON (el POJO se genera: `controller.pojo(content?)`). */
-export type PluginEntity = Omit<EntityDef<any>, "pojo" | "schema"> & { schema: Schema };
-/** Operaciones de un plugin: funciones con `this` = el plugin armado (`createClient`/`createServer`). */
+/** Operaciones ligadas a un path: funciones con `this` = el plugin armado (`createClient`/`createServer`); quedan como métodos del plugin. */
 export type PluginOps = Record<string, (this: any, ...args: any[]) => unknown>;
 /**
- * Plugin = JSON transversal: entidades (schema + rutas regulares REST), rutas irregulares y operaciones del lado
- * cliente. El server lo reusa tal cual y le INYECTA sus particularidades (`Obj.insert`): handlers, hidden, actions…
+ * Path irregular (no sigue las reglas REST). A nivel de plugin (`irregularPaths`) no pertenece a ninguna entidad (`prefix` `none`);
+ * dentro de una entidad (`paths`) cuelga de su `plural` (default) o `singular`; con `pks: true` (solo `singular`) lleva las pks de la
+ * entidad (`usuario/{iusuario}/sufijo`) y el handler las recibe en `input.pks`. `zod` valida el body en el client; `returns` cómo
+ * castea el client; `ops` las operaciones (cliente o server) que lo usan.
  */
-export type PluginDef = { name: string; entities?: Record<string, PluginEntity> | undefined; routes?: Record<string, IrregularRoute> | undefined; ops?: PluginOps | undefined };
+export type IrregularPath = { method: HttpMethod; path: string; prefix?: RoutePrefix | undefined; pks?: boolean | undefined; security?: SecurityInput | undefined; zod?: z.ZodType | undefined; returns?: "pojo" | "list" | "json" | "void" | undefined; id?: string | undefined; ops?: PluginOps | undefined };
+/** Entidad de un plugin: la definición compartida con su schema JSON y, EXPLÍCITOS, `exposed` (se publica por API) y `administrable` (admite escrituras por CRUD). */
+export type PluginEntity = Omit<EntityDef<any>, "pojo" | "schema" | "exposed" | "administrable"> & { schema: Schema; exposed: boolean; administrable: boolean };
+/**
+ * Plugin = JSON transversal: entidades (schema, rutas regulares REST y sus `paths`) e `irregularPaths` (los que no pertenecen a
+ * ninguna entidad). El server lo reusa tal cual y le INYECTA sus particularidades (`Obj.insert`): handlers, hidden, puertas…
+ */
+export type PluginDef = { name: string; entities?: Record<string, PluginEntity> | undefined; irregularPaths?: Record<string, IrregularPath> | undefined };
+/** Config de `createClient`: `baseUrl` del API, `fetch` inyectable, `headers` fijas o función, `token` inicial y `onToken` para persistirlo. */
 export type ClientPluginConfig = { baseUrl: string; fetch?: typeof fetch | undefined; headers?: HeadersSource | undefined; token?: string | null | undefined; onToken?: ((token: string | null) => void) | undefined };
-/** Plugin armado en el cliente: un `ClientController` por entidad (clave del JSON), `call(ruta, body?)` para las irregulares, token de sesión y las `ops` como métodos. */
-export type ClientPlugin = { name: string; def: PluginDef; config: ClientPluginConfig; controllers: Record<string, ClientController<any>>; state: Record<string, unknown>; token: string | null; setToken(token: string | null): void; headers(): HeadersInit | Promise<HeadersInit>; request(method: string, path: string, body?: unknown, ctx?: ClientCtx): Promise<Response>; call<R = unknown>(route: string, body?: unknown, params?: Record<string, string>): Promise<R> } & Record<string, any>;
+/** Plugin armado en el cliente: un `ClientController` por entidad (clave del JSON), `call(path, body?, pks?)` para cualquier path irregular (del plugin o de una entidad), token de sesión y las `ops` de los paths como métodos. */
+export type ClientPlugin = { name: string; def: PluginDef; config: ClientPluginConfig; controllers: Record<string, ClientController<any>>; state: Record<string, unknown>; token: string | null; setToken(token: string | null): void; headers(): HeadersInit | Promise<HeadersInit>; request(method: string, path: string, body?: unknown, ctx?: ClientCtx): Promise<Response>; call<R = unknown>(path: string, body?: unknown, keys?: Record<string, string> | Pojo): Promise<R> } & Record<string, any>;
 
 // ===================================================================================== sse
 
@@ -169,7 +180,9 @@ export type SseEvent = { event: string; data: string };
 
 /** Schemas Zod generados de un schema JSON (ver `zodOf`): `row` lectura (todo opcional), `insert` POST, `update` PUT (pks requeridas), `pk` GET/DELETE, `molde` de `Obj.insert`. */
 export type SchemaZod = { row: z.ZodObject; insert: z.ZodObject; update: z.ZodObject; pk: z.ZodObject; molde: z.ZodObject };
+/** Zod de un ítem de `orderBy`: texto (`"-campo"`) u objeto `{ field, dir }`. */
 export const ZOrderItem: z.ZodType<OrderItem> = z.union([z.string(), z.object({ field: z.string(), dir: z.enum(["asc", "desc"]).optional() })]);
+/** Zod recursivo del `include` (JData de relaciones). */
 export const ZInclude: z.ZodType<Include> = z.lazy(() => z.record(z.string(), z.union([z.boolean(), z.undefined(), ZInclude])));
 export type QuerySpecShape = { select?: string[] | undefined; where?: Record<string, unknown> | undefined; orderBy?: OrderBy | undefined; page?: number | undefined; pageSize?: number | undefined; include?: Include | undefined };
 /** Forma de `query()` (la validación semántica de campos/relaciones la hace `validateQuery`). */

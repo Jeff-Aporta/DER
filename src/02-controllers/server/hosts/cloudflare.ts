@@ -10,6 +10,8 @@
  * });
  * ```
  * Requiere `compatibility_flags = ["nodejs_compat"]` sólo si se usan fuentes de doc locales (`node:fs`).
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import type { Router } from "@Jeff-Aporta/DER/src/02-controllers/server/router.ts";
 import type { WorkerExecutionContext, WorkerExport } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";

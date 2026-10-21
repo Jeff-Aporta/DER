@@ -13,6 +13,8 @@
  * ```
  * Escrituras con `OUTPUT inserted.* / deleted.*`; paginación con `OFFSET ... FETCH`; JSON con `FOR JSON PATH`.
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { MssqlDialect, type MssqlDialectConfig } from "kysely";
 import { Database } from "@Jeff-Aporta/DER/src/02-controllers/server/database.ts";
@@ -22,6 +24,7 @@ import { mssql } from "@Jeff-Aporta/DER/src/02-controllers/server/engines.ts";
 export * from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 export { mssql } from "@Jeff-Aporta/DER/src/02-controllers/server/engines.ts";
 
+/** Base SQL Server con el `MssqlDialect` de Kysely (`tarn` + `tedious` del consumidor). */
 export function mssqlDatabase(config: MssqlDialectConfig, opts: DbFactoryOptions = {}): Database {
   return new Database({ engine: mssql, dialect: new MssqlDialect(config), ...opts });
 }

@@ -1,6 +1,8 @@
 /**
  * Derivación de IP y dispositivo desde el request, sin dependencias: IP real por `X-Forwarded-For`,
  * user-agent, SO, navegador y una huella estable (hash del user-agent) para detectar equipos nuevos.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md
  */
 import type { DeviceInfo } from "@Jeff-Aporta/DER/src/03-plugins/identity/schemas.ts";
 import { b64urlEncode } from "@Jeff-Aporta/DER/src/03-plugins/common/crypto.ts";

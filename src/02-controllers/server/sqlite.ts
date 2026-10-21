@@ -4,6 +4,8 @@
  *   sqliteDatabase(new BetterSqlite3("app.db"))  better-sqlite3 (o cualquier driver síncrono con `prepare()`)
  *   sqliteDatabase(new sqlite3.Database("app.db")) sqlite3 asíncrono (`all`/`run` con callback)
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/servidor.md
  */
 import { CompiledQuery, type DatabaseConnection, type Dialect, type Driver, type QueryResult, SqliteAdapter, SqliteDialect, SqliteIntrospector, SqliteQueryCompiler, type SqliteDatabase } from "kysely";
 import { DatabaseSync } from "node:sqlite";
@@ -38,9 +40,11 @@ export function nodeSqliteAdapter(db: DatabaseSync): SqliteDatabase {
 class AsyncSqliteDriver implements Driver {
   #chain: Promise<void> = Promise.resolve();
   constructor(readonly db: AsyncSqlite) {}
+  /** Nada que inicializar: el driver ya está abierto. */
   init(): Promise<void> {
     return Promise.resolve();
   }
+  /** Toma la única conexión (en serie: espera a que la anterior se libere). */
   async acquireConnection(): Promise<DatabaseConnection> {
     let release!: () => void;
     const mine = new Promise<void>((r) => (release = r));
@@ -66,19 +70,24 @@ class AsyncSqliteDriver implements Driver {
     };
     return conn;
   }
+  /** `begin`. */
   beginTransaction(conn: DatabaseConnection): Promise<void> {
     return conn.executeQuery(CompiledQuery.raw("begin")).then(() => undefined);
   }
+  /** `commit`. */
   commitTransaction(conn: DatabaseConnection): Promise<void> {
     return conn.executeQuery(CompiledQuery.raw("commit")).then(() => undefined);
   }
+  /** `rollback`. */
   rollbackTransaction(conn: DatabaseConnection): Promise<void> {
     return conn.executeQuery(CompiledQuery.raw("rollback")).then(() => undefined);
   }
+  /** Libera la conexión para el siguiente en la fila. */
   releaseConnection(conn: DatabaseConnection): Promise<void> {
     (conn as { release?: () => void }).release?.();
     return Promise.resolve();
   }
+  /** Cierra el driver si expone `close`. */
   destroy(): Promise<void> {
     return new Promise((res, rej) => (this.db.close ? this.db.close((e) => (e ? rej(e) : res())) : res()));
   }

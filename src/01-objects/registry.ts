@@ -9,6 +9,8 @@
  *   implementaciones y el consumidor decide cuál usa (o la suya). Sin `extract` no hay seguridad.
  * - `session`: singleton de la sesión actual (lado cliente, o un proceso de un solo usuario); en el server la sesión
  *   de cada request viaja en el `ctx`.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import type { AuthDecision, PermissionContext, PojoClass, RegisteredEntity, SecurityHooks, SessionInfo } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";
@@ -37,6 +39,7 @@ class Registry {
     this.#pojos.set(name, cls);
   }
 
+  /** ¿Hay una entidad registrada con ese plural? */
   has(plural: string): boolean {
     return this.#entities.has(plural);
   }
@@ -53,6 +56,7 @@ class Registry {
     return [...this.#entities.values()].find((e) => e.name === name) as Entity<P> | undefined;
   }
 
+  /** Todas las entidades registradas, con su clave (plural). */
   entities(): RegisteredEntity[] {
     return [...this.#entities].map(([key, entity]) => ({ key, entity }));
   }
@@ -113,4 +117,5 @@ class Registry {
   }
 }
 
+/** El registro global: un singleton por proceso. */
 export const registry: Registry = new Registry();

@@ -22,6 +22,8 @@
  *
  * Cualquier ruta + `/sse` es su variante Server-Sent Events. `/cfg` y `/doc` existen SÓLO en el plural.
  * Si singular === plural, el plural lleva el sufijo `pluralSuffix` (por defecto "s"): `dato/s`.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */
 import { type Pojo, pojoOf } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
@@ -38,20 +40,33 @@ function tableName(segment: string): string {
   return segment.replace(/[^A-Za-z0-9_]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
+/** Entidad REST resuelta: POJO, nombres, rutas, tabla, hooks, endpoints y seguridad. Se registra en el registro global al construirse. */
 export class Entity<P extends Pojo = Pojo> {
+  /** Clase del POJO (dada o generada del schema). */
   readonly pojo: PojoClass<P>;
+  /** Nombre para `target` en relaciones (default `singular`). */
   readonly name: string;
+  /** Segmento singular de las rutas (`producto`, `pedido/linea`). */
   readonly singular: string;
+  /** Segmento plural de las rutas (`productos`). */
   readonly plural: string;
   /** Nombre de la tabla: `def.table`, o el plural, o el singular (con `/` → `_`). */
   readonly table: string;
+  /** Singular + `singularSuffix`, por segmentos. */
   readonly singularPath: string[];
+  /** Plural + `pluralSuffix` (`s` si singular === plural), por segmentos: la clave del registro. */
   readonly pluralPath: string[];
+  /** Columnas que devuelve `list()` (default: todas las persistidas). */
   readonly listColumns: string[];
+  /** Tamaño de página por defecto de `query()` (50). */
   readonly pageSize: number;
+  /** Tope de `pageSize` (1000). */
   readonly maxPageSize: number;
+  /** Verificaciones compartidas (`pre*`) de la entidad. */
   readonly hooks: Hooks<P>;
+  /** Endpoints especiales declarados (contrato; la implementación la da el server). */
   readonly endpoints: Record<string, EndpointDef<P>>;
+  /** En listas, correr también el pre singular por ítem (default true). */
   readonly itemHooksOnLists: boolean;
 
   constructor(readonly def: EntityDef<P>) {
@@ -112,6 +127,7 @@ export class Entity<P extends Pojo = Pojo> {
     return m ? Obj.esquemaInsert(m) : undefined;
   }
 
+  /** Metadata resuelta del schema (pks, persistidas, virtuales, relaciones). */
   get meta(): SchemaMeta {
     return this.pojo.meta;
   }
@@ -121,6 +137,7 @@ export class Entity<P extends Pojo = Pojo> {
     return this.pojo.fromJSON(v) as P;
   }
 
+  /** Convierte un arreglo de objetos planos en POJOs (lanza si no es arreglo). */
   toPojos(v: unknown): P[] {
     if (!Array.isArray(v)) throw new TypeError("Se esperaba un arreglo");
     return this.pojo.fromList(v) as P[];

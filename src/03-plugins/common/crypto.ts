@@ -5,6 +5,8 @@
  *   volcado de la tabla no sirva para atacar los hashes. Formato: `pbkdf2-sha256$<iteraciones>$<sal b64url>$<hash b64url>`.
  * - JWT HS384 (simétrico) y ES256 (asimétrico, JWK/JWKS). La verificación SOLO acepta el algoritmo esperado (`alg: none` se
  *   rechaza), compara la firma con `crypto.subtle.verify` (tiempo constante) y distingue vencido de inválido.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md
  */
 import { HttpError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { type JwtClaims, ZJwtClaims } from "@Jeff-Aporta/DER/src/03-plugins/identity/schemas.ts";
@@ -12,12 +14,14 @@ import { type JwtClaims, ZJwtClaims } from "@Jeff-Aporta/DER/src/03-plugins/iden
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
+/** Bytes → base64url sin relleno. */
 export function b64urlEncode(bytes: Uint8Array): string {
   let s = "";
   for (const b of bytes) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/** base64url → bytes. */
 export function b64urlDecode(text: string): Uint8Array<ArrayBuffer> {
   const b64 = text.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(text.length / 4) * 4, "=");
   const bin = atob(b64);
@@ -50,12 +54,14 @@ async function derive(password: string, secret: string, salt: Uint8Array<ArrayBu
   return new Uint8Array(bits);
 }
 
+/** Hash de una contraseña: `pbkdf2-sha256$<iter>$<sal>$<hash>` con sal aleatoria y pepper. */
 export async function hashPassword(password: string, secret: string, iterations = 100_000): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const hash = await derive(password, secret, salt, iterations);
   return ["pbkdf2-sha256", String(iterations), b64urlEncode(salt), b64urlEncode(hash)].join("$");
 }
 
+/** ¿La contraseña corresponde al hash guardado? (tiempo constante; formato inválido → false). */
 export async function verifyPassword(password: string, stored: string, secret: string): Promise<boolean> {
   const [algo, iter, salt, hash] = stored.split("$");
   if (algo !== "pbkdf2-sha256" || !iter || !salt || !hash) return false;
@@ -67,6 +73,7 @@ export async function verifyPassword(password: string, stored: string, secret: s
 
 const JWT_HEADER = b64urlEncode(enc.encode(JSON.stringify({ alg: "HS384", typ: "JWT" })));
 
+/** JWT HS384 con los claims dados. */
 export async function signJwt(claims: JwtClaims, secret: string): Promise<string> {
   const body = `${JWT_HEADER}.${b64urlEncode(enc.encode(JSON.stringify(claims)))}`;
   const sig = await crypto.subtle.sign("HMAC", await hmacKey(secret, "SHA-384"), enc.encode(body));
@@ -113,10 +120,12 @@ export async function generateEs256KeyPair(): Promise<CryptoKeyPair> {
   return await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
 }
 
+/** Llave privada ECDSA P-256 desde un JWK (para firmar). */
 export async function importEs256PrivateKey(jwk: JsonWebKey): Promise<CryptoKey> {
   return await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["sign"]);
 }
 
+/** Llave pública ECDSA P-256 desde un JWK (para verificar). */
 export async function importEs256PublicKey(jwk: JsonWebKey): Promise<CryptoKey> {
   return await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, true, ["verify"]);
 }

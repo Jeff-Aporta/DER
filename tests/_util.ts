@@ -50,7 +50,7 @@ export async function call(router: Router, method: string, path: string, opts: {
 
 /** Token de un login correcto (falla el test si no lo es). */
 export async function login(router: Router, usuario: string, password: string, headers?: Record<string, string>): Promise<string> {
-  const r = await call(router, "POST", "login", { body: { usuario, password }, headers: headers ?? {} });
+  const r = await call(router, "POST", "usuarios/login", { body: { usuario, password }, headers: headers ?? {} });
   assertEquals(r.status, 200, JSON.stringify(r.data));
   return (r.data as LoginResult).token;
 }

@@ -11,6 +11,8 @@
  *
  * `pojo(content?)` instancia el POJO de la entidad sin tocar su clase; `permissions(action)` consulta la puerta
  * `permissions()` del registro global con la sesión del ctx (o la sesión singleton).
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/controllers.md
  */
 import type { z } from "zod";
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";
@@ -33,6 +35,7 @@ function toMessage(r: Check): string | null {
   return r === true ? "Datos inválidos" : String(r);
 }
 
+/** Flujo común de toda acción (normalizar → verificar → override → ejecutar); client y server solo implementan `execute*`. */
 export abstract class BaseController<P extends Pojo, Ctx extends BaseCtx = BaseCtx> {
   readonly #options: ControllerOptions<P, any, Ctx>;
 
@@ -47,24 +50,29 @@ export abstract class BaseController<P extends Pojo, Ctx extends BaseCtx = BaseC
     return this.entity.toPojo(content ?? {});
   }
 
+  /** Lista de POJOs de la entidad a partir de objetos planos. */
   pojos(list?: unknown): P[] {
     return this.entity.toPojos(list ?? []);
   }
 
   // ------------------------------------------------------------------ CRUD
 
+  /** Un registro por sus pks (`null` si no existe); `ctx.include` fija las relaciones. */
   get(pojo: P | PojoInit, ctx?: Partial<Ctx>): Promise<P | null> {
     return this.#dispatch("get", this.entity.toPojo(pojo), ctx);
   }
 
+  /** Crea un registro (secuencias y defaults se completan en el server) y devuelve la fila guardada. */
   post(pojo: P | PojoInit, ctx?: Partial<Ctx>): Promise<P> {
     return this.#dispatch("post", this.entity.toPojo(pojo), ctx);
   }
 
+  /** PUT singular parcial según `schema.put`; `null` si no existe. */
   put(pojo: P | PojoInit, ctx?: Partial<Ctx>): Promise<P | null> {
     return this.#dispatch("put", this.entity.toPojo(pojo), ctx);
   }
 
+  /** Borra por pks y devuelve la fila borrada (`null` si no existía). */
   delete(pojo: P | PojoInit, ctx?: Partial<Ctx>): Promise<P | null> {
     return this.#dispatch("delete", this.entity.toPojo(pojo), ctx);
   }
@@ -79,14 +87,17 @@ export abstract class BaseController<P extends Pojo, Ctx extends BaseCtx = BaseC
     return this.#dispatch("query", q, ctx);
   }
 
+  /** Crea varios en una transacción (en el server); un ítem inválido revierte todo. */
   postList(list: (P | PojoInit)[], ctx?: Partial<Ctx>): Promise<P[]> {
     return this.#dispatch("postList", this.entity.toPojos(list), ctx);
   }
 
+  /** Actualiza varios en una transacción; un inexistente revierte todo (404). */
   putList(list: (P | PojoInit)[], ctx?: Partial<Ctx>): Promise<P[]> {
     return this.#dispatch("putList", this.entity.toPojos(list), ctx);
   }
 
+  /** Borra varios en una transacción; un inexistente revierte todo (404). */
   deleteList(list: (P | PojoInit)[], ctx?: Partial<Ctx>): Promise<P[]> {
     return this.#dispatch("deleteList", this.entity.toPojos(list), ctx);
   }

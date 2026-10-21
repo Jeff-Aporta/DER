@@ -28,7 +28,7 @@ Deno.test("es256 integración: login firma ES256 y JWKS expone la llave pública
   const db = sqliteDatabase();
   const { router, cerrar } = await apiConPlugins(db, [new ServerController(CategoriaEntity, { db, table: "categorias" })], { identity: identityCfg({ jwt: { alg: "ES256", kid: "usrs" } }) });
   try {
-    const login = await call(router, "POST", "login", { body: { usuario: "admin", password: "admin-12345" } });
+    const login = await call(router, "POST", "usuarios/login", { body: { usuario: "admin", password: "admin-12345" } });
     assertEquals(login.status, 200);
     const token: string = login.data.token;
     const header = JSON.parse(new TextDecoder().decode(b64urlDecode(token.split(".")[0]!)));

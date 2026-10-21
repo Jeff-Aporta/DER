@@ -6,6 +6,8 @@
  * const p = await productos.get({ iproducto: 1 });
  * for await (const t of productos.stream("post", nuevo)) console.log(t);   // POST producto/sse
  * ```
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/controllers.md
  */
 import { BaseController } from "@Jeff-Aporta/DER/src/02-controllers/controller.ts";
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";
@@ -45,15 +47,18 @@ export async function clientRequest(config: { baseUrl: string; fetch?: typeof fe
   throw res.status === 400 ? new ValidationError(msg) : new HttpError(res.status, msg);
 }
 
+/** Controller del lado cliente: las mismas verificaciones que el server, ejecutadas antes de un `fetch` a la API. */
 export class ClientController<P extends Pojo> extends BaseController<P, ClientCtx> {
   constructor(entity: Entity<P>, readonly config: ClientConfig<P, ClientController<P>>) {
     super(entity, config);
   }
 
+  /** URL absoluta de una ruta relativa al `baseUrl` (normaliza la barra final). */
   url(path: string): string {
     return `${this.config.baseUrl.replace(/\/+$/, "")}/${path}`;
   }
 
+  /** fetch de bajo nivel con las cabeceras de la config: 400 → `ValidationError`, ≥400 → `HttpError`, 404 se devuelve. */
   request(method: string, path: string, body?: unknown, ctx?: ClientCtx, accept = "application/json"): Promise<Response> {
     return clientRequest(this.config, method, path, body, ctx, accept);
   }
