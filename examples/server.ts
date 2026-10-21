@@ -1,7 +1,7 @@
 /**
  * Servidor de ejemplo: `deno task example` → http://localhost:8000/api
  *   curl localhost:8000/api/productos
- *   curl -X POST localhost:8000/api/productos/query -d '{"where":{"precio":{"gt":2}},"include":{"categoria":true}}'
+ *   curl "localhost:8000/api/productos?q=eyJ3aGVyZSI6eyJwcmVjaW8iOnsiZ3QiOjJ9fSwiaW5jbHVkZSI6eyJjYXRlZ29yaWEiOnRydWV9fQ"   (q = QuerySpec en base64url)
  *   curl -N localhost:8000/api/productos/sse
  *   curl localhost:8000/api/productos/cfg
  *   curl -X PUT localhost:8000/api/productos/cfg -d '{"catalogo":{"porPagina":12}}'
