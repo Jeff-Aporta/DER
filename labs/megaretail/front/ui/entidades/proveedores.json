@@ -1,0 +1,1 @@
+{ "etiqueta": "{razon_social}", "permiso": "catalogo.escribir", "campos": { "nit": { "label": "NIT", "placeholder": "900100100-1" }, "contacto": { "placeholder": "correo o teléfono" } } }

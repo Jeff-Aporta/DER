@@ -1,0 +1,44 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-stats",
+  "category": "megaretail",
+  "navTitle": "stats",
+  "title": "&lt;mr-stats&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-stats",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-stats&gt;",
+      "lede": "Fila de iswc-stat definidos en JSON: valor por consulta Obj.getValue sobre el resultado y formato.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-stats id=\"demo\"></mr-stats></div>",
+          "target": "#demo",
+          "props": {
+            "stats": null,
+            "datos": null
+          },
+          "controls": [
+            {
+              "prop": "stats",
+              "type": "text",
+              "label": "stats"
+            },
+            {
+              "prop": "datos",
+              "type": "text",
+              "label": "datos"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Indicadores de un reporte o de un flujo.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+:host{display:block;box-sizing:border-box;font-family:var(--iswc-sans, system-ui, sans-serif);color:var(--iswc-text)}.stats{display:grid;grid-template-columns:repeat(auto-fit, minmax(13rem, 1fr));gap:.75rem}

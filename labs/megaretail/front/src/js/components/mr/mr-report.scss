@@ -1,0 +1,48 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-report — parámetros, indicadores y tabla. */
+:host {
+  @include m.host-bloque;
+}
+
+.cabecera {
+  @include m.cabecera-vista;
+  justify-content: flex-start;
+
+  iswc-badge {
+    margin-left: auto;
+  }
+}
+
+.parametros,
+iswc-callout,
+mr-stats {
+  display: block;
+  margin-bottom: t.esp(4);
+}
+
+.tabla {
+  @include m.tarjeta;
+  position: relative;
+  overflow: hidden;
+
+  iswc-ag-grid {
+    display: block;
+    height: 60vh;
+    min-height: 18rem;
+  }
+
+  .cargando {
+    position: absolute;
+    top: t.esp(4);
+    right: t.esp(4);
+    z-index: 2;
+  }
+
+  iswc-callout {
+    position: absolute;
+    inset: auto t.esp(4) t.esp(4);
+    margin: 0;
+  }
+}

@@ -1,0 +1,42 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-entity-view — catálogo: cabecera con acciones, grid y editor modal. */
+:host {
+  @include m.host-bloque;
+}
+
+.cabecera {
+  @include m.cabecera-vista;
+
+  .titulo {
+    display: flex;
+    align-items: center;
+    gap: t.esp(3);
+    flex-wrap: wrap;
+
+    iswc-icon {
+      font-size: 1.6rem;
+      color: var(--iswc-accent);
+    }
+  }
+
+  .acciones {
+    display: flex;
+    gap: t.esp(2);
+    flex-wrap: wrap;
+  }
+}
+
+iswc-callout {
+  margin-bottom: t.esp(4);
+}
+
+iswc-dialog.editor {
+  --width: min(56rem, 96vw);
+}
+
+.cargando {
+  display: block;
+  margin: t.esp(10) auto;
+}

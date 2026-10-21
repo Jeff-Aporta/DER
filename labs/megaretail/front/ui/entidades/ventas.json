@@ -1,0 +1,16 @@
+{
+  "etiqueta": "{consecutivo} · {estado}",
+  "pageSize": 25,
+  "grid": {
+    "columnas": {
+      "consecutivo": { "pinned": "left", "width": 120 },
+      "total_venta": { "header": "Total", "type": "currency", "align": "right" },
+      "fecha_venta": { "header": "Fecha (UTC)" },
+      "estado": { "width": 120 }
+    },
+    "ocultar": ["id_venta"]
+  },
+  "campos": {
+    "estado": { "control": "radio" }
+  }
+}

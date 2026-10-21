@@ -1,0 +1,26 @@
+// app.scss — estilos de página (solo light DOM): fondo, tipografía base y la cortina de arranque.
+@use "tokens" as t;
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--iswc-bg, #f4f7fb);
+  color: var(--iswc-text, #142033);
+  font-family: var(--iswc-sans, system-ui, sans-serif);
+}
+
+// la página se oculta hasta que el arranque termina (data-app-ready) o el watchdog la revela
+html:not([data-app-ready]) body {
+  visibility: hidden;
+}
+
+mr-app {
+  display: block;
+  min-height: 100dvh;
+}
+
+noscript {
+  display: block;
+  padding: t.esp(6);
+}

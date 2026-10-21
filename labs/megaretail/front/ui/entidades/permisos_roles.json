@@ -1,0 +1,1 @@
+{ "etiqueta": "{irol}", "permiso": "seguridad.administrar", "campos": { "irol": { "label": "Rol (id)", "placeholder": "VENDEDOR" }, "bactivo": { "label": "Activo" } } }

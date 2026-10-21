@@ -1,0 +1,77 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
+    "npm:kysely@0.28.17": "0.28.17",
+    "npm:zod@4.6.7": "4.6.7"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    }
+  },
+  "npm": {
+    "kysely@0.28.17": {
+      "integrity": "sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q=="
+    },
+    "zod@4.6.7": {
+      "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="
+    }
+  },
+  "remote": {
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/index.ts": "732ea3589591a50fb3e937b6030959ac98648241069ce5bab4641701a92cb0cc",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/00-common/base.ts": "ff095011985dab06186f983cb9dab366ddc583463f28360fff5239a8617b48ce",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/00-common/index.ts": "d3c161480080b4bbdafe9aae331ceee7d4394939e01b245c7d93227d95bc9f1c",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/00-common/schemas.ts": "9c09a90bc5b8257a08d8c7d131defa4b42d8697eab34c896ce47dfb5f0b1c87e",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/00-common/sse.ts": "2d31aed94555732096e7e9c86f8f20310a540eb87f625b46f5065edfa008f1c3",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/diagram.ts": "3d0c43113554d861673da86a78717f6b324084237a622131a8b16f8d94d7031b",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/entity.ts": "24b7f6eb32be38b1db15cc595408e7112c38892bf6fba60f55e287446854087a",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/index.ts": "83958b46e3f96803792961f31590cd017b612e322cb1f49348880f6b85456f11",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/meta.ts": "2e30443bcc87590745e33b1f554a6ce9e0b22c0b0a39970277352a4e45484f73",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/pojo.ts": "160bfda47ffa107dd3ba3d6e8cfd2189be0b5956d9201496767971662a890b47",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/query.ts": "7280b36bb16e438b426dcdd4325e5c8e200949b4f65e3026079af4a4bb9714fd",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/registry.ts": "9f37378e7bf4b8a05bcb7fca9521b8d34f0868cf5294d49c851057a2a90fc86f",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/01-objects/zod.ts": "185266c46f6dee5d36256bf5e9924756137a6cda3f4ca4d3d0af162c2b17f170",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/client/controller.ts": "b06829585e414a8b9e40fd3054ca70a13c6bdfc081efd2fe07ec33ebab7bf7b8",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/controller.ts": "2959a59c233f1e3d4bbdb0dd62bc9074fe83e5fb64bc72f52686b764762d189f",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/index.ts": "324135e69be090273ac92d9e91966af5aa8a05a2d1b83eeb217d988c162294d4",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/plugin.ts": "86b3391b2915906513c98245e0c4c0e317e19f95a52af58eab6864aee1aed877",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/controller.ts": "4661302bcff4a8d46023398852bc2ed616896d652f26aa3e0dc3bbdd7e04f21d",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/database.ts": "996aba3341eed356bfeba62100039b5a9735614dc9fcd91ccaaa0f836c886c64",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/doc.ts": "35e02eb29bd9d36ffe025bbd4218031f18cf0e6be38a7df89f54b1c5c87cb6cc",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/engines.ts": "182c19d333b1e97f6dbe5bb2245ad628bd195364121c7d05c58f2d6702b14594",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/index.ts": "9a9da186cb23e5038f0d797f37c6d46b34a63b781fc8d9eb491f4bcccb3ebc82",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/plugin.ts": "58ee3c639a25fb81f21c268213930dc3653a77cde59ddecc9498a369938355d2",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/router.ts": "f4ff061b84864f58a3bf774019c4b8d29535f95de042b8452ea030f0818e6ffc",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/routes.ts": "cd8dbaf8e8ef6dfbc2ac16ed9246c6a7aec550e212b66c71672d6c449245498d",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/schemas.ts": "e19b13843974646ada0b572b5749859fc36ffcbe6a3765e02a0545bc81c75c92",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/02-controllers/server/sqlite.ts": "ddea3c20aa8b9fba72e4e0504d2b8c6e2977b6f5b3e4a183f96edfea525a711f",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/common/crypto.ts": "6d12a112ac191499a815f2b7ad96fafc348126ae7c8e37b92c2ae5b0d581b5e4",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/common/device.ts": "4e51b947feb4b2cb5a2d7d2b972f6e9585200610fc00a0c3304b5ad1d148987d",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/identity/index.ts": "da86b635d39eac0080e4cce4cc3a9fa5d563f620af2adfec84efb0d06535086f",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/identity/schemas.ts": "1c455765231ad01008b3a763a3c9bf91bfb1ca167f1dce5614aee2c16eee0c7e",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/identity/server.ts": "e5be490e87fa0a165aaa848de03d728198e3e5883eddfaa510425ddda03ee0d2",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/index.ts": "cf687ac61bebd2fe6961b4c5c8f02a5465ac21bf5cf2684a496cf7fb8f1758cc",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/permissions/index.ts": "4fa3736386150e88f2c4a2eca923431326c9bbd4800e90690c6b88493fe1b6ad",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/permissions/rules.ts": "c6c2390d92b6942df2f1848a28d9499f41303a3c4bd23ca7cfa9009e6e66cad7",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/permissions/schemas.ts": "d12b40bc0427aab0f0663900d700c65a705b5b2e97b3eee4b28cc30682ca6eb6",
+    "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/src/03-plugins/permissions/server.ts": "41c29a1e7cf6e2aeb5f0d54883584f556baf43fdf92573495725ef20ab958fc0",
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/components/diagrams/schemas/diagram-types.schemas.ts": "38e21f341f0e856b27c1ed9696fef072753ffd2b110963ce3cbb37be7ba25229",
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/lib/obj.ts": "78066151a12c053c7419d085c1cda22333b5534d8c6e3a423361c040b6d549e9",
+    "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/schemas.ts": "d2537fe6089c7eec5af83af6f31efa0d4559287b5ed93e43fe21fde6f40f6f2c"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/assert@1",
+      "npm:kysely@0.28.17",
+      "npm:zod@4.6.7"
+    ]
+  }
+}

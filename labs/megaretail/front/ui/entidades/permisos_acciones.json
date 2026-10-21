@@ -1,0 +1,7 @@
+{
+  "permiso": "seguridad.administrar",
+  "campos": {
+    "iaccion": { "label": "Acción", "placeholder": "ventas.registrar · catalogo.escribir · *", "hint": "Id de ruta, alias o * (comodín)" },
+    "valor": { "label": "Valor (JSON)", "hint": "true, false o por verbo: {\"GET\": true, \"POST\": false}", "valor": true }
+  }
+}

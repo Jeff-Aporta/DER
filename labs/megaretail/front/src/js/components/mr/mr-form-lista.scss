@@ -1,0 +1,61 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-form-lista — carrito/ítems: filas numeradas con un sub-formulario compacto cada una. */
+:host {
+  @include m.host-bloque;
+}
+
+.lista {
+  @include m.tarjeta;
+  margin: 0;
+  padding: t.esp(3) t.esp(4) t.esp(4);
+
+  .label {
+    font-weight: 600;
+    padding: 0 t.esp(2);
+
+    .hint {
+      font-weight: 400;
+      color: var(--iswc-text-dim);
+      margin-left: t.esp(2);
+      font-size: 0.85rem;
+    }
+  }
+
+  .vacio {
+    color: var(--iswc-text-dim);
+    margin: t.esp(2) 0;
+  }
+}
+
+.filas {
+  list-style: none;
+  margin: 0 0 t.esp(3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: t.esp(2);
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: t.esp(3);
+  padding: t.esp(2) t.esp(3);
+  border-radius: t.radio(md);
+  background: color-mix(in srgb, var(--iswc-accent) 5%, transparent);
+
+  .n {
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--iswc-accent);
+    color: var(--iswc-accent-contrast, #fff);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+}

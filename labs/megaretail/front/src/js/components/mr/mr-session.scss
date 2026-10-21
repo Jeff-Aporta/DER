@@ -1,0 +1,78 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-session — selector de usuario, rol efectivo y modal de permisos. */
+:host {
+  @include m.host-bloque;
+  display: inline-block;
+}
+
+.sesion {
+  display: flex;
+  align-items: center;
+  gap: t.esp(2);
+
+  .icono {
+    font-size: 1.4rem;
+    color: var(--iswc-text-dim);
+  }
+
+  .usuario {
+    min-width: 17rem;
+  }
+
+  .rol {
+    @include m.una-linea;
+    max-width: 10rem;
+  }
+}
+
+iswc-dialog {
+  --width: min(44rem, 96vw);
+}
+
+.resumen {
+  p {
+    margin: 0 0 t.esp(2);
+  }
+
+  .nota {
+    color: var(--iswc-text-dim);
+    font-size: 0.85rem;
+  }
+
+  .otros {
+    color: var(--iswc-text-dim);
+  }
+}
+
+code {
+  font-family: var(--iswc-mono, ui-monospace, monospace);
+  font-size: 0.85em;
+  background: color-mix(in srgb, var(--iswc-text) 6%, transparent);
+  padding: 0.05em 0.35em;
+  border-radius: t.radio(sm);
+}
+
+.permisos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: t.esp(3);
+  font-size: 0.9rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: t.esp(2);
+    border-bottom: 1px solid var(--iswc-border-soft, var(--iswc-border));
+    vertical-align: middle;
+  }
+
+  th {
+    color: var(--iswc-text-dim);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+}

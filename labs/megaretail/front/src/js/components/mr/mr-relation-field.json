@@ -1,0 +1,50 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-relation-field",
+  "category": "megaretail",
+  "navTitle": "relation-field",
+  "title": "&lt;mr-relation-field&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-relation-field",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-relation-field&gt;",
+      "lede": "Campo de relación: etiqueta de la fila elegida (o varias) y botón que abre el selector modal.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-relation-field id=\"demo\"></mr-relation-field></div>",
+          "target": "#demo",
+          "props": {
+            "campo": null,
+            "valor": null,
+            "disabled": "false"
+          },
+          "controls": [
+            {
+              "prop": "campo",
+              "type": "text",
+              "label": "campo"
+            },
+            {
+              "prop": "valor",
+              "type": "text",
+              "label": "valor"
+            },
+            {
+              "prop": "disabled",
+              "type": "text",
+              "label": "disabled"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Relaciones one (una fila) y many (varias) de un formulario generado.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

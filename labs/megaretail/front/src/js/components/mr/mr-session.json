@@ -1,0 +1,50 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-session",
+  "category": "megaretail",
+  "navTitle": "session",
+  "title": "&lt;mr-session&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-session",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-session&gt;",
+      "lede": "Sesión del lab sin contraseña: select de usuarios, rol efectivo y modal con lo que ese rol puede hacer.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-session id=\"demo\"></mr-session></div>",
+          "target": "#demo",
+          "props": {
+            "usuarios": null,
+            "usuario": null,
+            "perms": null
+          },
+          "controls": [
+            {
+              "prop": "usuarios",
+              "type": "text",
+              "label": "usuarios"
+            },
+            {
+              "prop": "usuario",
+              "type": "text",
+              "label": "usuario"
+            },
+            {
+              "prop": "perms",
+              "type": "text",
+              "label": "perms"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>En el slot actions del shell. Cambiar de usuario cambia la cabecera x-usuario de todas las peticiones.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

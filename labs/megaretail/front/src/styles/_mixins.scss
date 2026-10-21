@@ -1,0 +1,53 @@
+// _mixins.scss — mixins compartidos por los componentes mr-*.
+@use "tokens" as t;
+
+/// Host en bloque, con la fuente del kit.
+@mixin host-bloque {
+  display: block;
+  box-sizing: border-box;
+  font-family: var(--iswc-sans, system-ui, sans-serif);
+  color: var(--iswc-text);
+}
+
+/// Una línea con elipsis.
+@mixin una-linea {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/// Cabecera de vista: icono + título + badges a la izquierda, acciones a la derecha.
+@mixin cabecera-vista {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: t.esp(3) t.esp(4);
+  margin-bottom: t.esp(4);
+
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  .descripcion {
+    margin: t.esp(1) 0 0;
+    color: var(--iswc-text-dim);
+    font-size: 0.9rem;
+    max-width: 60ch;
+  }
+
+  > iswc-icon {
+    font-size: 1.6rem;
+    color: var(--iswc-accent);
+  }
+}
+
+/// Tarjeta suave (fondo elevado, borde tenue, radio grande).
+@mixin tarjeta {
+  background: var(--iswc-bg-elev, var(--iswc-bg));
+  border: 1px solid var(--iswc-border-soft, var(--iswc-border));
+  border-radius: t.radio(lg);
+}

@@ -1,0 +1,38 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-entity-grid — el ag-grid del kit con altura configurable y el paginador debajo. */
+:host {
+  @include m.host-bloque;
+}
+
+:host([cargando]) .grid {
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.grid {
+  @include m.tarjeta;
+  overflow: hidden;
+  position: relative;
+
+  iswc-ag-grid {
+    display: block;
+    height: var(--mr-grid-alto, 60vh);
+    min-height: 18rem;
+
+    // la paginación es del server (mr-pager): el pie propio del grid se oculta
+    &::part(footer) {
+      display: none;
+    }
+  }
+
+  .vacio {
+    position: absolute;
+    inset: auto t.esp(4) t.esp(4);
+  }
+}
+
+mr-pager {
+  margin-top: t.esp(3);
+}

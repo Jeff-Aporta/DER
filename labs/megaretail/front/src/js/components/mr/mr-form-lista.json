@@ -1,0 +1,44 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-form-lista",
+  "category": "megaretail",
+  "navTitle": "form-lista",
+  "title": "&lt;mr-form-lista&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-form-lista",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-form-lista&gt;",
+      "lede": "Campo de lista (carrito): filas con un mr-form compacto generado del schema del campo, agregar y quitar.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-form-lista id=\"demo\"></mr-form-lista></div>",
+          "target": "#demo",
+          "props": {
+            "campo": null,
+            "filas": null
+          },
+          "controls": [
+            {
+              "prop": "campo",
+              "type": "text",
+              "label": "campo"
+            },
+            {
+              "prop": "filas",
+              "type": "text",
+              "label": "filas"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Campos con control \"lista\" en flujos (items de una venta).</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

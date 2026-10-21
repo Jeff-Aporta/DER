@@ -1,0 +1,1 @@
+:host{display:block;box-sizing:border-box;font-family:var(--iswc-sans, system-ui, sans-serif);color:var(--iswc-text)}iswc-dialog{--width: min(64rem, 96vw)}.ayuda{margin:0 0 .75rem;color:var(--iswc-text-dim);font-size:.9rem}.pie{display:flex;align-items:center;gap:.5rem}.pie .cuenta{margin-right:auto;color:var(--iswc-text-dim);font-size:.9rem}

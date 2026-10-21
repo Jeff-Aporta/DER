@@ -1,0 +1,6 @@
+{
+  "permiso": "catalogo.escribir",
+  "orderBy": ["id_sede", "id_producto"],
+  "grid": { "columnas": { "stock_actual": { "header": "Stock", "align": "right" }, "stock_minimo": { "header": "Mínimo", "align": "right" }, "critico": { "header": "Crítico", "type": "boolean", "width": 100 } } },
+  "campos": { "stock_actual": { "min": 0 }, "stock_minimo": { "min": 0 } }
+}

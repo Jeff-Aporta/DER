@@ -1,0 +1,1 @@
+{ "grid": { "columnas": { "precio_unitario": { "type": "currency", "align": "right" }, "descuento": { "type": "currency", "align": "right" } }, "ocultar": ["id_detalle"] } }

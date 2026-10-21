@@ -1,0 +1,52 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-form — rejilla de campos (campos "completos" a todo el ancho) y acciones; compacto = una fila. */
+:host {
+  @include m.host-bloque;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: t.esp(4);
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: t.esp(3) t.esp(4);
+
+  .campo {
+    min-width: 0;
+
+    > * {
+      width: 100%;
+    }
+  }
+
+  .campo[data-completo] {
+    grid-column: 1 / -1;
+  }
+}
+
+.form[data-compacto] {
+  gap: 0;
+
+  .campos {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: t.esp(2) t.esp(3);
+  }
+
+  .campo[data-completo] {
+    grid-column: auto;
+  }
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: t.esp(2);
+  padding-top: t.esp(2);
+  border-top: 1px solid var(--iswc-border-soft, var(--iswc-border));
+}

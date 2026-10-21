@@ -1,0 +1,1 @@
+{ "permiso": "seguridad.administrar", "campos": { "bprincipal": { "label": "Rol principal" }, "finicial": { "label": "Vigente desde" }, "ffinal": { "label": "Vigente hasta" } } }

@@ -1,0 +1,12 @@
+{
+  "etiqueta": "{nombre} ({iusuario})",
+  "permiso": "seguridad.administrar",
+  "grid": { "ocultar": ["jdata", "creado"] },
+  "campos": {
+    "password": { "oculto": true, "valor": "sin-clave-laboratorio" },
+    "jdata": { "oculto": true },
+    "creado": { "oculto": true },
+    "iusuario": { "label": "Usuario (id)", "hint": "Sin contraseña: en el lab se entra eligiéndolo en la barra" },
+    "bactivo": { "label": "Activo" }
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-entity-grid",
+  "category": "megaretail",
+  "navTitle": "entity-grid",
+  "title": "&lt;mr-entity-grid&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-entity-grid",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-entity-grid&gt;",
+      "lede": "Listado de una entidad con iswc-ag-grid: columnas del schema + JSON, datos por query (?q= base64url) paginados en el server.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-entity-grid id=\"demo\"></mr-entity-grid></div>",
+          "target": "#demo",
+          "props": {
+            "entidad": "",
+            "seleccion": "single",
+            "pageSize": "25",
+            "page": "1",
+            "alto": "60vh"
+          },
+          "controls": [
+            {
+              "prop": "entidad",
+              "type": "text",
+              "label": "entidad"
+            },
+            {
+              "prop": "seleccion",
+              "type": "text",
+              "label": "seleccion"
+            },
+            {
+              "prop": "pageSize",
+              "type": "text",
+              "label": "pageSize"
+            },
+            {
+              "prop": "page",
+              "type": "text",
+              "label": "page"
+            },
+            {
+              "prop": "alto",
+              "type": "text",
+              "label": "alto"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Como catálogo o dentro del selector de relaciones (selección single/multiple).</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

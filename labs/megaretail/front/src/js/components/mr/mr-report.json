@@ -1,0 +1,50 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-report",
+  "category": "megaretail",
+  "navTitle": "report",
+  "title": "&lt;mr-report&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-report",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-report&gt;",
+      "lede": "Reporte de ui/reportes.json: parámetros (formulario), indicadores (mr-stats) y tabla (iswc-ag-grid) con columnas JSON.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-report id=\"demo\"></mr-report></div>",
+          "target": "#demo",
+          "props": {
+            "id": "",
+            "filas": null,
+            "datos": null
+          },
+          "controls": [
+            {
+              "prop": "id",
+              "type": "text",
+              "label": "id"
+            },
+            {
+              "prop": "filas",
+              "type": "text",
+              "label": "filas"
+            },
+            {
+              "prop": "datos",
+              "type": "text",
+              "label": "datos"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Ranking, alertas, clientes fieles, cubo.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

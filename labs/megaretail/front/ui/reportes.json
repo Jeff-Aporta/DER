@@ -1,0 +1,85 @@
+{
+  "ranking": {
+    "titulo": "Ranking de vendedores",
+    "icon": "mdi:trending-up",
+    "descripcion": "Top 3 de vendedores por sede (último trimestre por defecto) con su porcentaje sobre el total de la sede.",
+    "path": "ranking",
+    "permiso": "reportes.ranking",
+    "params": { "columns": { "desde": { "type": "datetime" }, "hasta": { "type": "datetime" }, "top": { "type": "int", "default": 3 } } },
+    "campos": { "desde": { "hint": "Vacío = hace tres meses" }, "hasta": { "hint": "Vacío = ahora" }, "top": { "label": "Top por sede", "min": 1 } },
+    "filas": "filas",
+    "groupBy": "sede",
+    "columnas": [
+      { "field": "sede", "header": "Sede" },
+      { "field": "posicion", "header": "#", "type": "number", "decimals": 0, "width": 70 },
+      { "field": "vendedor", "header": "Vendedor", "flex": 2 },
+      { "field": "ventas", "header": "Ventas", "type": "number", "decimals": 0, "align": "right", "aggFunc": "sum" },
+      { "field": "total", "header": "Total", "type": "currency", "align": "right", "aggFunc": "sum" },
+      { "field": "porcentaje", "header": "% de la sede", "type": "number", "align": "right" }
+    ],
+    "stats": [
+      { "label": "Sedes con ventas", "consulta": { "totalPorSede": true }, "formato": "entero", "icon": "mdi:office-building" },
+      { "label": "Desde", "consulta": { "desde": true }, "formato": "texto", "icon": "mdi:calendar" },
+      { "label": "Hasta", "consulta": { "hasta": true }, "formato": "texto", "icon": "mdi:calendar-clock" }
+    ]
+  },
+  "alertas": {
+    "titulo": "Alertas de stock crítico",
+    "icon": "mdi:alert-decagram-outline",
+    "descripcion": "Inventarios con stock_actual < stock_minimo (columna calculada en SQL) y el proveedor principal (menor costo de compra) para reponer.",
+    "path": "alertas",
+    "permiso": "reportes.alertas",
+    "columnas": [
+      { "field": "sede", "header": "Sede" },
+      { "field": "sku", "header": "SKU", "width": 110 },
+      { "field": "producto", "header": "Producto", "flex": 2 },
+      { "field": "stock_actual", "header": "Stock", "type": "number", "decimals": 0, "align": "right" },
+      { "field": "stock_minimo", "header": "Mínimo", "type": "number", "decimals": 0, "align": "right" },
+      { "field": "faltante", "header": "Faltante", "type": "number", "decimals": 0, "align": "right" },
+      { "field": "proveedor.razon_social", "header": "Proveedor principal", "flex": 2 },
+      { "field": "proveedor.costo_compra", "header": "Costo", "type": "currency", "align": "right" }
+    ]
+  },
+  "fieles": {
+    "titulo": "Clientes fieles",
+    "icon": "mdi:star-check-outline",
+    "descripcion": "Top 10 clientes por gasto total: compras, ticket promedio y sede más frecuente.",
+    "path": "fieles",
+    "permiso": "reportes.fieles",
+    "params": { "columns": { "top": { "type": "int", "default": 10 } } },
+    "campos": { "top": { "label": "Cuántos clientes", "min": 1 } },
+    "columnas": [
+      { "field": "nombre", "header": "Cliente", "flex": 2 },
+      { "field": "documento", "header": "Documento" },
+      { "field": "gasto_total", "header": "Gasto total", "type": "currency", "align": "right" },
+      { "field": "compras", "header": "Compras", "type": "number", "decimals": 0, "align": "right" },
+      { "field": "ticket_promedio", "header": "Ticket promedio", "type": "currency", "align": "right" },
+      { "field": "sede_frecuente.sede", "header": "Sede frecuente" },
+      { "field": "sede_frecuente.compras", "header": "Compras allí", "type": "number", "decimals": 0, "align": "right" }
+    ]
+  },
+  "cubo": {
+    "titulo": "Cubo de ventas · sede × categoría",
+    "icon": "mdi:cube-outline",
+    "descripcion": "Unidades y total por sede y categoría. El grid agrupa por sede (subtotales) y los indicadores traen el gran total calculado en el API (ROLLUP).",
+    "path": "cubo",
+    "permiso": "reportes.cubo",
+    "params": { "columns": { "desde": { "type": "datetime" }, "hasta": { "type": "datetime" } } },
+    "campos": { "desde": { "hint": "Vacío = sin límite" }, "hasta": { "hint": "Vacío = sin límite" } },
+    "filas": "celdas",
+    "filtro": { "nivel": "detalle" },
+    "groupBy": "sede",
+    "columnas": [
+      { "field": "sede", "header": "Sede" },
+      { "field": "categoria", "header": "Categoría", "flex": 2 },
+      { "field": "unidades", "header": "Unidades", "type": "number", "decimals": 0, "align": "right", "aggFunc": "sum" },
+      { "field": "total", "header": "Total", "type": "currency", "align": "right", "aggFunc": "sum" }
+    ],
+    "stats": [
+      { "label": "Gran total", "consulta": { "celdas": { "[nivel=total]": { "total": true } } }, "formato": "moneda", "icon": "mdi:counter" },
+      { "label": "Unidades", "consulta": { "celdas": { "[nivel=total]": { "unidades": true } } }, "formato": "entero", "icon": "mdi:package-variant-closed" },
+      { "label": "Sedes", "consulta": { "sedes": true }, "formato": "entero", "icon": "mdi:office-building" },
+      { "label": "Categorías", "consulta": { "categorias": true }, "formato": "entero", "icon": "mdi:shape-outline" }
+    ]
+  }
+}

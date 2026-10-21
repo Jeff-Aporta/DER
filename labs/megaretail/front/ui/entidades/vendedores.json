@@ -1,0 +1,1 @@
+{ "etiqueta": "{nombre}", "permiso": "catalogo.escribir", "campos": { "email": { "placeholder": "nombre@megaretail.test" }, "fecha_contratacion": { "label": "Fecha de contratación" } } }

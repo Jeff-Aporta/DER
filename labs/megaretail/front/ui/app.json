@@ -1,0 +1,31 @@
+{
+  "titulo": "MegaRetail Global",
+  "subtitulo": "Laboratorio DER · cadena de sedes",
+  "logo": "mdi:domain",
+  "api": "/api",
+  "usuarioInicial": "admin",
+  "nav": [
+    { "id": "catalogo", "label": "Catálogo", "icon": "mdi:database", "entidades": ["sedes", "categorias", "productos", "proveedores", "productos-proveedores", "inventarios", "vendedores", "clientes", "ventas", "detalles", "movimientos"] },
+    { "id": "operaciones", "label": "Operaciones", "icon": "mdi:cart-outline", "flujos": ["venta", "compra", "transferencia", "anulacion", "ajustePrecios", "limpieza"] },
+    { "id": "reportes", "label": "Reportes", "icon": "mdi:chart-bar", "reportes": ["ranking", "alertas", "fieles", "cubo"] },
+    { "id": "seguridad", "label": "Seguridad", "icon": "mdi:shield-account-outline", "entidades": ["usuarios", "permisos/roles", "permisos/rolesusuario", "permisos/acciones", "permisos/grupos"] }
+  ],
+  "entidades": {
+    "sedes": { "titulo": "Sedes", "icon": "mdi:office-building" },
+    "categorias": { "titulo": "Categorías", "icon": "mdi:shape-outline" },
+    "productos": { "titulo": "Productos", "icon": "mdi:package-variant" },
+    "proveedores": { "titulo": "Proveedores", "icon": "mdi:package-variant-closed" },
+    "productos-proveedores": { "titulo": "Costos por proveedor", "icon": "mdi:link-variant" },
+    "inventarios": { "titulo": "Inventario por sede", "icon": "mdi:server" },
+    "vendedores": { "titulo": "Vendedores", "icon": "mdi:card-account-details" },
+    "clientes": { "titulo": "Clientes", "icon": "mdi:account-group" },
+    "ventas": { "titulo": "Ventas", "icon": "mdi:ticket-confirmation-outline" },
+    "detalles": { "titulo": "Detalles de venta", "icon": "mdi:format-list-numbered" },
+    "movimientos": { "titulo": "Movimientos", "icon": "mdi:arrow-up-down" },
+    "usuarios": { "titulo": "Usuarios", "icon": "mdi:account" },
+    "permisos/roles": { "titulo": "Roles", "icon": "mdi:shield-account-outline" },
+    "permisos/rolesusuario": { "titulo": "Roles por usuario", "icon": "mdi:account-key" },
+    "permisos/acciones": { "titulo": "Acciones por rol", "icon": "mdi:key-variant" },
+    "permisos/grupos": { "titulo": "Grupos", "icon": "mdi:folder-account" }
+  }
+}

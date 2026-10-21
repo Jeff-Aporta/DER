@@ -1,0 +1,134 @@
+{
+  "venta": {
+    "titulo": "Registrar venta",
+    "icon": "mdi:cash-multiple",
+    "descripcion": "Venta con carrito. Si a algún ítem le falta stock, el API revierte toda la transacción (ni cabecera, ni detalles, ni movimientos).",
+    "path": "registrar",
+    "permiso": "ventas.registrar",
+    "schema": {
+      "columns": {
+        "id_sede": { "type": "int", "nullable": false },
+        "id_vendedor": { "type": "int", "nullable": false },
+        "id_cliente": { "type": "int", "nullable": false },
+        "fecha_venta": { "type": "datetime" }
+      },
+      "relations": {
+        "sede": { "kind": "one", "target": "sede", "on": { "id_sede": "id_sede" } },
+        "vendedor": { "kind": "one", "target": "vendedor", "on": { "id_vendedor": "id_vendedor" } },
+        "cliente": { "kind": "one", "target": "cliente", "on": { "id_cliente": "id_cliente" } }
+      }
+    },
+    "campos": {
+      "fecha_venta": { "hint": "Vacío = ahora" },
+      "items": {
+        "control": "lista",
+        "label": "Carrito",
+        "hint": "Producto, cantidad y descuento por ítem",
+        "schema": {
+          "columns": {
+            "id_producto": { "type": "int", "nullable": false },
+            "cantidad": { "type": "int", "nullable": false, "default": 1 },
+            "descuento": { "type": "decimal", "default": 0 }
+          },
+          "relations": { "producto": { "kind": "one", "target": "producto", "on": { "id_producto": "id_producto" } } }
+        }
+      }
+    },
+    "orden": ["id_sede", "id_vendedor", "id_cliente", "fecha_venta", "items"],
+    "resultado": { "titulo": "Venta registrada" }
+  },
+  "compra": {
+    "titulo": "Compra de inventario",
+    "icon": "mdi:download",
+    "descripcion": "Registra una Entrada en movimientos y suma al inventario de la sede (crea la fila con stock 0 si no existe).",
+    "path": "compra",
+    "permiso": "inventario.comprar",
+    "schema": {
+      "columns": {
+        "id_sede": { "type": "int", "nullable": false },
+        "id_producto": { "type": "int", "nullable": false },
+        "id_proveedor": { "type": "int" },
+        "cantidad": { "type": "int", "nullable": false, "default": 10 },
+        "observaciones": { "type": "text" }
+      },
+      "relations": {
+        "sede": { "kind": "one", "target": "sede", "on": { "id_sede": "id_sede" } },
+        "producto": { "kind": "one", "target": "producto", "on": { "id_producto": "id_producto" } },
+        "proveedor": { "kind": "one", "target": "proveedor", "on": { "id_proveedor": "id_proveedor" } }
+      }
+    },
+    "campos": { "cantidad": { "min": 1 } },
+    "resultado": { "titulo": "Inventario actualizado" }
+  },
+  "transferencia": {
+    "titulo": "Transferencia entre sedes",
+    "icon": "mdi:arrow-left-right",
+    "descripcion": "Resta en la sede de origen (exige stock), suma en la de destino y deja dos movimientos. Todo o nada.",
+    "path": "transferencia",
+    "permiso": "inventario.transferir",
+    "schema": {
+      "columns": {
+        "id_sede_origen": { "type": "int", "nullable": false },
+        "id_sede_destino": { "type": "int", "nullable": false },
+        "id_producto": { "type": "int", "nullable": false },
+        "cantidad": { "type": "int", "nullable": false, "default": 50 },
+        "observaciones": { "type": "text" }
+      },
+      "relations": {
+        "origen": { "kind": "one", "target": "sede", "on": { "id_sede_origen": "id_sede" } },
+        "destino": { "kind": "one", "target": "sede", "on": { "id_sede_destino": "id_sede" } },
+        "producto": { "kind": "one", "target": "producto", "on": { "id_producto": "id_producto" } }
+      }
+    },
+    "campos": { "cantidad": { "min": 1 } },
+    "resultado": { "titulo": "Inventarios (origen y destino)" }
+  },
+  "anulacion": {
+    "titulo": "Anular venta",
+    "icon": "mdi:cancel",
+    "descripcion": "Marca la venta como Anulada, reintegra el stock de cada detalle y registra los movimientos inversos.",
+    "path": "anular",
+    "permiso": "ventas.anular",
+    "pks": { "id_venta": "id_venta" },
+    "confirmar": "¿Anular la venta? Se reintegra el stock de todos sus ítems.",
+    "schema": {
+      "columns": {
+        "id_venta": { "type": "int", "nullable": false },
+        "motivo": { "type": "text" }
+      },
+      "relations": { "venta": { "kind": "one", "target": "venta", "on": { "id_venta": "id_venta" } } }
+    },
+    "resultado": { "titulo": "Venta anulada" }
+  },
+  "ajustePrecios": {
+    "titulo": "Ajuste de precios",
+    "icon": "mdi:tag-plus-outline",
+    "descripcion": "Sube el precio base de los productos de la categoría cuyo proveedor principal (menor costo) subió su costo de compra.",
+    "path": "ajustePrecios",
+    "permiso": "productos.ajustar-precios",
+    "schema": {
+      "columns": {
+        "categoria": { "type": "string", "default": "Tecnología" },
+        "porcentaje": { "type": "float", "default": 5 }
+      }
+    },
+    "campos": { "porcentaje": { "label": "Porcentaje (%)", "paso": 0.5 } },
+    "resultado": { "titulo": "Productos ajustados" }
+  },
+  "limpieza": {
+    "titulo": "Limpieza de productos",
+    "icon": "mdi:broom",
+    "descripcion": "Elimina los productos sin ventas ni movimientos en N años, con sus inventarios, costos por proveedor y movimientos antiguos (sin huérfanos). Con «Sólo simular» no borra.",
+    "path": "limpieza",
+    "permiso": "productos.limpiar",
+    "confirmar": "¿Ejecutar la limpieza? Si «Sólo simular» está apagado, se borran productos.",
+    "schema": {
+      "columns": {
+        "anios": { "type": "int", "default": 2 },
+        "dryRun": { "type": "bool", "default": true }
+      }
+    },
+    "campos": { "anios": { "label": "Años sin actividad", "min": 1 }, "dryRun": { "label": "Sólo simular (no borrar)" } },
+    "resultado": { "titulo": "Resultado de la limpieza" }
+  }
+}

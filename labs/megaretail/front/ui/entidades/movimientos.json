@@ -1,0 +1,1 @@
+{ "grid": { "columnas": { "tipo_movimiento": { "header": "Tipo", "width": 130 }, "observaciones": { "flex": 2 } }, "ocultar": ["id_movimiento"] }, "campos": { "tipo_movimiento": { "control": "radio" } } }

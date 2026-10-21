@@ -1,0 +1,13 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-stats — fila responsiva de iswc-stat. */
+:host {
+  @include m.host-bloque;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: t.esp(3);
+}

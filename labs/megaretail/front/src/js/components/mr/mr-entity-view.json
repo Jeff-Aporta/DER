@@ -1,0 +1,50 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-entity-view",
+  "category": "megaretail",
+  "navTitle": "entity-view",
+  "title": "&lt;mr-entity-view&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-entity-view",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-entity-view&gt;",
+      "lede": "Catálogo de una entidad: cabecera con acciones, grilla y editor modal con el formulario generado.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-entity-view id=\"demo\"></mr-entity-view></div>",
+          "target": "#demo",
+          "props": {
+            "entidad": "",
+            "modo": "lista",
+            "version": "0"
+          },
+          "controls": [
+            {
+              "prop": "entidad",
+              "type": "text",
+              "label": "entidad"
+            },
+            {
+              "prop": "modo",
+              "type": "text",
+              "label": "modo"
+            },
+            {
+              "prop": "version",
+              "type": "text",
+              "label": "version"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Para cualquier entidad registrada en DER (dominio, usuarios, permisos). Respeta administrable y el permiso del JSON.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

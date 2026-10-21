@@ -1,0 +1,62 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-form",
+  "category": "megaretail",
+  "navTitle": "form",
+  "title": "&lt;mr-form&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-form",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-form&gt;",
+      "lede": "Formulario generado desde un FormModel (schema DER + JSON de UI): cada campo elige su control del kit.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-form id=\"demo\"></mr-form></div>",
+          "target": "#demo",
+          "props": {
+            "modelo": null,
+            "valor": null,
+            "modo": "crear",
+            "validar": null,
+            "compacto": "false"
+          },
+          "controls": [
+            {
+              "prop": "modelo",
+              "type": "text",
+              "label": "modelo"
+            },
+            {
+              "prop": "valor",
+              "type": "text",
+              "label": "valor"
+            },
+            {
+              "prop": "modo",
+              "type": "text",
+              "label": "modo"
+            },
+            {
+              "prop": "validar",
+              "type": "text",
+              "label": "validar"
+            },
+            {
+              "prop": "compacto",
+              "type": "text",
+              "label": "compacto"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Entidades (crear/editar) y flujos. Valida con el Zod de DER antes de emitir.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

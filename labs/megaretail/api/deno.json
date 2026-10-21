@@ -1,0 +1,39 @@
+{
+  "name": "@jeff-aporta/megaretail-api",
+  "version": "0.0.0",
+  "exports": "./main.ts",
+  "imports": {
+    "@Jeff-Aporta/DER/": "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@dd6d4b733c95c42c7e652a3cf78b0e957f2e530d/",
+    "@Jeff-Aporta/wc-base/": "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/vendor-distributions/shared/",
+    "@Jeff-Aporta/wc-diagrams/": "https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/de72fa6916b42d91ee3e8bfecfbcbeb67c97114d/src/components/diagrams/schemas/",
+    "zod": "npm:zod@4.6.7",
+    "kysely": "npm:kysely@0.28.17",
+    "@std/assert": "jsr:@std/assert@1"
+  },
+  "tasks": {
+    "dev": "deno run -A --watch main.ts",
+    "start": "deno run -A main.ts",
+    "check": "deno check main.ts src/ tests/",
+    "test": "deno test -A tests/",
+    "front": "deno task --cwd ../front build"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+    "exactOptionalPropertyTypes": true
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    }
+  },
+  "fmt": {
+    "lineWidth": 110
+  }
+}

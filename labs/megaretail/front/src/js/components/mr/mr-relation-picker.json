@@ -1,0 +1,56 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-relation-picker",
+  "category": "megaretail",
+  "navTitle": "relation-picker",
+  "title": "&lt;mr-relation-picker&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-relation-picker",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-relation-picker&gt;",
+      "lede": "Data view de una relación: modal con el grid de la otra entidad; one = exactamente una fila, many = varias.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-relation-picker id=\"demo\"></mr-relation-picker></div>",
+          "target": "#demo",
+          "props": {
+            "entidad": "",
+            "kind": "one",
+            "abierto": "false",
+            "titulo": "Elegir"
+          },
+          "controls": [
+            {
+              "prop": "entidad",
+              "type": "text",
+              "label": "entidad"
+            },
+            {
+              "prop": "kind",
+              "type": "text",
+              "label": "kind"
+            },
+            {
+              "prop": "abierto",
+              "type": "text",
+              "label": "abierto"
+            },
+            {
+              "prop": "titulo",
+              "type": "text",
+              "label": "titulo"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Lo abre mr-relation-field; sirve para cualquier entidad.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-flow",
+  "category": "megaretail",
+  "navTitle": "flow",
+  "title": "&lt;mr-flow&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-flow",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-flow&gt;",
+      "lede": "Pantalla de un flujo de negocio de ui/flujos.json: formulario generado del schema del flujo y llamada al path del plugin DER.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-flow id=\"demo\"></mr-flow></div>",
+          "target": "#demo",
+          "props": {
+            "id": "",
+            "flujo": null,
+            "permitido": "true"
+          },
+          "controls": [
+            {
+              "prop": "id",
+              "type": "text",
+              "label": "id"
+            },
+            {
+              "prop": "flujo",
+              "type": "text",
+              "label": "flujo"
+            },
+            {
+              "prop": "permitido",
+              "type": "text",
+              "label": "permitido"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Compra, venta con carrito, transferencia, anulación, ajuste de precios, limpieza.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

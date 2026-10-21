@@ -1,0 +1,5 @@
+{
+  "permiso": "catalogo.escribir",
+  "grid": { "columnas": { "costo_compra": { "type": "currency", "align": "right" }, "costo_anterior": { "type": "currency", "align": "right", "header": "Costo anterior" } } },
+  "campos": { "costo_compra": { "label": "Costo de compra (COP)", "min": 0 }, "costo_anterior": { "soloLectura": true, "hint": "Lo conserva el server al cambiar el costo" } }
+}

@@ -1,0 +1,62 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-relation-field — etiqueta, valores elegidos como tags y botón que abre el selector modal. */
+:host {
+  @include m.host-bloque;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: t.esp(1);
+
+  .label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--iswc-text-soft, var(--iswc-text));
+
+    .req {
+      color: var(--iswc-color-danger-500, #c33);
+      margin-left: 0.2em;
+    }
+  }
+
+  .valor {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: t.esp(2);
+    min-height: 2.5rem;
+    padding: t.esp(1) t.esp(2);
+    border: 1px solid var(--iswc-control-border, var(--iswc-border));
+    border-radius: t.radio(sm);
+    background: var(--iswc-control-bg, var(--iswc-bg));
+    box-sizing: border-box;
+  }
+
+  .vacio {
+    color: var(--iswc-text-dim);
+    font-size: 0.9rem;
+  }
+
+  .acciones {
+    margin-left: auto;
+    display: flex;
+    gap: t.esp(1);
+  }
+
+  .hint,
+  .error {
+    font-size: 0.8rem;
+    color: var(--iswc-text-dim);
+  }
+
+  .error {
+    color: var(--iswc-danger-text, var(--iswc-color-danger-600, #b00020));
+  }
+}
+
+.campo[data-error] .valor {
+  border-color: var(--iswc-color-danger-500, #c33);
+}

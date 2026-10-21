@@ -1,0 +1,1 @@
+(function(){let t=document.documentElement,a=l=>{try{return localStorage.getItem(l)}catch{return null}},e=a("iswc-theme")==="dark"?"dark":"light";t.dataset.theme=e,t.classList.toggle("theme-dark",e==="dark"),t.classList.toggle("theme-light",e==="light"),t.dataset.palette=a("iswc-palette")||"contapyme"})();

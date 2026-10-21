@@ -1,0 +1,29 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-relation-picker — modal ancho con el grid de la otra entidad. */
+:host {
+  @include m.host-bloque;
+}
+
+iswc-dialog {
+  --width: min(64rem, 96vw);
+}
+
+.ayuda {
+  margin: 0 0 t.esp(3);
+  color: var(--iswc-text-dim);
+  font-size: 0.9rem;
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  gap: t.esp(2);
+
+  .cuenta {
+    margin-right: auto;
+    color: var(--iswc-text-dim);
+    font-size: 0.9rem;
+  }
+}

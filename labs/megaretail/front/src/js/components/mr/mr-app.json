@@ -1,0 +1,44 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-app",
+  "category": "megaretail",
+  "navTitle": "app",
+  "title": "&lt;mr-app&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-app",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-app&gt;",
+      "lede": "Shell de MegaRetail: barra (iswc-app-shell), navegación de ui/app.json, selector de usuario y la vista activa.",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-app id=\"demo\"></mr-app></div>",
+          "target": "#demo",
+          "props": {
+            "vista": null,
+            "listo": "false"
+          },
+          "controls": [
+            {
+              "prop": "vista",
+              "type": "text",
+              "label": "vista"
+            },
+            {
+              "prop": "listo",
+              "type": "text",
+              "label": "listo"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Una sola vez, en index.html. Toda la app sale de JSON (app.json, entidades/*.json, flujos.json, reportes.json).</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

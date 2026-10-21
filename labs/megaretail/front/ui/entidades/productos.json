@@ -1,0 +1,18 @@
+{
+  "etiqueta": "{sku} · {nombre}",
+  "permiso": "catalogo.escribir",
+  "orderBy": "sku",
+  "grid": {
+    "columnas": {
+      "precio_base": { "header": "Precio base", "type": "currency", "align": "right" },
+      "sku": { "header": "SKU", "width": 110, "pinned": "left" },
+      "nombre": { "flex": 2 }
+    }
+  },
+  "campos": {
+    "sku": { "label": "SKU", "placeholder": "TEC-001", "hint": "Único en todo el catálogo" },
+    "precio_base": { "label": "Precio base (COP)", "min": 0, "paso": 100 },
+    "proveedores": { "oculto": false, "label": "Proveedores (N:M)", "hint": "Selección múltiple: demuestra el selector 1:N / N:M (las filas de costo se editan en «Costos por proveedor»)" }
+  },
+  "orden": ["sku", "nombre", "id_categoria", "precio_base", "proveedores"]
+}

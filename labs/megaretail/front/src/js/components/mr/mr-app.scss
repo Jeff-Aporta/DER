@@ -1,0 +1,40 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-app — shell: el <iswc-app-shell> ocupa toda la altura; la vista tiene su propio padding. */
+:host {
+  @include m.host-bloque;
+  min-height: 100dvh;
+}
+
+iswc-app-shell {
+  --iswc-shell-bar-bg: color-mix(in srgb, var(--iswc-bg-elev, var(--iswc-bg)) 92%, var(--iswc-accent) 8%);
+}
+
+.vista {
+  display: block;
+  padding: t.esp(5) clamp(t.esp(4), 3vw, t.esp(8));
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pie {
+  display: flex;
+  justify-content: space-between;
+  gap: t.esp(4);
+  padding: t.esp(3) t.esp(5);
+  font-size: 0.8rem;
+  color: var(--iswc-text-dim);
+  border-top: 1px solid var(--iswc-border-soft, var(--iswc-border));
+}
+
+.cargando {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: t.esp(3);
+  min-height: 60dvh;
+  color: var(--iswc-text-dim);
+}

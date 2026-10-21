@@ -1,0 +1,77 @@
+@use "tokens" as t;
+@use "mixins" as m;
+
+/* mr-flow — formulario del flujo a la izquierda, resultado a la derecha (apilado en pantallas angostas). */
+:host {
+  @include m.host-bloque;
+}
+
+.cabecera {
+  @include m.cabecera-vista;
+  justify-content: flex-start;
+
+  iswc-badge {
+    margin-left: auto;
+  }
+}
+
+iswc-callout {
+  margin-bottom: t.esp(4);
+}
+
+.cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: t.esp(4);
+  align-items: start;
+
+  @media (max-width: 60rem) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.resultado .vacio {
+  color: var(--iswc-text-dim);
+}
+
+.kv {
+  margin: 0;
+  display: grid;
+  gap: t.esp(1);
+
+  .par {
+    display: grid;
+    grid-template-columns: minmax(7rem, 1fr) 2fr;
+    gap: t.esp(2);
+    padding: t.esp(1) 0;
+    border-bottom: 1px dashed var(--iswc-border-soft, var(--iswc-border));
+
+    dt {
+      color: var(--iswc-text-dim);
+      font-size: 0.85rem;
+    }
+
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: t.esp(1) t.esp(2);
+    border-bottom: 1px solid var(--iswc-border-soft, var(--iswc-border));
+  }
+
+  th {
+    color: var(--iswc-text-dim);
+    font-weight: 600;
+  }
+}

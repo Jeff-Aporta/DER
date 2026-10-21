@@ -1,0 +1,50 @@
+{
+  "$schema": "iswc-preview/v1",
+  "tag": "mr-pager",
+  "category": "megaretail",
+  "navTitle": "pager",
+  "title": "&lt;mr-pager&gt;",
+  "titleHtml": false,
+  "storageKey": "docs-mr-pager",
+  "styles": ".stage{min-height:12rem}",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "&lt;mr-pager&gt;",
+      "lede": "Paginador de consultas DER: anterior/siguiente, página y tamaño. Sin total (DER no lo devuelve).",
+      "blocks": [
+        {
+          "kind": "demo",
+          "html": "<div class=\"stage\"><mr-pager id=\"demo\"></mr-pager></div>",
+          "target": "#demo",
+          "props": {
+            "page": "1",
+            "pageSize": "25",
+            "cantidad": "0"
+          },
+          "controls": [
+            {
+              "prop": "page",
+              "type": "text",
+              "label": "page"
+            },
+            {
+              "prop": "pageSize",
+              "type": "text",
+              "label": "pageSize"
+            },
+            {
+              "prop": "cantidad",
+              "type": "text",
+              "label": "cantidad"
+            }
+          ]
+        },
+        {
+          "kind": "html",
+          "html": "<iswc-callout color=\"brand\"><strong slot=\"title\">Cuándo usarlo</strong>Debajo de un mr-entity-grid.</iswc-callout>"
+        }
+      ]
+    }
+  ]
+}

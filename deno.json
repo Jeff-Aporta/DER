@@ -46,7 +46,11 @@
     "useUnknownInCatchVariables": true,
     "exactOptionalPropertyTypes": true
   },
+  "test": {
+    "exclude": ["labs/"]
+  },
   "lint": {
+    "exclude": ["labs/"],
     "rules": {
       "exclude": ["no-explicit-any", "no-slow-types"]
     }
