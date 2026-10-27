@@ -113,3 +113,26 @@ Deno.test("multi-db: un mismo Router sirve controllers de bases distintas", asyn
     await pg.destroy();
   }
 });
+
+Deno.test("multi-db: un controller sirve a otra base por ctx.exec (inquilinos) también en escrituras en lote", async () => {
+  const plantilla = sqliteDatabase();
+  const inquilino = sqliteDatabase();
+  const categorias = new ServerController(CategoriaEntity, { db: plantilla, table: "categorias_inq" });
+  try {
+    await categorias.seed({ exec: inquilino.kysely });
+    await categorias.postList([categorias.pojo({ nombre: "A" }), categorias.pojo({ nombre: "B" })], { exec: inquilino.kysely });
+    await categorias.post(categorias.pojo({ nombre: "C" }), { exec: inquilino.kysely });
+    const enInquilino = await sql<{ n: number }>`select count(*) as n from categorias_inq`.execute(inquilino.kysely);
+    assertEquals(Number(enInquilino.rows[0]?.n), 3);
+    const enPlantilla = await sql<{ n: number }>`select count(*) as n from sqlite_master where name = 'categorias_inq'`.execute(plantilla.kysely);
+    assertEquals(Number(enPlantilla.rows[0]?.n), 0);
+    await inquilino.transaction(async (tx) => {
+      await categorias.postList([categorias.pojo({ nombre: "D" })], tx);
+    });
+    const total = await sql<{ n: number }>`select count(*) as n from categorias_inq`.execute(inquilino.kysely);
+    assertEquals(Number(total.rows[0]?.n), 4);
+  } finally {
+    await plantilla.destroy();
+    await inquilino.destroy();
+  }
+});

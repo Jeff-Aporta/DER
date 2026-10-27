@@ -500,10 +500,18 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     return before;
   }
 
-  /** Ejecuta en la transacción del ctx o abre una nueva. */
+  /**
+   * Ejecuta en la transacción del ctx o abre una nueva. Si el ctx trae un ejecutor externo (otra base servida por este
+   * mismo controller, p. ej. una base por inquilino), la transacción se abre sobre ESE ejecutor; el ejecutor por defecto
+   * de otra base registrada (el que pone el router) se ignora y se usa la base propia.
+   */
   async inTransaction<T>(ctx: ServerCtx, fn: (exec: Kysely<any>) => Promise<T>): Promise<T> {
     if (ctx.inTransaction) return fn(ctx.exec);
-    return await this.db.kysely.transaction().execute(fn);
+    const exec = ctx.exec;
+    const deOtraBase = !exec || registeredControllers().some((c) => c.db !== this.db && c.db.kysely === exec);
+    const base = deOtraBase ? this.db.kysely : exec;
+    if (base.isTransaction) return fn(base);
+    return await base.transaction().execute(fn);
   }
 
   protected makeCtx(partial?: Partial<ServerCtx>): ServerCtx {
