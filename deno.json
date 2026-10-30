@@ -10,6 +10,7 @@
     "./server/sqlite": "./src/02-controllers/server/sqlite.ts",
     "./server/pg": "./src/02-controllers/server/pg.ts",
     "./server/pglite": "./src/02-controllers/server/pglite.ts",
+    "./server/d1": "./src/02-controllers/server/d1.ts",
     "./hosts/azure": "./src/02-controllers/server/hosts/azure.ts",
     "./hosts/cloudflare": "./src/02-controllers/server/hosts/cloudflare.ts",
     "./plugins": "./src/03-plugins/index.ts",
@@ -30,7 +31,7 @@
   },
   "tasks": {
     "test": "deno test -A",
-    "check": "deno check index.ts src/02-controllers/client/index.ts src/02-controllers/server/sqlite.ts src/02-controllers/server/pg.ts src/02-controllers/server/pglite.ts src/02-controllers/server/hosts/azure.ts src/02-controllers/server/hosts/cloudflare.ts src/03-plugins/index.ts src/03-plugins/client.ts examples/ tests/",
+    "check": "deno check index.ts src/02-controllers/client/index.ts src/02-controllers/server/sqlite.ts src/02-controllers/server/pg.ts src/02-controllers/server/pglite.ts src/02-controllers/server/d1.ts src/02-controllers/server/hosts/azure.ts src/02-controllers/server/hosts/cloudflare.ts src/03-plugins/index.ts src/03-plugins/client.ts examples/ tests/",
     "example": "deno run -A examples/server.ts"
   },
   "compilerOptions": {
@@ -47,12 +48,19 @@
     "exactOptionalPropertyTypes": true
   },
   "test": {
-    "exclude": ["labs/"]
+    "exclude": [
+      "labs/"
+    ]
   },
   "lint": {
-    "exclude": ["labs/"],
+    "exclude": [
+      "labs/"
+    ],
     "rules": {
-      "exclude": ["no-explicit-any", "no-slow-types"]
+      "exclude": [
+        "no-explicit-any",
+        "no-slow-types"
+      ]
     }
   },
   "fmt": {

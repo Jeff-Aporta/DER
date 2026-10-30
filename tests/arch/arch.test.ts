@@ -39,6 +39,7 @@ const ALLOWED: [string, string[]][] = [
   ["src/02-controllers/server/pglite.ts", ["zod", "kysely", "@electric-sql/pglite"]],
   ["src/02-controllers/server/doc.ts", ["node:fs/promises", "node:path", "node:process", "node:url"]],
   ["src/02-controllers/server/sqlite.ts", ["zod", "kysely", "node:sqlite"]],
+  ["src/02-controllers/server/d1.ts", ["zod", "kysely"]],
   ["src/02-controllers/server/", ["zod", "kysely"]],
   ["src/03-plugins/", ["zod", "kysely"]],
   ["src/", ["zod"]],

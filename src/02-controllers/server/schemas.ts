@@ -131,3 +131,10 @@ export type DocViewOptions = { pin?: string; title?: string; theme?: "light" | "
 
 /** Driver SQLite asíncrono estilo `sqlite3` (node-sqlite3): `all`/`run` con callback. */
 export type AsyncSqlite = { all(sql: string, params: unknown[], cb: (err: Error | null, rows: unknown[]) => void): unknown; run(sql: string, params: unknown[], cb: (this: { changes?: number; lastID?: number }, err: Error | null) => void): unknown; close?(cb?: (err: Error | null) => void): unknown };
+
+/** Resultado de `D1PreparedStatement.all()`: filas en `results`, contadores en `meta`. */
+export type D1RunResult = { results?: unknown[]; meta?: { changes?: number | null; last_row_id?: number | null } };
+/** Sentencia preparada de D1: `bind(...)` encadena y `all()` ejecuta (filas y `meta` para toda sentencia). */
+export type D1StatementLike = { bind(...values: unknown[]): D1StatementLike; all(): Promise<D1RunResult> };
+/** Binding `D1Database` de un Worker de Cloudflare (lo mínimo que usa el driver). */
+export type D1Like = { prepare(sql: string): D1StatementLike };

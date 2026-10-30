@@ -26,6 +26,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 | Motor SQLite (`node:sqlite`, better-sqlite3 o sqlite3) | `.../server/sqlite.ts` | `.../server/sqlite.ts` | `zod`, `kysely` |
 | Motor PostgreSQL (pool `pg` del consumidor) | `.../server/pg.ts` | `.../server/pg.ts` | `zod`, `kysely` |
 | PostgreSQL embebido (PGlite, WASM) | `.../server/pglite.ts` | `.../server/pglite.ts` | `zod`, `kysely`, `@electric-sql/pglite` |
+| Cloudflare D1 (binding `D1Database` del Worker; motor SQLite) | `.../server/d1.ts` | `.../server/d1.ts` | `zod`, `kysely` |
 | Motor MySQL / MariaDB (pool `mysql2` del consumidor) | `.../server/mysql.ts` | `.../server/mysql.ts` | `zod`, `kysely` |
 | Motor Microsoft SQL Server (`tedious` + `tarn` del consumidor) | `.../server/mssql.ts` | `.../server/mssql.ts` | `zod`, `kysely` |
 | Host Azure Functions (una función por ruta) | `.../server/hosts/azure.ts` | `.../server/hosts/azure.ts` | — (el `app` lo pasa el consumidor) |

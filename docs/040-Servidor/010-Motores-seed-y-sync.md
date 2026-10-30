@@ -17,6 +17,7 @@ tags: [servidor, motores, migraciones]
 | `server/pglite.ts` | `pgliteDatabase(pglite?, opts)` | PGlite (Postgres WASM embebido) | `@electric-sql/pglite` |
 | `server/mysql.ts` | `mysqlDatabase(pool, opts)` | pool `mysql2`, lo aporta el consumidor | `mysql2` |
 | `server/mssql.ts` | `mssqlDatabase({ tarn, tedious }, opts)` | `tedious` + `tarn`, los aporta el consumidor | `tedious`, `tarn` |
+| `server/d1.ts` | `d1Database(env.DB, opts)` | binding `D1Database` de Cloudflare Workers (motor `sqlite`; transacciones no-op: D1 no las tiene interactivas) | — |
 
 `opts` = `{ identifierCase?, cfg? }`. Cualquier dialecto de Kysely sirve con `new Database({ engine, dialect, identifierCase })`.
 

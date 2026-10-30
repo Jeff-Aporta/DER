@@ -89,4 +89,11 @@ export default defineWorker((env: Env) =>
 
 - `setup(env)` corre una vez por isolate y su Router se reusa. Si falla, se reintenta en el siguiente request.
 - El core no importa `node:` en el arranque. Solo las fuentes de doc locales usan `node:fs` (con `nodejs_compat`); las fuentes http funcionan siempre.
-- Base de datos: PostgreSQL por un pool compatible con `pg` (Hyperdrive, Neon). `server/sqlite` usa `node:sqlite`, que no existe en Workers; D1 necesitaría su propio dialecto de Kysely.
+- Base de datos: Cloudflare D1 con `d1Database(env.DB)` (`server/d1.ts`, motor SQLite, sin `node:`), o PostgreSQL por un pool compatible con `pg` (Hyperdrive, Neon). `server/sqlite` usa `node:sqlite`, que no existe en Workers.
+
+```ts
+import { createRouter, d1Database } from ".../src/02-controllers/server/d1.ts";
+export default defineWorker((env: { DB: D1Database }) => createRouter(buildControllers(d1Database(env.DB)), { basePath: "/api", cors: true }));
+```
+
+- En D1 las transacciones son no-op (D1 carece de `BEGIN`/`COMMIT` interactivos): las listas de escrituras no son atómicas.
