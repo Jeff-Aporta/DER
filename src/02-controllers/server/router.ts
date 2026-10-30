@@ -363,10 +363,19 @@ export function sseResponse(it: AsyncIterable<string>): Response {
   return new Response(stream, { headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache", "x-accel-buffering": "no" } });
 }
 
+/** Cuerpo JSON del request. Un cuerpo binario (content-type que no es JSON, texto ni formulario: `application/octet-stream`, `image/*`, `multipart/form-data`…) NO se consume: el handler lo lee de `input.request`. */
 async function readBody(req: Request): Promise<unknown> {
   if (req.method === "GET" || req.method === "HEAD" || !req.body) return undefined;
+  if (isBinaryBody(req.headers.get("content-type"))) return undefined;
   const text = await req.text();
   return text.trim() ? parseJson(text, "body") : undefined;
+}
+
+/** ¿El content-type es de un cuerpo que no se parsea como JSON? (vacío, `application/json`, `*+json`, `text/*` y `x-www-form-urlencoded` sí se parsean). */
+function isBinaryBody(contentType: string | null): boolean {
+  const ct = (contentType ?? "").split(";")[0]!.trim().toLowerCase();
+  if (!ct || ct.startsWith("text/") || ct === "application/json" || ct.endsWith("+json") || ct === "application/x-www-form-urlencoded") return false;
+  return true;
 }
 
 function parseJson(text: string, what: string): unknown {

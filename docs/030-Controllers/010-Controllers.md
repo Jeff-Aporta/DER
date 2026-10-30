@@ -60,6 +60,8 @@ hooks: {
 
 Hooks disponibles: `preGet`, `prePost`, `prePut`, `preDelete`, `preList(ctx)`, `preQuery(spec)`, `prePostList(list)`, `prePutList(list)`, `preDeleteList(list)`, `preGetCfg(ctx)`, `prePutCfg(parcial, ctx)`, más `pre` en cada endpoint. En las listas se ejecuta también el pre singular por ítem, con el mensaje prefijado `[i] `.
 
+Efectos posteriores (no verifican: corren DESPUÉS de escribir, con la fila guardada o borrada): `afterPost(saved)`, `afterPut(saved)`, `afterDelete(deleted)`, `afterPostList(list)`, `afterPutList(list)`, `afterDeleteList(list)`. Sirven para indexar, notificar o auditar; no corren si `put`/`delete` no encontraron la fila, y si lanzan el error sube al llamador (la escritura ya quedó hecha).
+
 ### Overrides
 
 ```ts

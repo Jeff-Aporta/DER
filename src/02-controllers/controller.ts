@@ -7,6 +7,7 @@
  *   1. reglas automáticas del schema: pks presentes, requeridos y el Zod de la acción (tipos, enums, largo, no-null)
  *   2. hooks de la entidad (compartidos client/server)
  *   3. hooks propios del controller
+ * Tras ejecutar `post`/`put`/`delete` (y sus listas) corren los `after*` (entidad, luego controller) con la fila resultante.
  * En las acciones de lista se ejecuta además el pre singular sobre cada ítem (prefijo `[i]`).
  *
  * `pojo(content?)` instancia el POJO de la entidad sin tocar su clase; `permissions(action)` consulta la puerta
@@ -25,6 +26,8 @@ import { type Action, type ActionArgs, type ActionOverride, type ActionResults, 
 import { pojoValues, zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 
 const ITEM_ACTION: Partial<Record<Action, Action>> = { postList: "post", putList: "put", deleteList: "delete" };
+/** Acciones de escritura que disparan los hooks `after*`. */
+const AFTER_ACTIONS: ReadonlySet<Action> = new Set<Action>(["post", "put", "delete", "postList", "putList", "deleteList"]);
 
 function isEmpty(v: unknown): boolean {
   return v === undefined || v === null || v === "";
@@ -288,8 +291,19 @@ export abstract class BaseController<P extends Pojo, Ctx extends BaseCtx = BaseC
     await this.#check(action, arg, ctx);
     const impl = (a: ActionArgs<P>[A]) => this.execute(action, a, ctx) as Promise<ActionResults<P>[A]>;
     const ov = this.#options.actions?.[action] as ActionOverride<P, this, Ctx, A> | undefined;
-    if (!ov) return impl(arg);
-    return await ov.call(this, arg, ctx, (a) => impl(a === undefined ? arg : a));
+    const result = ov ? await ov.call(this, arg, ctx, (a) => impl(a === undefined ? arg : a)) : await impl(arg);
+    await this.#runAfter(action, result, ctx);
+    return result;
+  }
+
+  /** Hooks `after*` (entidad y luego controller) tras una escritura con resultado: `afterPost`, `afterPut`, `afterDelete` y sus listas. */
+  async #runAfter(action: Action, result: unknown, ctx: Ctx): Promise<void> {
+    if (!AFTER_ACTIONS.has(action) || result == null) return;
+    const hn = `after${action.charAt(0).toUpperCase()}${action.slice(1)}` as keyof Hooks<P>;
+    for (const hooks of [this.entity.hooks, this.#options.hooks]) {
+      const fn = hooks?.[hn] as ((this: unknown, ...a: unknown[]) => void | Promise<void>) | undefined;
+      if (fn) await fn.call(this, result, ctx);
+    }
   }
 
   /** Argumento de una acción/endpoint normalizado a pojo(s) o QuerySpec. */

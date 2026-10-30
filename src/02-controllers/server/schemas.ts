@@ -138,3 +138,5 @@ export type D1RunResult = { results?: unknown[]; meta?: { changes?: number | nul
 export type D1StatementLike = { bind(...values: unknown[]): D1StatementLike; all(): Promise<D1RunResult> };
 /** Binding `D1Database` de un Worker de Cloudflare (lo mínimo que usa el driver). */
 export type D1Like = { prepare(sql: string): D1StatementLike };
+/** Fila de `pragma_table_info` unida a su tabla (introspector de D1). */
+export type D1ColumnRow = { tabla: string; name: string; type: string; notnull: number; dflt_value: unknown; pk: number };
