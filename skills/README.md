@@ -19,6 +19,7 @@
 | Plugins JSON | [plugins.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md) | armas o escribes un plugin (`createClient`/`createServer`, `paths`, puertas de seguridad) |
 | Entidad `usuarios` (identidad) | [identity.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/identity.md) | login, sesiones, contraseñas, auditoría, JWT |
 | Entidades de permisos | [permissions.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permissions.md) | roles, rol base, acciones, alias, catálogo, carga del DER |
+| Embeddings | [embeddings.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/embeddings.md) | caché por huella, búsqueda, reducción, reglas de purga en JSON |
 | Estilo y reglas para modificar DER | [estilo.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/estilo.md) | vas a editar `src/`, `tests/`, `docs/` o `specs/` |
 
 ## Mapa archivo → skill particular
@@ -31,6 +32,7 @@
 | `03-plugins/common/`, `03-plugins/index.ts`, `03-plugins/client.ts` | plugins.md |
 | `03-plugins/identity/` | identity.md |
 | `03-plugins/permissions/` | permissions.md |
+| `03-plugins/embeddings/` | embeddings.md |
 
 ## Tres reglas que siempre aplican
 

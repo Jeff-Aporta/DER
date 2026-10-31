@@ -1,5 +1,7 @@
 /** Utilidades de los tests: acceso tipado a listas y arranque de un API con los plugins de seguridad. */
 import { assertEquals } from "@std/assert";
+import type { DatabaseSync } from "node:sqlite";
+import type { D1Like, D1StatementLike } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
 import { createRouter, createServer, type Database, type Router, type ServerController, type ServerPlugin } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { identityServer, type IdentityConfig, type LoginResult, permissionsServer, type PermissionsConfig } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
@@ -53,4 +55,29 @@ export async function login(router: Router, usuario: string, password: string, h
   const r = await call(router, "POST", "usuarios/login", { body: { usuario, password }, headers: headers ?? {} });
   assertEquals(r.status, 200, JSON.stringify(r.data));
   return (r.data as LoginResult).token;
+}
+
+/** D1 de mentira sobre `node:sqlite`: misma superficie que el binding y, como D1, rechaza más de 100 parámetros por sentencia y BEGIN. */
+export function d1Simulado(db: DatabaseSync, log: string[] = []): D1Like {
+  return {
+    prepare(sql: string): D1StatementLike {
+      let params: unknown[] = [];
+      const st: D1StatementLike = {
+        bind(...values: unknown[]) {
+          params = values;
+          return st;
+        },
+        all() {
+          log.push(sql);
+          if (params.length > 100) return Promise.reject(new Error(`D1_ERROR: too many SQL variables (${params.length})`));
+          if (/^\s*(begin|commit|rollback)\b/i.test(sql)) return Promise.reject(new Error("D1_ERROR: transacciones no soportadas"));
+          const prep = db.prepare(sql);
+          if (prep.columns().length > 0) return Promise.resolve({ results: prep.all(...(params as never[])) as Record<string, unknown>[], meta: { changes: 0, last_row_id: null } });
+          const r = prep.run(...(params as never[]));
+          return Promise.resolve({ results: [], meta: { changes: Number(r.changes), last_row_id: Number(r.lastInsertRowid) } });
+        },
+      };
+      return st;
+    },
+  };
 }

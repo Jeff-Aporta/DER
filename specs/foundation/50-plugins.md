@@ -1,4 +1,4 @@
-# 50 — Plugins JSON: createClient / createServer, identidad y permisos
+# 50 — Plugins JSON: createClient / createServer, identidad, permisos y embeddings
 
 Área `PLG`. Un plugin es un JSON transversal; el consumidor arma lo que necesita y nunca recibe clases.
 
@@ -9,7 +9,7 @@
 - **[W-PLG-01]** Un plugin transversal es `{ name, entities?, irregularPaths? }`: `entities` (clave → definición de entidad con `schema`, singular/plural, `table`, `security`, hooks, `paths` y, EXPLÍCITOS, `exposed` y `administrable`) e `irregularPaths` (clave → path que no pertenece a ninguna entidad). Un path (`IrregularPath`) es `{ method, path, prefix?, pks?, security?, zod?, returns?, id?, ops? }`; sus `ops` son funciones con `this` = el plugin armado que quedan como métodos del plugin.
 - **[W-PLG-02]** El JSON del server es el transversal con un push (`Obj.insert`) de particularidades: por entidad lo de servidor (`hidden`, `actions`, `expose`, `sse`, `computed`, handlers de endpoints y de `paths`…), por path `handler`/`sse` (y `ops` de server), más `cfg` (Zod de la configuración), `security` (implementaciones de puertas), `seed` y `setup`. Lo que define la entidad va a la entidad; lo demás a la config del controller; el server puede sobreescribir `ops`.
 - **[W-PLG-03]** `createClient(json, { baseUrl, fetch?, headers?, token?, onToken? })` devuelve `{ name, def, config, controllers (uno por clave), state, token, setToken, headers(), request(), call(path, body?, pks?) }` + las `ops` de todos los paths como métodos. `call` busca el path (irregular del plugin o `paths` de una entidad), resuelve la ruta (prefijo, `{pks}` desde un objeto `{ pk: valor }` o un pojo), valida el body con `zod` antes del fetch (error de validación sin salir), manda GET como query string, y castea según `returns` (`pojo`, `list`, `json`, `void`/204). `headers()` incluye `Authorization: Bearer <token>` cuando hay token y `setToken` avisa a `onToken`.
-- **[W-PLG-04]** `createServer(json, { db, cfg?, env? })` valida `cfg` con el Zod del plugin (error «Configuración de "x" inválida: …»), resuelve `"env:NOMBRE"` en profundidad (de `env` o del proceso; ausente → error que nombra la variable), crea un `ServerController` por entidad en `db` (una `exposed: false` no publica rutas), resuelve los paths (sin `handler` ni `sse` → error), enlaza las puertas con `this` = plugin, expone las `ops` como métodos, llama `setup` y devuelve el plugin (`controllers`, `list`, `routes`, `security`, `state`, `router`, `seed()`).
+- **[W-PLG-04]** `createServer(json, { db, cfg?, env?, services? })` (`services`: dependencias vivas que no son JSON, disponibles en `plugin.services`) valida `cfg` con el Zod del plugin (error «Configuración de "x" inválida: …»), resuelve `"env:NOMBRE"` en profundidad (de `env` o del proceso; ausente → error que nombra la variable), crea un `ServerController` por entidad en `db` (una `exposed: false` no publica rutas), resuelve los paths (sin `handler` ni `sse` → error), enlaza las puertas con `this` = plugin, expone las `ops` como métodos, llama `setup` y devuelve el plugin (`controllers`, `list`, `routes`, `security`, `state`, `router`, `seed()`).
 - **[W-PLG-05]** Una entidad de plugin se registra una sola vez en el registro global: si el client y el server del mismo proceso arman el mismo JSON, comparten la misma entidad (misma clave de plural y mismo nombre). El nombre default es `<plugin>.<clave>`.
 - **[W-PLG-06]** Hermeticidad: un plugin no depende de otro; referencia entidades ajenas solo por nombre (resuelto en diferido) y funciona sin ellas. El consumidor puede usar identidad con un sistema de permisos propio, permisos con un sistema de identidad propio, o ninguno.
 
@@ -33,15 +33,34 @@
 - **[W-PLG-19]** Cliente: `profile()`, `catalog()`, `load(der)` (valida con el mismo Zod antes de salir) y los controllers del DER.
 - **[W-PLG-20]** `seed`: crea el grupo, el rol base, el rol admin con `"*": true` y lo asigna como principal a `admins`.
 
+### Embeddings
+
+- **[W-PLG-21]** Caché por huella: `embeber` calcula la huella del texto canónico (Unicode NFKC, espacios colapsados, recorte, minúsculas por defecto) y, si existe para ese modelo y proyección, incrementa `hits`, fija `fultimohit` y devuelve sin llamar al modelo. Un hit y un miss devuelven el mismo vector. El texto no se guarda. Texto vacío → 400; miss sin proveedor → 503; número de vectores o dimensiones inesperadas → 502.
+- **[W-PLG-22]** Una fila por referencia (`tipo`, `entidad`, `id`): otro registro con el mismo texto copia el vector sin llamar al modelo y cuenta como hit. Un documento con otro texto pierde su fila anterior. `modelo` y `dims` son columnas.
+- **[W-PLG-23]** Entidades `cache`, `proyecciones`, `contadores` y `cursores`: expuestas, no administrables y con seguridad; el vector nunca sale por CRUD. Depuración por el JSON de consulta de DER.
+- **[W-PLG-24]** Reducción por modelo (`metodo`, `dims`, `decimales`, `semilla`): la proyección se guarda con un id derivado de sus parámetros, se lee de la tabla y se aplica igual a documentos y consultas, en cualquier isolate. Otra proyección es otro espacio: sus filas no sirven como hit.
+- **[W-PLG-25]** Reglas de purga como datos validados: forma con Zod (claves desconocidas, identificadores mal formados, regla sin criterio sin `todo: true`, nombres reservados y más de 90 parámetros se rechazan al armar) y contra la entidad (desconocida, en otra base, pk compuesta, columna inexistente, virtual, oculta o json, operador o valor incompatible con el tipo) en `seed`, `purgar` y `reglas`. Nunca aceptan SQL.
+- **[W-PLG-26]** Criterios en AND: alcance (`entidad`, `tipo`, `modelo`), `sinHitsDias` (último hit o, si nunca hubo, creación), `edadDias`, `hitsMenorQue`, `donde` sobre columnas de la entidad referida y `huerfanos`; junto a `donde`, `huerfanos` es O. `donde` y `huerfanos` aplican solo a documentos.
+- **[W-PLG-27]** Corrida: `obsoletas`, reglas por prioridad, `general` (salvo alcances `excluirDeGeneral`) y, si se supera `maxFilas` o `maxBytes`, reglas `soloPresion` por `orden` y `lru` hasta `objetivoPct`, lo menos usado primero. `lote` × `maxLotes` acota la corrida y `pendiente` avisa que falta otra.
+- **[W-PLG-28]** Simulación: mismo plan sin borrar, con lo que cada paso tomaría sin contar lo de los anteriores y una muestra sin vector; en pasos normales coincide con la corrida real, y bajo presión la parte de un paso se marca `estimado`.
+- **[W-PLG-29]** Búsqueda: `exacta` (columna igual sin mayúsculas, o misma huella del documento) > `contiene` > `embedding` (índice inyectado o coseno sobre la caché, con `minScore`); un registro queda con su mejor origen. `filtros` por entidad aplica a todas las fuentes. Sin proveedor degrada a texto con `semantica: false`. Un índice con otras dimensiones que la proyección → error.
+- **[W-PLG-30]** Estadísticas: filas, bytes, hits, misses, purgadas y tasa, total, por modelo y por referencia; hits, misses y purgadas sobreviven a la purga.
+- **[W-PLG-31]** Alimentación: `alimentar` lee de cada entidad configurada una tanda con pk mayor que su cursor guardado, arma el texto con `columnas` y `etiquetas`, y embebe; lo que ya estaba es hit. `reiniciar` vuelve al principio.
+
 ## 2. HOW débil
 
 - **[HW-PLG-01]** Las operaciones en proceso (`login`, `verify`, `logout`, `can`, `profile`, `load`…) son las mismas funciones que usan los handlers HTTP: una sola implementación.
 - **[HW-PLG-02]** La IP real: con `trustProxy: N`, el salto N desde el final de `X-Forwarded-For`; con 0, el primero; luego `X-Real-IP`. El dispositivo se deduce del user-agent sin dependencias y la huella es un hash estable del user-agent.
 
+- **[HW-PLG-03]** Embeddings en D1: ninguna sentencia supera 100 parámetros, nada depende de transacciones y el borrado va por tandas de select + delete por `icache`. Un conflicto de inserción entre dos requests no falla.
+
 ## 3. HOW fuerte
 
 - **[HS-PLG-01]** Archivos: `src/03-plugins/common/{crypto,device}.ts`, `src/03-plugins/identity/{schemas,index,server}.ts`, `src/03-plugins/permissions/{schemas,index,server,rules}.ts`, entradas `src/03-plugins/index.ts` (server) y `src/03-plugins/client.ts` (client). Exportes: `identity`, `identityServer`, `permissions`, `permissionsServer`, `decide`, `effectiveValue`, `createClient`, `createServer`, `resolveEnv`, `clientIp`, `deviceInfo`, `huellaOf`, `hashPassword`, `verifyPassword`, `signJwt`, `verifyJwt`, `signJwtEs256`, `verifyJwtEs256`, `generateEs256KeyPair`, `importEs256PrivateKey`, `importEs256PublicKey`, `b64urlEncode`, `b64urlDecode`, `randomId`, `timingSafeEqual`.
 - **[HS-PLG-02]** Hash: `pbkdf2-sha256$<iteraciones>$<sal b64url>$<hash b64url>` sobre HMAC-SHA256(pepper, contraseña), sal de 16 bytes, comparación en tiempo constante.
+
+- **[HS-PLG-03]** Embeddings: `src/03-plugins/embeddings/{schemas,index,server,cache,purga,rules,vectores,proveedores}.ts`; exportes `embeddings`, `embeddingsServer`, `workersAi`, `vectorizeIndice`; tablas `embeddings_cache`, `embeddings_proyecciones`, `embeddings_contadores`, `embeddings_cursores`; rutas `embeddings/{embeber,buscar,estadisticas,purgar,reglas,alimentar}`.
+- **[HS-PLG-04]** Vector: L2, proyección, L2, redondeo; texto base64url de int8 (1-2 decimales), int16 (3-4) o float32 little-endian. Proyección aleatoria: Achlioptas con mulberry32; cambiarla exige subir `VERSION_PROYECCION`.
 
 ## 6. Pruebas
 
@@ -53,7 +72,9 @@
 - Reglas puras del vector; por verbo vía HTTP; roles inactivos/futuros/de otro grupo; valor al handler; `permissions()` desde código; usuario inactivo pierde sus tokens.
 - Clientes: token en otros controllers, validación local sin salir, logout revoca; perfil, carga, catálogo, DER con `include` del usuario (sin hash).
 - ES256: firma/verificación, kid, manipulación, JWK, login + JWKS; utilidades de IP y dispositivo.
+- Embeddings sobre D1 simulado con el límite de parámetros y sobre PGlite: hit sin llamar al modelo, referencias, texto editado, proyección entre isolates, obsoletas, estadísticas, regla combinada del pedido, operadores, huérfanos, general con exclusiones, simulación igual a la corrida real, presión por filas y por bytes, tandas con pendiente, prioridad de búsqueda, filtros por inquilino, adaptadores, alimentación, HTTP sin vector, y el JSON del README válido.
 
 ## 7. Notas
 
+- Embeddings: el vector es texto base64url porque DER no tiene tipo binario. La proyección de consultas solo existe en TypeScript. El coseno local está acotado por `maxCandidatos`.
 - `registry.secure(null)` limpia las puertas: imprescindible entre pruebas porque el registro es un singleton del proceso.

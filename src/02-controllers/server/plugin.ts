@@ -51,6 +51,7 @@ export function createServer(def: ServerPluginDef, runtime: ServerPluginRuntime)
     db: runtime.db,
     cfg,
     env: runtime.env,
+    services: runtime.services,
     controllers: {} as Record<string, ServerController<any>>,
     list: [] as ServerController<any>[],
     routes: [] as ExtraRoute<ServerPlugin>[],

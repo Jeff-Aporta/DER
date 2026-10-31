@@ -26,7 +26,7 @@ src/02-controllers   controller.ts (BaseController: CRUD, pre*, pojo(), permissi
             ├── mssql.ts     fábrica: tedious + tarn del consumidor
             └── hosts/       azure.ts (Azure Functions) · cloudflare.ts (Workers)
       ↑
-src/03-plugins       common/ (crypto, device) · identity/ · permissions/  — cada plugin: schemas.ts · index.ts (JSON transversal) · server.ts (push)
+src/03-plugins       common/ (crypto, device) · identity/ · permissions/ · embeddings/  — cada plugin: schemas.ts · index.ts (JSON transversal) · server.ts (push)
 ```
 
 - **Una definición, dos lados.** El schema JSON, el POJO, la entidad (singular, plural, tabla, rutas, seguridad), los `pre*` compartidos y los contratos Zod son los mismos en el client y en el server. El server agrega lo propio de SQL (caso de identificadores, columnas calculadas, la tabla de configuración de `plural/cfg`) y el client lo propio de HTTP (`baseUrl`, headers, fetch).

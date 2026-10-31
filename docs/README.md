@@ -12,7 +12,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 
 - **Client:** controllers `fetch` que validan (Zod + `pre*`) antes de llamar a la API.
 - **Server:** controllers SQL agnósticos del motor (PostgreSQL, PGlite, SQLite, MySQL, MSSQL), con relaciones anidadas, filtros, paginación, `seed()`, SSE, configuración de la entidad (`plural/cfg`) y documentación servida (`plural/doc`).
-- **Plugins JSON:** identidad y permisos como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
+- **Plugins JSON:** identidad, permisos y caché de embeddings como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
 
 ## Mapa del paquete
 
@@ -52,6 +52,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 | Documentación servida: md autogenerado + secciones en `/doc`, vista iswc en `/doc?v=1`, diagramas con los tipos del kit | [030-Controllers/040-Documentacion-servida.md](030-Controllers/040-Documentacion-servida.md) |
 | Hosts: tabla de rutas, Azure Functions, Cloudflare Workers, rutas irregulares, CORS, guard | [040-Servidor/020-Hosts.md](040-Servidor/020-Hosts.md) |
 | Seguridad: puertas del registro, plugins JSON de identidad y permisos, `createClient`/`createServer`, plugin propio | [050-Plugins/010-Seguridad.md](050-Plugins/010-Seguridad.md) |
+| Embeddings: caché por huella, búsqueda (exacta primero), reducción, reglas de purga en JSON, estadísticas | [050-Plugins/020-Embeddings.md](050-Plugins/020-Embeddings.md) |
 | Propagación de detalles (`getPropagation` / `setPropagation`), seed en cascada y controllers en bases/motores distintos | [030-Controllers/020-Propagacion-y-multi-db.md](030-Controllers/020-Propagacion-y-multi-db.md) |
 
 ## Ejemplo mínimo

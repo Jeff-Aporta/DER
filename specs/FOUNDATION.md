@@ -22,7 +22,7 @@
 | 20 | [foundation/20-controllers.md](foundation/20-controllers.md) | `CTL` | controller base (flujo, verificación, overrides, cfg, doc, endpoints, SSE, permisos) y client fetch |
 | 30 | [foundation/30-servidor.md](foundation/30-servidor.md) | `SRV` | ServerController, motores (PG, PGlite, SQLite, MySQL, MSSQL), seed, syncSchema, secuencias, índices, propagación, multi-db |
 | 40 | [foundation/40-router-hosts.md](foundation/40-router-hosts.md) | `RTR` | tabla de rutas, Router, seguridad por ruta con las puertas del registro, CORS, guard, documentación servida, hosts |
-| 50 | [foundation/50-plugins.md](foundation/50-plugins.md) | `PLG` | plugins JSON (`createClient` / `createServer`), identidad, permisos, hermeticidad |
+| 50 | [foundation/50-plugins.md](foundation/50-plugins.md) | `PLG` | plugins JSON (`createClient` / `createServer`), identidad, permisos, embeddings, hermeticidad |
 | 60 | [foundation/60-arquitectura-cdn.md](foundation/60-arquitectura-cdn.md) | `ARQ` | capas, dependencias, consumo por CDN, estilo del código, guardianes y organización de tests |
 
 ## 2. Convenciones de IDs

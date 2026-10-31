@@ -18,7 +18,9 @@
     "./plugins/identity": "./src/03-plugins/identity/index.ts",
     "./plugins/identity/client": "./src/03-plugins/identity/client.ts",
     "./plugins/permissions": "./src/03-plugins/permissions/index.ts",
-    "./plugins/permissions/client": "./src/03-plugins/permissions/client.ts"
+    "./plugins/permissions/client": "./src/03-plugins/permissions/client.ts",
+    "./plugins/embeddings": "./src/03-plugins/embeddings/server.ts",
+    "./plugins/embeddings/client": "./src/03-plugins/embeddings/index.ts"
   },
   "imports": {
     "@Jeff-Aporta/DER/": "./",

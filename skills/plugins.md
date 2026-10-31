@@ -56,7 +56,7 @@ const router = createRouter(ctrls, { plugins: [mi] });   // registra sus control
 await router.seed();
 ```
 
-`createServer` valida `cfg` con Zod, resuelve `"env:NOMBRE"`, y falla si un path no tiene `handler` ni `sse`.
+`createServer` valida `cfg` con Zod, resuelve `"env:NOMBRE"`, y falla si un path no tiene `handler` ni `sse`. Lo que no es JSON (bindings, proveedores) va en `services` y queda en `plugin.services`; `cfg` lo nombra por clave.
 
 ## Las tres puertas del registro
 

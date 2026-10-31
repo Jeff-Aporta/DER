@@ -1,6 +1,6 @@
 /**
- * 03 plugins (server) — seguridad como plugins JSON: `identityServer` (usuarios, hash, JWT, sesiones, auditoría) y
- * `permissionsServer` (DER grupos/roles/acciones, vector de acciones). Cada uno es un JSON que el consumidor arma con
+ * 03 plugins (server) — seguridad como plugins JSON: `identityServer` (usuarios, hash, JWT, sesiones, auditoría),
+ * `permissionsServer` (DER grupos/roles/acciones, vector de acciones) y `embeddingsServer` (caché de embeddings). Cada uno es un JSON que el consumidor arma con
  * `createServer(json, { db, cfg })` y pasa al Router en `plugins`; las puertas (`extract`, `permissions`) entran al registro
  * global sólo donde el consumidor no definió las suyas: cualquiera de los dos se reemplaza por un sistema propio.
  *
@@ -17,5 +17,6 @@
  */
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/crypto.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/device.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/identity/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/server.ts";
