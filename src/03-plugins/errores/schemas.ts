@@ -13,8 +13,8 @@ export const ESTADOS_ERROR = ["recibiendo", "pendiente", "en_proceso"] as const;
 /** Estado de un error. */
 export type EstadoError = (typeof ESTADOS_ERROR)[number];
 
-/** Configuración: secreto de los tokens, código de los reportes sin sesión (mínimo 8), vida de una toma y límites. */
-export const ZErroresConfig = z.strictObject({ secret: z.string().min(16), codigo: z.string().min(8).optional(), tomaMin: z.number().positive().default(60), recibiendoMin: z.number().positive().default(10), maxHtmlKb: z.number().positive().default(512), maxAdjuntoMb: z.number().positive().default(20), maxAdjuntos: z.number().int().positive().default(10), tokenSeg: z.number().int().positive().default(3600) });
+/** Configuración: secreto de los tokens, código de los reportes sin sesión (mínimo 8, se comprueba ya resuelto el `env:`), vida de una toma y límites. */
+export const ZErroresConfig = z.strictObject({ secret: z.string().min(1), codigo: z.string().min(1).optional(), tomaMin: z.number().positive().default(60), recibiendoMin: z.number().positive().default(10), maxHtmlKb: z.number().positive().default(512), maxAdjuntoMb: z.number().positive().default(20), maxAdjuntos: z.number().int().positive().default(10), tokenSeg: z.number().int().positive().default(3600) });
 /** Configuración ya validada. */
 export type ErroresConfig = z.infer<typeof ZErroresConfig>;
 /** Cuerpo de `POST errores/reportar`. */

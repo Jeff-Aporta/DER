@@ -13,7 +13,7 @@ export const EXTENSIONES_BLOQUEADAS = ["exe", "msi", "msp", "bat", "cmd", "com",
 export const MIMES_BLOQUEADOS = ["application/x-msdownload", "application/x-msdos-program", "application/x-ms-installer", "application/x-msi", "application/x-sh", "application/x-bat", "application/java-archive", "application/vnd.android.package-archive", "application/x-executable", "application/x-dosexec", "application/vnd.microsoft.portable-executable"] as const;
 
 /** Configuración: secreto de las URLs firmadas, vida de la URL y tamaño máximo por archivo. */
-export const ZArchivosConfig = z.strictObject({ secret: z.string().min(16), ttlSeg: z.number().int().positive().default(900), maxMb: z.number().positive().default(30) });
+export const ZArchivosConfig = z.strictObject({ secret: z.string().min(1), ttlSeg: z.number().int().positive().default(900), maxMb: z.number().positive().default(30) });
 /** Configuración ya validada. */
 export type ArchivosConfig = z.infer<typeof ZArchivosConfig>;
 /** Query de `POST archivos/subir`: lo común; el resto de la query llega a la política del consumidor. */

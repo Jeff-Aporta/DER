@@ -2,7 +2,7 @@
  * Errores, archivos y penalizaciones juntos sobre el router real: reporte con código y penalización por vectores, sesión confiable,
  * adjuntos según el proveedor de LLM del consumidor, toma atómica entre agentes, bitácora y borrado en plural.
  */
-import { assert, assertEquals, assertRejects } from "@std/assert";
+import { assert, assertEquals, assertRejects, assertThrows } from "@std/assert";
 import { createClient, erroresPlugin, identity } from "@Jeff-Aporta/DER/src/03-plugins/client.ts";
 import { createRouter, createServer } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
@@ -212,4 +212,14 @@ Deno.test("docs: el diagrama del modelo de datos está al día con las entidades
   registry.secure(null);
   const hoja = await Deno.readTextFile(new URL("../../docs/050-Plugins/060-Modelo-de-datos.md", import.meta.url));
   assertEquals(hoja, await hojaModelo());
+});
+
+Deno.test("errores: acepta el secreto y el código por env: y exige 8 caracteres ya resueltos", async () => {
+  const db = sqliteDatabase();
+  try {
+    createServer(erroresServer, { db, cfg: { secret: "env:S", codigo: "env:C" }, env: { S: SECRET, C: CODIGO } });
+    assertThrows(() => createServer(erroresServer, { db, cfg: { secret: "env:S", codigo: "env:C" }, env: { S: SECRET, C: "corto" } }), Error, "mínimo 8");
+  } finally {
+    await db.destroy();
+  }
 });
