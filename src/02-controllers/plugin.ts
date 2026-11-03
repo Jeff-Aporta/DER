@@ -16,6 +16,7 @@ export const ENTITY_KEYS: ReadonlySet<string> = new Set(["schema", "name", "sing
 function pathDef(p: IrregularPath): IrregularPath {
   const out: IrregularPath = { method: p.method, path: p.path };
   if (p.prefix !== undefined) out.prefix = p.prefix;
+  if (p.pks !== undefined) out.pks = p.pks;
   if (p.security !== undefined) out.security = p.security;
   if (p.zod !== undefined) out.zod = p.zod;
   if (p.returns !== undefined) out.returns = p.returns;

@@ -20,6 +20,9 @@
 | Entidad `usuarios` (identidad) | [identity.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/identity.md) | login, sesiones, contraseñas, auditoría, JWT |
 | Entidades de permisos | [permissions.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permissions.md) | roles, rol base, acciones, alias, catálogo, carga del DER |
 | Embeddings | [embeddings.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/embeddings.md) | caché por huella, búsqueda, reducción, reglas de purga en JSON |
+| Gestión de archivos | [archivos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/archivos.md) | carpetas, archivos, almacén del consumidor, relación libre `origin` + `idorigin` |
+| Errores | [errores.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/errores.md) | reportar errores desde una app o **atenderlos como agente** (toma, bitácora, cierre, reglas) |
+| Penalizaciones | [penalizaciones.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/penalizaciones.md) | frenar fuerza bruta con vectores por IP y global |
 | Estilo y reglas para modificar DER | [estilo.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/estilo.md) | vas a editar `src/`, `tests/`, `docs/` o `specs/` |
 
 ## Mapa archivo → skill particular
@@ -33,6 +36,9 @@
 | `03-plugins/identity/` | identity.md |
 | `03-plugins/permissions/` | permissions.md |
 | `03-plugins/embeddings/` | embeddings.md |
+| `03-plugins/archivos/` | archivos.md |
+| `03-plugins/errores/` | errores.md |
+| `03-plugins/penalizaciones/` | penalizaciones.md |
 
 ## Tres reglas que siempre aplican
 

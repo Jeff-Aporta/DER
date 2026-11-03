@@ -12,7 +12,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 
 - **Client:** controllers `fetch` que validan (Zod + `pre*`) antes de llamar a la API.
 - **Server:** controllers SQL agnósticos del motor (PostgreSQL, PGlite, SQLite, MySQL, MSSQL), con relaciones anidadas, filtros, paginación, `seed()`, SSE, configuración de la entidad (`plural/cfg`) y documentación servida (`plural/doc`).
-- **Plugins JSON:** identidad, permisos y caché de embeddings como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
+- **Plugins JSON:** identidad, permisos, caché de embeddings, gestión de archivos, errores y penalizaciones como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
 
 ## Mapa del paquete
 
@@ -53,6 +53,10 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 | Hosts: tabla de rutas, Azure Functions, Cloudflare Workers, rutas irregulares, CORS, guard | [040-Servidor/020-Hosts.md](040-Servidor/020-Hosts.md) |
 | Seguridad: puertas del registro, plugins JSON de identidad y permisos, `createClient`/`createServer`, plugin propio | [050-Plugins/010-Seguridad.md](050-Plugins/010-Seguridad.md) |
 | Embeddings: caché por huella, búsqueda (exacta primero), reducción, reglas de purga en JSON, estadísticas | [050-Plugins/020-Embeddings.md](050-Plugins/020-Embeddings.md) |
+| Gestión de archivos: carpetas, archivos, almacén del consumidor, relación libre con otras tablas | [050-Plugins/030-Archivos.md](050-Plugins/030-Archivos.md) |
+| Errores: reportes de cualquier app atendidos por agentes | [050-Plugins/040-Errores.md](050-Plugins/040-Errores.md) |
+| Penalizaciones: vectores por IP y global contra fuerza bruta | [050-Plugins/050-Penalizaciones.md](050-Plugins/050-Penalizaciones.md) |
+| Modelo de datos y diagrama ER de archivos, errores y penalizaciones | [050-Plugins/060-Modelo-de-datos.md](050-Plugins/060-Modelo-de-datos.md) |
 | Propagación de detalles (`getPropagation` / `setPropagation`), seed en cascada y controllers en bases/motores distintos | [030-Controllers/020-Propagacion-y-multi-db.md](030-Controllers/020-Propagacion-y-multi-db.md) |
 
 ## Ejemplo mínimo

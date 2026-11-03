@@ -1,4 +1,4 @@
-# 50 — Plugins JSON: createClient / createServer, identidad, permisos y embeddings
+# 50 — Plugins JSON: createClient / createServer, identidad, permisos, embeddings, archivos, errores y penalizaciones
 
 Área `PLG`. Un plugin es un JSON transversal; el consumidor arma lo que necesita y nunca recibe clases.
 
@@ -46,6 +46,40 @@
 - **[W-PLG-29]** Búsqueda: `exacta` (columna igual sin mayúsculas, o misma huella del documento) > `contiene` > `embedding` (índice inyectado o coseno sobre la caché, con `minScore`); un registro queda con su mejor origen. `filtros` por entidad aplica a todas las fuentes. Sin proveedor degrada a texto con `semantica: false`. Un índice con otras dimensiones que la proyección → error.
 - **[W-PLG-30]** Estadísticas: filas, bytes, hits, misses, purgadas y tasa, total, por modelo y por referencia; hits, misses y purgadas sobreviven a la purga.
 - **[W-PLG-31]** Alimentación: `alimentar` lee de cada entidad configurada una tanda con pk mayor que su cursor guardado, arma el texto con `columnas` y `etiquetas`, y embebe; lo que ya estaba es hit. `reiniciar` vuelve al principio.
+
+### Servicios del consumidor, auditoría y LLM
+
+- **[W-PLG-40]** DER no ejecuta servicios externos: define datos, rutas y helpers. Lo externo lo vincula el consumidor en `services` del plugin o en el singleton `servicios`, en ese orden.
+- **[W-PLG-41]** El singleton guarda credenciales con `env:` resuelto; un `env:` sin definir deja el campo fuera sin tumbar el arranque (el servicio es opcional).
+- **[W-PLG-42]** Las entidades con dueño comparten `COLUMNAS_AUDITORIA`: `propietario_tipo` (`usuario`, `pagina`, `ninguno`), `propietario`, `apporigin`, `iporigin`, `fhcre`, `fhmod`.
+- **[W-PLG-43]** `proveedorLlm` no llama a ningún modelo: ejecuta acciones del consumidor con su credencial y responde qué regla aplica a un mime. Sin credencial, la acción no está disponible.
+
+### Gestión de archivos
+
+- **[W-PLG-50]** Carpetas y archivos con CRUD; la `ruta` de una carpeta la deriva el server y `(ipadre, nombre)` es único.
+- **[W-PLG-51]** Un archivo se relaciona con cualquier tabla por `origin` + `idorigin`, sin FK rígida.
+- **[W-PLG-52]** Los bytes los mueve un almacén del consumidor; sin él, las rutas que lo necesitan responden 503.
+- **[W-PLG-53]** Subida: rechaza vacíos, excesos y ejecutables; objeto primero y fila después, con compensación si falla la fila.
+- **[W-PLG-54]** Descarga pública pero firmada con vida corta; una firma vencida o alterada responde 403.
+- **[W-PLG-55]** Borrar una fila, también en plural, borra su objeto.
+- **[W-PLG-56]** `archivos/arbol` da subcarpetas y archivos visibles de una carpeta.
+
+### Errores
+
+- **[W-PLG-60]** Con sesión confiable el reporte pasa directo; sin ella exige el código (mínimo 8) y aplica penalizaciones; sin código configurado exige sesión.
+- **[W-PLG-61]** Un reporte con adjuntos espera en `recibiendo` hasta `listo` o `recibiendoMin`; solo entonces entra a la cola y se avisa al consumidor. Si el aviso falla, el reporte queda.
+- **[W-PLG-62]** Adjuntos con un token firmado de corta vida del reporte.
+- **[W-PLG-63]** Cada adjunto sigue la regla del proveedor de LLM; con `conservar: false` y acción exitosa el original no se guarda. Sin regla, credencial o si la acción falla, se conserva: nada se pierde.
+- **[W-PLG-64]** Tomar es atómico: entre dos agentes solo uno gana, el otro recibe 409. Una toma vencida se puede retomar.
+- **[W-PLG-65]** Solo quien tiene la toma registra avance o suelta. Cada avance renueva la toma y queda en la bitácora que ve quien reportó.
+- **[W-PLG-66]** `DELETE errores` cierra varios atendidos y se lleva sus archivos; el seguimiento de una fila borrada responde `atendido`.
+
+### Penalizaciones
+
+- **[W-PLG-70]** Una tabla: `id` del vector e `intentos` en JSON. Dos vectores por ámbito: IP y global; cada fallo se anota en los dos.
+- **[W-PLG-71]** Decide la IP; sin IP, o con `umbralGlobal` fallos en `ventanaGlobalMin`, decide el global.
+- **[W-PLG-72]** Escala configurable, por defecto 0, 0, 5, 10, 15, 20, 25 y 30 minutos, repitiendo el último.
+- **[W-PLG-73]** Un intento rechazado por estar penalizado no cuenta, y durante la penalización ni el secreto correcto pasa.
 
 ## 2. HOW débil
 

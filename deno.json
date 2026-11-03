@@ -20,7 +20,13 @@
     "./plugins/permissions": "./src/03-plugins/permissions/index.ts",
     "./plugins/permissions/client": "./src/03-plugins/permissions/client.ts",
     "./plugins/embeddings": "./src/03-plugins/embeddings/server.ts",
-    "./plugins/embeddings/client": "./src/03-plugins/embeddings/index.ts"
+    "./plugins/embeddings/client": "./src/03-plugins/embeddings/index.ts",
+    "./plugins/archivos": "./src/03-plugins/archivos/server.ts",
+    "./plugins/archivos/client": "./src/03-plugins/archivos/index.ts",
+    "./plugins/errores": "./src/03-plugins/errores/server.ts",
+    "./plugins/errores/client": "./src/03-plugins/errores/index.ts",
+    "./plugins/penalizaciones": "./src/03-plugins/penalizaciones/server.ts",
+    "./plugins/penalizaciones/client": "./src/03-plugins/penalizaciones/index.ts"
   },
   "imports": {
     "@Jeff-Aporta/DER/": "./",
@@ -34,7 +40,8 @@
   "tasks": {
     "test": "deno test -A",
     "check": "deno check index.ts src/02-controllers/client/index.ts src/02-controllers/server/sqlite.ts src/02-controllers/server/pg.ts src/02-controllers/server/pglite.ts src/02-controllers/server/d1.ts src/02-controllers/server/hosts/azure.ts src/02-controllers/server/hosts/cloudflare.ts src/03-plugins/index.ts src/03-plugins/client.ts examples/ tests/",
-    "example": "deno run -A examples/server.ts"
+    "example": "deno run -A examples/server.ts",
+    "diagramas": "deno run -A examples/diagramas-plugins.ts"
   },
   "compilerOptions": {
     "strict": true,

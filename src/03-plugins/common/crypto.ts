@@ -47,6 +47,16 @@ export function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return diff === 0;
 }
 
+/** Firma HMAC-SHA256 de un texto en base64url (URLs firmadas, tickets de corta vida). */
+export async function firmarHmac(secret: string, texto: string): Promise<string> {
+  return b64urlEncode(new Uint8Array(await crypto.subtle.sign("HMAC", await hmacKey(secret, "SHA-256"), enc.encode(texto))));
+}
+
+/** ¿`firma` corresponde a `texto`? En tiempo constante. */
+export async function verificarHmac(secret: string, texto: string, firma: string): Promise<boolean> {
+  return timingSafeEqual(enc.encode(await firmarHmac(secret, texto)), enc.encode(firma));
+}
+
 async function derive(password: string, secret: string, salt: Uint8Array<ArrayBuffer>, iterations: number) {
   const peppered = await crypto.subtle.sign("HMAC", await hmacKey(secret, "SHA-256"), enc.encode(password));
   const key = await crypto.subtle.importKey("raw", peppered, "PBKDF2", false, ["deriveBits"]);

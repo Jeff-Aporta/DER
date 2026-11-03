@@ -69,3 +69,21 @@ registry.secure({
 ```
 
 El consumidor puede definir cualquiera; los plugins solo aportan implementaciones (identidad → `extract`; permisos → `permissions`) y nunca pisan las del consumidor. Son herméticos: identidad sin permisos y al revés funcionan.
+
+## Servicios del consumidor
+
+DER define datos, rutas y helpers; **no ejecuta servicios externos**. Lo externo lo vincula cada API. El orden de búsqueda es `services` del plugin y luego el singleton:
+
+```ts
+servicios.configurar({ credenciales: { llm: { apiKey: "env:LLM_KEY" }, agente: { url: "env:AGENTE_URL", apiKey: "env:AGENTE_KEY" } } }, env);
+servicios.vincular("almacen", miAlmacen);
+servicios.credencial("agente")?.["url"];   // un env: sin definir queda fuera: el servicio es opcional
+```
+
+## Proveedor de LLM
+
+`proveedorLlm({ credencial, acciones, reglas })` no llama a ningún modelo: el consumidor escribe cada acción con su API y su credencial, y las reglas dicen qué hacer por mime. `dataUrl` y `entradaConImagenes` arman la entrada multimodal de un modelo tipo «responses».
+
+## Auditoría
+
+Entidad con dueño: `...COLUMNAS_AUDITORIA` en sus columnas (`propietario_tipo`, `propietario`, `apporigin`, `iporigin`, `fhcre`, `fhmod`), `selloAlta(ctx, { apporigin, pagina, ip })` al crear y `selloCambio()` al modificar. La IP real sale de `ipReal(plugin, req)`.

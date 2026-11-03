@@ -12,6 +12,18 @@ deno task test      # unit + SQLite + PostgreSQL (PGlite) + SQL de MySQL/MSSQL +
 deno task example   # servidor de ejemplo en :8000/api
 ```
 
+## Plugins de archivos, errores y penalizaciones
+
+Reportes de error de cualquier app atendidos por agentes, gestión de carpetas y archivos, y freno a la fuerza bruta. DER define datos, rutas y helpers: el almacén, la transcripción y el aviso al agente los vincula cada API.
+
+```ts
+const multas = createServer(penalizacionesServer, { db, cfg: {} });
+const archivos = createServer(archivosServer, { db, cfg: { secret: "env:JWT_SECRET" }, services: { almacen: miAlmacen } });
+const errores = createServer(erroresServer, { db, cfg: { secret: "env:JWT_SECRET", codigo: "env:ERRORES_CODIGO" }, services: { archivos, penalizaciones: multas, llm, enlaces } });
+```
+
+Detalle en `docs/050-Plugins/` y en las skills [errores](skills/errores.md), [archivos](skills/archivos.md) y [penalizaciones](skills/penalizaciones.md).
+
 ## Plugin de embeddings
 
 Caché declarativa de embeddings: el estándar de DER para buscar por significado. Optimiza todo el sistema (un texto conocido no vuelve a llamar al modelo) y se depura con los mismos JSON de DER, sin SQL. Referencia completa: [docs/050-Plugins/020-Embeddings.md](docs/050-Plugins/020-Embeddings.md) · skill: [skills/embeddings.md](skills/embeddings.md).
