@@ -17,7 +17,7 @@ import { diagramPayloads, erDiagramPayload } from "@Jeff-Aporta/DER/src/01-objec
 import type { DocSheet, DocViewOptions } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 
 /** Pin del kit iswc (el mismo que usa ISS en su `docs/index.html`). */
-export const ISWC_PIN = "f4356a4191357a927eec7659f8ded07c1186288c";
+export const ISWC_PIN = "37cc1b34c123ddbbeaad220cbddefd57f832ebe4";
 /** Punto de entrada de la documentación de esta librería. */
 export const LIB_DOCS = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md";
 
@@ -245,10 +245,10 @@ export function vaultHtml(sheets: DocSheet[], title: string, view: DocViewOption
     "    iswc-theme-toggle:not(:defined), iswc-palette-selector:not(:defined) { visibility: hidden; }",
     "  </style>",
     "  <script type=\"module\">",
-    `    import { initApp } from '${cdn}/core/app-init.min.js';`,
+    `    import { initApp } from '${cdn}/core/app-init.min.mjs';`,
     `    initApp({ theme: ${json(theme)}, palette: ${json(palette)} });`,
     "  </script>",
-    `  <script type="module" src="${cdn}/core/loader.min.js"></script>`,
+    `  <script type="module" src="${cdn}/core/loader.min.mjs"></script>`,
     "</head>",
     "<body>",
     `  <script type="application/json" id="doc-data">${json({ title, main, sheets })}</script>`,

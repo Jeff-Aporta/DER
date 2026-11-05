@@ -11,7 +11,7 @@
  *   Obj.getValue(base, query)          el valor exacto de la única hoja marcada (`null` si no existe).
  *   Obj.aplicar(base, acciones)        las anteriores en orden (`TAccionObj[]`).
  *
- * Doc de Obj: https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@main/src/vendor-distributions/shared/lib/obj.md
+ * Doc de Obj: https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@37cc1b34c123ddbbeaad220cbddefd57f832ebe4/src/vendor-distributions/shared/lib/obj.md
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/objetos.md
  */

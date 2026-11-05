@@ -100,7 +100,7 @@ Deno.test("doc: general {base}/doc (índice autogenerado) y {base}/doc?v=1 (una 
     assertStringIncludes(index, "| producto | `/api/producto` | `/api/productos` | `/api/productos/doc` | [productos](productos.md) |");
     const res = await get(router, "/api/doc?v=1");
     const html = await res.clone().text();
-    assertStringIncludes(html, `is-webcomponents@${ISWC_PIN}/dist/cdn/core/loader.min.js`);
+    assertStringIncludes(html, `is-webcomponents@${ISWC_PIN}/dist/cdn/core/loader.min.mjs`);
     const data = await viewData(res);
     assertEquals(data.sheets.map((s) => s.path), [
       "README.md",
