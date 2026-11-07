@@ -1,8 +1,10 @@
 /**
- * Tipos de lo común de los plugins: auditoría, singleton de servicios y controller de proveedor de LLM.
+ * Tipos de lo común de los plugins: auditoría, singleton de servicios, controller de proveedor de LLM y el dominio
+ * social (mensajes, calificaciones y reacciones) que comparten los plugins de tiquetes y conversación.
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md
  */
+import { z } from "zod";
 
 /** Qué es el dueño de una fila. */
 export type TipoPropietario = "usuario" | "pagina" | "ninguno";
@@ -34,3 +36,42 @@ export type ImagenEntrada = { url: string };
 export type ParteEntrada = { type: "input_text"; text: string } | { type: "input_image"; image_url: string };
 /** Mensaje de entrada de un modelo tipo «responses». */
 export type MensajeEntrada = { role: "user"; content: ParteEntrada[] };
+// ===================================================================================== social (mensajes, calificaciones, reacciones)
+
+/** Referencia a la entidad que se comenta, califica o reacciona: el espacio y el id de esa entidad. */
+export type EspacioRef = { tdespacio: string; iref: string };
+/** Índice de un mensaje dentro de su hilo: §x§, §x.y§, §x.y.z§… (el número de niveles no tiene límite). */
+export type IndiceMensaje = string;
+/** Una versión del contenido de un mensaje: el texto, cuándo se escribió y sus adjuntos. */
+export type VersionMensaje = { contenido: string; fhcre: string; adjuntos: string[] };
+/** Historial de versiones de un mensaje (la última es la vigente; las anteriores se conservan). */
+export type ContenidoMensaje = VersionMensaje[];
+/** Perfil de una sesión para evaluar las asignaciones: usuario, roles y grupos. */
+export type PerfilAsignado = { usuario: string; roles: string[]; grupos: string[] };
+/** A quién se asigna un tk: usuarios, roles y grupos; §*§ en grupos significa "todos". */
+export type Asignados = { usuarios: string[]; roles: string[]; grupos: string[] };
+/** Un pendiente de un tk: si está hecho, su contenido y la última edición. */
+export type Pendiente = { hecho: boolean; contenido: string; jedit: { fh: string; iusuario: string } | null };
+/** Los pendientes de un tk. */
+export type Pendientes = Pendiente[];
+/** Calificación de una entidad: entero de -10 (lo peor) a 10 (lo mejor); 0 es neutro. */
+export type ValorCalificacion = number;
+/** Reacción de un usuario sobre una entidad: el emoji (o clave corta) que puso. */
+export type Reaccion = string;
+
+/** Zod de la referencia a una entidad (espacio + id). */
+export const ZEspacioRef = z.strictObject({ tdespacio: z.string().min(1).max(60), iref: z.string().min(1).max(120) });
+/** Zod del índice de un mensaje: §0§, §0.0§, §0.0.0§… */
+export const ZIndiceMensaje = z.string().regex(/^\d+(\.\d+)*$/, "El índice debe ser 0, 0.0, 0.0.0…");
+/** Zod de una versión de contenido de mensaje. */
+export const ZVersionMensaje = z.strictObject({ contenido: z.string(), fhcre: z.string(), adjuntos: z.array(z.string()) });
+/** Zod del historial de versiones de un mensaje. */
+export const ZContenidoMensaje = z.array(ZVersionMensaje);
+/** Zod de las asignaciones (usuarios, roles y grupos). */
+export const ZAsignados = z.strictObject({ usuarios: z.array(z.string()), roles: z.array(z.string()), grupos: z.array(z.string()) });
+/** Zod de un pendiente de un tk. */
+export const ZPendiente = z.strictObject({ hecho: z.boolean(), contenido: z.string(), jedit: z.object({ fh: z.string(), iusuario: z.string() }).nullable() });
+/** Zod de la calificación: entero de -10 a 10 (0 es neutro). */
+export const ZValorCalificacion = z.number().int().min(-10).max(10);
+/** Zod de la reacción. */
+export const ZReaccion = z.string().min(1).max(64);

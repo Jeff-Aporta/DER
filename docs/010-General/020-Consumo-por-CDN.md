@@ -6,8 +6,6 @@ tags: [general, cdn, dependencias]
 ---
 # Consumir por CDN
 
-[← índice](../README.md)
-
 El paquete es TypeScript sin build. Cada archivo importa sus dependencias con especificadores desnudos (`"zod"`, `"kysely"`, `"@electric-sql/pglite"`), que **resuelve el import map del consumidor**. Así cada app instala solo lo que usa.
 
 ## URLs
@@ -59,7 +57,7 @@ import { identity, permissions } from "@Jeff-Aporta/DER/src/03-plugins/client.ts
 ```
 
 - Deno aplica el import map también a los módulos remotos: dentro de la librería, `"zod"`, `"@Jeff-Aporta/DER/…"` y `"@Jeff-Aporta/wc-…"` resuelven a lo que el consumidor mapeó. Hay una sola instancia de `z` en toda la app y una sola versión de la librería.
-- Una app de solo cliente no mapea `kysely`: las entradas de cliente no lo alcanzan (lo vigila `tests/arch/arch.test.ts`).
+- Una app de solo cliente no mapea `kysely`: las entradas de cliente no lo alcanzan.
 - Dentro de este repo el alias apunta a `./` (`deno.json`); el editor usa el LSP de Deno con ese mismo mapa (no hay `tsconfig`).
 - **Pin de iswc:** los alias `wc-*` fijan un SHA de 40. El `main` del kit pasó a usar imports internos `../schemas.js` (convención Node strip-only) que Deno no resuelve en remoto, así que el SHA fijado es el último que sirve `.ts` (`de72fa69…`); subirlo exige que el kit publique una copia resoluble por Deno.
 
@@ -82,7 +80,7 @@ deno task test       # unit + SQLite + PGlite + SQL de MySQL/MSSQL + HTTP + plug
 ```
 
 
-## Reglas del contrato CDN (las vigila `tests/arch/arch.test.ts`)
+## Reglas del contrato CDN
 
 - Los **imports internos** van siempre por el alias `@Jeff-Aporta/DER/`, con extensión `.ts` y uno por línea.
 - Lo de iswc va por `@Jeff-Aporta/wc-*` (nunca una URL directa) y los alias fijan un SHA.

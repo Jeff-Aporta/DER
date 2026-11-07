@@ -219,7 +219,7 @@ export function vaultHtml(sheets: DocSheet[], title: string, view: DocViewOption
   if (!/^[0-9a-f]{40}$/.test(pin)) throw new Error("docView.pin debe ser un SHA de 40 caracteres");
   const cdn = `https://cdn.jsdelivr.net/gh/Jeff-Aporta/is-webcomponents@${pin}/dist/cdn`;
   const theme = view.theme ?? "light";
-  const palette = view.palette ?? "contapyme";
+  const palette = view.palette ?? "delfin";
   const main = sheets[0]?.path ?? "README.md";
   return [
     "<!DOCTYPE html>",
@@ -230,8 +230,8 @@ export function vaultHtml(sheets: DocSheet[], title: string, view: DocViewOption
     `  <title>${escapeHtml(title)}</title>`,
     "  <meta name=\"robots\" content=\"noindex\">",
     "  <style>",
-    "    html[data-theme=\"dark\"] { background: #0f1520; color: #e7eef8; }",
-    "    html[data-theme=\"light\"] { background: #f4f7fb; color: #142033; }",
+    "    html[data-theme=\"dark\"] { background: #0b0d10; color: #e6e8eb; }",
+    "    html[data-theme=\"light\"] { background: #fff; color: #1f2328; }",
     "  </style>",
     `  <link rel="stylesheet" href="${cdn}/core/is-base.min.css">`,
     `  <link rel="stylesheet" href="${cdn}/core/palettes.min.css">`,
@@ -240,8 +240,8 @@ export function vaultHtml(sheets: DocSheet[], title: string, view: DocViewOption
     "    body { background: var(--iswc-bg); color: var(--iswc-text); }",
     "    iswc-md-docs-vault { display: block; height: 100vh; height: 100dvh; }",
     "    .marca { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }",
-    "    .marca strong { font: 600 15px system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
-    "    .marca span { font: 12px system-ui, sans-serif; color: var(--iswc-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
+    "    .marca strong { font: 600 0.94em system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
+    "    .marca span { font: 0.75em system-ui, sans-serif; color: var(--iswc-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
     "    iswc-theme-toggle:not(:defined), iswc-palette-selector:not(:defined) { visibility: hidden; }",
     "  </style>",
     "  <script type=\"module\">",

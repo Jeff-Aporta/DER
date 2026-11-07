@@ -1,29 +1,40 @@
 /**
- * Genera `docs/050-Plugins/060-Modelo-de-datos.md`: el diagrama ER de los plugins de archivos, errores y penalizaciones con los tipos
- * del kit, derivado de las entidades reales. `deno task diagramas`; un guardián comprueba que la hoja esté al día.
+ * Genera `docs/050-Plugins/060-Modelo-de-datos.md` y las fuentes de sus diagramas ER (`docs/999-Adjuntos/010-Diagramas/fuentes/`), con los
+ * tipos del kit, derivados de las entidades reales. Los SVG salen de esas fuentes con `deno task diagramas:svg`. `deno task diagramas`, nunca a mano; un guardián comprueba que estén al día.
  */
 import { diagramPayloads } from "@Jeff-Aporta/DER/src/01-objects/diagram.ts";
 import { createServer } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
-import { archivosServer, erroresServer, penalizacionesServer } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
+import { archivosServer, embeddingsServer, erroresServer, identityServer, penalizacionesServer, permissionsServer } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 
-/** Texto completo de la hoja. */
-export async function hojaModelo(): Promise<string> {
+/** Fuentes de los diagramas ER por slug: lo que hay que escribir en `fuentes/`. */
+export async function fuentesModelo(): Promise<Record<string, string>> {
   const db = sqliteDatabase();
   const secret = "secreto-solo-para-armar-el-diagrama";
-  const planes = [createServer(archivosServer, { db, cfg: { secret } }), createServer(erroresServer, { db, cfg: { secret } }), createServer(penalizacionesServer, { db, cfg: {} })];
-  const { er } = diagramPayloads(planes.flatMap((p) => p.list.map((c) => c.entity)));
+  const entidades = (...planes: ReturnType<typeof createServer>[]) => planes.flatMap((p) => p.list.map((c) => c.entity));
+  const er = (slug: string, lista: ReturnType<typeof entidades>): [string, string] => {
+    const { er: payload } = diagramPayloads(lista);
+    return [slug, `${JSON.stringify({ slug, module: "DER", tag: "iswc-er-diagram", script: "diagrams/er-diagram.min.js", attrs: { "diagram-style": "insoft" }, payload }, null, 1)}\n`];
+  };
+  const reportes = er("er-reportes", entidades(createServer(archivosServer, { db, cfg: { secret } }), createServer(erroresServer, { db, cfg: { secret } }), createServer(penalizacionesServer, { db, cfg: {} })));
+  const seguridad = er("er-seguridad", entidades(createServer(identityServer, { db, cfg: { secret, admin: { usuario: "admin", password: "solo-para-el-diagrama" } } }), createServer(permissionsServer, { db, cfg: { grupo: "API" } })));
+  const embeddings = er("er-embeddings", entidades(createServer(embeddingsServer, { db, cfg: { modelos: { m: { id: "x/m", dims: 8, proveedor: "p" } } } })));
   await db.destroy();
+  return Object.fromEntries([reportes, seguridad, embeddings]);
+}
+
+const imagen = (slug: string, alt: string): string => `[![${alt}](../999-Adjuntos/010-Diagramas/${slug}.svg)](../999-Adjuntos/010-Diagramas/${slug}.svg)`;
+
+/** Texto completo de la hoja. */
+export function hojaModelo(): string {
   return [
     "---",
-    "Titulo: Modelo de datos de archivos, errores y penalizaciones",
+    "Titulo: Modelo de datos de los plugins",
     "Estado: vigente",
     "Autor:",
-    "tags: [plugins, diagramas, der, auditoria]",
+    "tags: [plugins, diagramas, der, auditoria, seguridad, embeddings]",
     "---",
-    "# Modelo de datos de archivos, errores y penalizaciones",
-    "",
-    "[← índice](../README.md) · hoja generada: `deno task diagramas` (no editar a mano)",
+    "# Modelo de datos de los plugins",
     "",
     "## Relaciones",
     "",
@@ -34,19 +45,24 @@ export async function hojaModelo(): Promise<string> {
     "",
     "## Auditoría común",
     "",
-    "`archivos`, `archivos_carpetas` y `errores` esparcen `COLUMNAS_AUDITORIA` (`src/03-plugins/common/auditoria.ts`): `propietario_tipo`, `propietario`, `apporigin`, `iporigin`, `fhcre`, `fhmod`.",
+    "`archivos`, `archivos_carpetas` y `errores` esparcen `COLUMNAS_AUDITORIA`: `propietario_tipo`, `propietario`, `apporigin`, `iporigin`, `fhcre`, `fhmod`.",
     "",
-    "## Diagrama ER",
+    "## Archivos, errores y penalizaciones",
     "",
-    "Payload declarativo para `<iswc-er-diagram>`:",
+    imagen("er-reportes", "Archivos, errores y penalizaciones"),
     "",
-    "```json",
-    JSON.stringify(er, null, 2),
-    "```",
+    "## Identidad y permisos",
+    "",
+    imagen("er-seguridad", "Identidad y permisos"),
+    "",
+    "## Embeddings",
+    "",
+    imagen("er-embeddings", "Embeddings"),
     "",
   ].join("\n");
 }
 
 if (import.meta.main) {
-  await Deno.writeTextFile(new URL("../docs/050-Plugins/060-Modelo-de-datos.md", import.meta.url), await hojaModelo());
+  await Deno.writeTextFile(new URL("../docs/050-Plugins/060-Modelo-de-datos.md", import.meta.url), hojaModelo());
+  for (const [slug, texto] of Object.entries(await fuentesModelo())) await Deno.writeTextFile(new URL(`../docs/999-Adjuntos/010-Diagramas/fuentes/${slug}.json`, import.meta.url), texto);
 }

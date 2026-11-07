@@ -26,7 +26,15 @@
     "./plugins/errores": "./src/03-plugins/errores/server.ts",
     "./plugins/errores/client": "./src/03-plugins/errores/index.ts",
     "./plugins/penalizaciones": "./src/03-plugins/penalizaciones/server.ts",
-    "./plugins/penalizaciones/client": "./src/03-plugins/penalizaciones/index.ts"
+    "./plugins/penalizaciones/client": "./src/03-plugins/penalizaciones/index.ts",
+    "./plugins/tks": "./src/03-plugins/tks/server.ts",
+    "./plugins/tks/client": "./src/03-plugins/tks/index.ts",
+    "./plugins/mensajes": "./src/03-plugins/mensajes/server.ts",
+    "./plugins/mensajes/client": "./src/03-plugins/mensajes/index.ts",
+    "./plugins/calificaciones": "./src/03-plugins/calificaciones/server.ts",
+    "./plugins/calificaciones/client": "./src/03-plugins/calificaciones/index.ts",
+    "./plugins/reacciones": "./src/03-plugins/reacciones/server.ts",
+    "./plugins/reacciones/client": "./src/03-plugins/reacciones/index.ts"
   },
   "imports": {
     "@Jeff-Aporta/DER/": "./",
@@ -41,7 +49,8 @@
     "test": "deno test -A",
     "check": "deno check index.ts src/02-controllers/client/index.ts src/02-controllers/server/sqlite.ts src/02-controllers/server/pg.ts src/02-controllers/server/pglite.ts src/02-controllers/server/d1.ts src/02-controllers/server/hosts/azure.ts src/02-controllers/server/hosts/cloudflare.ts src/03-plugins/index.ts src/03-plugins/client.ts examples/ tests/",
     "example": "deno run -A examples/server.ts",
-    "diagramas": "deno run -A examples/diagramas-plugins.ts"
+    "diagramas": "deno run -A examples/diagramas-plugins.ts",
+    "diagramas:svg": "deno run -A --no-check --sloppy-imports https://raw.githubusercontent.com/Jeff-Aporta/is-webcomponents/0674814b6b7bc983046a8fb7bea78cde721ca1e9/dist/cdn/vendor-distributions/client/tools/render-lote.mjs --carpeta=docs/999-Adjuntos/010-Diagramas/fuentes --svg=docs/999-Adjuntos/010-Diagramas --sin-png --pin=0674814b6b7bc983046a8fb7bea78cde721ca1e9"
   },
   "compilerOptions": {
     "strict": true,

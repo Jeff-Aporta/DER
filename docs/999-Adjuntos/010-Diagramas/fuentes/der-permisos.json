@@ -1,0 +1,126 @@
+{
+ "slug": "der-permisos",
+ "module": "DER",
+ "tag": "iswc-er-diagram",
+ "script": "diagrams/er-diagram.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "erDiagram": {
+   "direction": "LR",
+   "entities": [
+    {
+     "id": "G",
+     "name": "permisos_grupos",
+     "attributes": [
+      {
+       "name": "igrupo",
+       "type": "varchar",
+       "key": "PK"
+      },
+      {
+       "name": "nombre",
+       "type": "varchar"
+      }
+     ]
+    },
+    {
+     "id": "R",
+     "name": "permisos_roles",
+     "attributes": [
+      {
+       "name": "irol",
+       "type": "varchar",
+       "key": "PK"
+      },
+      {
+       "name": "igrupo",
+       "type": "varchar",
+       "key": "FK"
+      },
+      {
+       "name": "nombre",
+       "type": "varchar"
+      },
+      {
+       "name": "bactivo",
+       "type": "bool"
+      }
+     ]
+    },
+    {
+     "id": "U",
+     "name": "permisos_rolesusuario",
+     "attributes": [
+      {
+       "name": "iusuario",
+       "type": "varchar",
+       "key": "PK"
+      },
+      {
+       "name": "irol",
+       "type": "varchar",
+       "key": "PK"
+      },
+      {
+       "name": "finicial",
+       "type": "datetime"
+      },
+      {
+       "name": "ffinal",
+       "type": "datetime"
+      },
+      {
+       "name": "bprincipal",
+       "type": "bool"
+      }
+     ]
+    },
+    {
+     "id": "A",
+     "name": "permisos_accionesrol",
+     "attributes": [
+      {
+       "name": "irol",
+       "type": "varchar",
+       "key": "PK"
+      },
+      {
+       "name": "iaccion",
+       "type": "varchar",
+       "key": "PK"
+      },
+      {
+       "name": "valor",
+       "type": "json"
+      }
+     ]
+    }
+   ],
+   "relations": [
+    {
+     "from": "R",
+     "to": "G",
+     "label": "pertenece a",
+     "fromCard": "many",
+     "toCard": "one"
+    },
+    {
+     "from": "U",
+     "to": "R",
+     "label": "asigna",
+     "fromCard": "many",
+     "toCard": "one"
+    },
+    {
+     "from": "A",
+     "to": "R",
+     "label": "define",
+     "fromCard": "many",
+     "toCard": "one"
+    }
+   ]
+  }
+ }
+}

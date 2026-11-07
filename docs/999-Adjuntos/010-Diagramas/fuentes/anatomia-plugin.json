@@ -1,0 +1,42 @@
+{
+ "slug": "anatomia-plugin",
+ "module": "DER",
+ "tag": "iswc-block-diagram",
+ "script": "diagrams/block-diagram.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "blockDiagram": {
+   "columns": 3,
+   "blocks": [
+    {
+     "id": "s",
+     "label": "schemas.ts",
+     "desc": "Tipos (uno por línea) y Zod compartidos. Solo `zod`: seguro para el cliente."
+    },
+    {
+     "id": "i",
+     "label": "index.ts",
+     "desc": "JSON transversal (`PluginDef`): entidades, schema, rutas, `ops` de cliente."
+    },
+    {
+     "id": "v",
+     "label": "server.ts",
+     "desc": "`Obj.insert(transversal, { … })`: handlers, `hidden`, `actions`, puertas, `seed`."
+    }
+   ],
+   "edges": [
+    {
+     "from": "i",
+     "to": "s"
+    },
+    {
+     "from": "v",
+     "to": "i",
+     "label": "Obj.insert"
+    }
+   ]
+  }
+ }
+}

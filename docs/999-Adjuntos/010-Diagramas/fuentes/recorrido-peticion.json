@@ -1,0 +1,89 @@
+{
+ "slug": "recorrido-peticion",
+ "module": "DER",
+ "tag": "iswc-sequence-diagram",
+ "script": "diagrams/sequence-diagram.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "sequence": {
+   "actors": [
+    {
+     "id": "H",
+     "label": "Host"
+    },
+    {
+     "id": "R",
+     "label": "Router"
+    },
+    {
+     "id": "P",
+     "label": "Puertas del registro"
+    },
+    {
+     "id": "C",
+     "label": "Controller"
+    },
+    {
+     "id": "M",
+     "label": "Motor"
+    }
+   ],
+   "messages": [
+    {
+     "id": "m1",
+     "from": "H",
+     "to": "R",
+     "label": "Request"
+    },
+    {
+     "id": "m2",
+     "from": "R",
+     "to": "P",
+     "label": "extract → protected → permissions"
+    },
+    {
+     "id": "m3",
+     "from": "P",
+     "to": "R",
+     "label": "sesión y decisión (401 o 403 si no pasa)",
+     "kind": "return"
+    },
+    {
+     "id": "m4",
+     "from": "R",
+     "to": "C",
+     "label": "acción, endpoint o ruta irregular"
+    },
+    {
+     "id": "m5",
+     "from": "C",
+     "to": "M",
+     "label": "SQL con las primitivas del Engine"
+    },
+    {
+     "id": "m6",
+     "from": "M",
+     "to": "C",
+     "label": "filas",
+     "kind": "return"
+    },
+    {
+     "id": "m7",
+     "from": "C",
+     "to": "R",
+     "label": "POJO o lista",
+     "kind": "return"
+    },
+    {
+     "id": "m8",
+     "from": "R",
+     "to": "H",
+     "label": "Response con CORS",
+     "kind": "return"
+    }
+   ]
+  }
+ }
+}

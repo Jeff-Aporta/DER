@@ -1,0 +1,76 @@
+{
+ "slug": "embeber-cache",
+ "module": "DER",
+ "tag": "iswc-flowchart",
+ "script": "diagrams/flowchart.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "flowchart": {
+   "direction": "LR",
+   "nodes": [
+    {
+     "id": "t",
+     "label": "Texto",
+     "shape": "stadium"
+    },
+    {
+     "id": "h",
+     "label": "Huella del texto canónico"
+    },
+    {
+     "id": "q",
+     "label": "¿Ya está?",
+     "shape": "diamond"
+    },
+    {
+     "id": "hit",
+     "label": "Cuenta hit y devuelve",
+     "shape": "stadium"
+    },
+    {
+     "id": "m",
+     "label": "Llama al modelo"
+    },
+    {
+     "id": "g",
+     "label": "Reduce y guarda"
+    },
+    {
+     "id": "f",
+     "label": "Devuelve",
+     "shape": "stadium"
+    }
+   ],
+   "edges": [
+    {
+     "from": "t",
+     "to": "h"
+    },
+    {
+     "from": "h",
+     "to": "q"
+    },
+    {
+     "from": "q",
+     "to": "hit",
+     "label": "sí"
+    },
+    {
+     "from": "q",
+     "to": "m",
+     "label": "no"
+    },
+    {
+     "from": "m",
+     "to": "g"
+    },
+    {
+     "from": "g",
+     "to": "f"
+    }
+   ]
+  }
+ }
+}

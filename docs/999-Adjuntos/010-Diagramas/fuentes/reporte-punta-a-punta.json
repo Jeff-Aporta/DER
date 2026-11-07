@@ -1,0 +1,112 @@
+{
+ "slug": "reporte-punta-a-punta",
+ "module": "DER",
+ "tag": "iswc-sequence-diagram",
+ "script": "diagrams/sequence-diagram.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "sequence": {
+   "actors": [
+    {
+     "id": "U",
+     "label": "Quien reporta"
+    },
+    {
+     "id": "A",
+     "label": "API"
+    },
+    {
+     "id": "G",
+     "label": "Agente"
+    }
+   ],
+   "groups": [
+    {
+     "id": "g1",
+     "name": "Reporte",
+     "hue": 210
+    },
+    {
+     "id": "g2",
+     "name": "Atención",
+     "hue": 160
+    }
+   ],
+   "messages": [
+    {
+     "id": "m1",
+     "group": "g1",
+     "from": "U",
+     "to": "A",
+     "label": "reportar (sesión confiable o código)"
+    },
+    {
+     "id": "m2",
+     "group": "g1",
+     "from": "A",
+     "to": "U",
+     "label": "ierror y token",
+     "kind": "return"
+    },
+    {
+     "id": "m3",
+     "group": "g1",
+     "from": "U",
+     "to": "A",
+     "label": "adjuntos con el token"
+    },
+    {
+     "id": "m4",
+     "group": "g1",
+     "from": "U",
+     "to": "A",
+     "label": "listo"
+    },
+    {
+     "id": "m5",
+     "group": "g2",
+     "from": "A",
+     "to": "G",
+     "label": "alReportar (enlace del consumidor)"
+    },
+    {
+     "id": "m6",
+     "group": "g2",
+     "from": "G",
+     "to": "A",
+     "label": "cola, luego tomar (409 si ya lo tiene otro)"
+    },
+    {
+     "id": "m7",
+     "group": "g2",
+     "from": "G",
+     "to": "A",
+     "label": "detalle"
+    },
+    {
+     "id": "m8",
+     "group": "g2",
+     "from": "G",
+     "to": "A",
+     "label": "avance: bitácora y latido"
+    },
+    {
+     "id": "m9",
+     "group": "g1",
+     "from": "U",
+     "to": "A",
+     "label": "seguimiento"
+    },
+    {
+     "id": "m10",
+     "group": "g2",
+     "from": "G",
+     "to": "A",
+     "label": "DELETE errores con los atendidos"
+    }
+   ]
+  }
+ }
+}

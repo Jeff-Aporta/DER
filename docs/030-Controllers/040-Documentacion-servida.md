@@ -6,8 +6,6 @@ tags: [controllers, doc]
 ---
 # Documentación servida (`/doc` y `/doc?v=1`)
 
-[← índice](../README.md) · `src/02-controllers/server/doc.ts` · tipos `DocSources`, `DocSheet`, `DocViewOptions` en `src/02-controllers/server/schemas.ts`
-
 Cada controller expone su documentación para que humanos y agentes LLM se contextualicen. La base es **siempre el md autogenerado** (una utilidad de la librería). El controller solo agrega secciones.
 
 | Ruta | Respuesta |
@@ -39,7 +37,7 @@ createRouter(ctrls, { basePath: "/api", doc: ["docs/README.md"], docView: { titl
 
 ## Vista (`/doc?v=1`)
 
-- Página con el patrón de `ISS-AyudasCPIA/docs/index.html`: el kit is-webcomponents por CDN **pineado por SHA de 40** (default `ISWC_PIN`, el mismo de ISS), `initApp` (tema y paleta), loader e `iswc-md-docs-vault` con las hojas embebidas.
+- Página con el kit is-webcomponents por CDN **pineado por SHA de 40** (default `ISWC_PIN`), `initApp` (tema y paleta), loader e `iswc-md-docs-vault` con las hojas embebidas.
 - Los datos van en un `<script type="application/json">` con `<`, U+2028 y U+2029 escapados: un `</script>` dentro de un markdown no rompe la página.
 - `docView: { pin, title, theme, palette }` en `RouterOptions` personaliza la vista.
 

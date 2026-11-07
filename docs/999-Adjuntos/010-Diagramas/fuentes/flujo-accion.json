@@ -1,0 +1,78 @@
+{
+ "slug": "flujo-accion",
+ "module": "DER",
+ "tag": "iswc-flowchart",
+ "script": "diagrams/flowchart.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "flowchart": {
+   "direction": "LR",
+   "nodes": [
+    {
+     "id": "n",
+     "label": "Normalizar a POJO",
+     "shape": "stadium"
+    },
+    {
+     "id": "v",
+     "label": "verify (pre*)",
+     "desc": "Un `pre*` que retorna texto es un error 400."
+    },
+    {
+     "id": "ok",
+     "label": "¿Pasa?",
+     "shape": "diamond"
+    },
+    {
+     "id": "e400",
+     "label": "Error 400",
+     "shape": "stadium"
+    },
+    {
+     "id": "o",
+     "label": "Override de actions",
+     "desc": "Opcional, con `next`."
+    },
+    {
+     "id": "x",
+     "label": "Execute"
+    },
+    {
+     "id": "a",
+     "label": "Hooks after*",
+     "shape": "stadium"
+    }
+   ],
+   "edges": [
+    {
+     "from": "n",
+     "to": "v"
+    },
+    {
+     "from": "v",
+     "to": "ok"
+    },
+    {
+     "from": "ok",
+     "to": "e400",
+     "label": "no"
+    },
+    {
+     "from": "ok",
+     "to": "o",
+     "label": "sí"
+    },
+    {
+     "from": "o",
+     "to": "x"
+    },
+    {
+     "from": "x",
+     "to": "a"
+    }
+   ]
+  }
+ }
+}

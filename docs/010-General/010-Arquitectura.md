@@ -6,28 +6,20 @@ tags: [general, arquitectura]
 ---
 # Arquitectura y decisiones
 
-[← índice](../README.md)
-
 ## Capas
 
-```
-src/00-common        schemas.ts (TODOS los tipos y Zod, uno por línea) · base.ts (Obj + errores + casteos) · sse.ts
-      ↑
-src/01-objects       meta (schema → metadata, secuencias) · zod (schema → Zod) · pojo · registry (singleton) · query · entity · diagram
-      ↑
-src/02-controllers   controller.ts (BaseController: CRUD, pre*, pojo(), permissions()) · plugin.ts (lo común de los plugins JSON)
-      ├── client/    ClientController (fetch) · plugin.ts (createClient)                      → solo zod
-      └── server/    ServerController · Database · Router · routes · doc · plugin.ts (createServer) · schemas.ts (tipos con Kysely)
-            ├── engines.ts   postgres · sqlite · mysql · mssql (contrato Engine)
-            ├── sqlite.ts    fábrica: node:sqlite | better-sqlite3 | sqlite3 asíncrono
-            ├── pg.ts        fábrica: pool pg del consumidor
-            ├── pglite.ts    fábrica: PGlite (reusa el motor postgres)
-            ├── mysql.ts     fábrica: pool mysql2 del consumidor
-            ├── mssql.ts     fábrica: tedious + tarn del consumidor
-            └── hosts/       azure.ts (Azure Functions) · cloudflare.ts (Workers)
-      ↑
-src/03-plugins       common/ (crypto, device) · identity/ · permissions/ · embeddings/  — cada plugin: schemas.ts · index.ts (JSON transversal) · server.ts (push)
-```
+[![Capas de DER](../999-Adjuntos/010-Diagramas/capas.svg)](../999-Adjuntos/010-Diagramas/capas.svg)
+
+| Capa | Qué contiene |
+|---|---|
+| `00-common` | `schemas` (todos los tipos y Zod, uno por línea), `base` (`Obj`, errores, casteos) y `sse` |
+| `01-objects` | `meta`, `zod`, `pojo`, `registry` (singleton), `query`, `entity` y `diagram` |
+| `02-controllers` | `BaseController` (CRUD, `pre*`, `pojo()`, `permissions()`) y lo común de los plugins JSON |
+| `client/` | `ClientController` (fetch) y `createClient`; solo necesita `zod` |
+| `server/` | `ServerController`, `Database`, `Router`, `routes`, `doc` y `createServer`; necesita `zod` y `kysely` |
+| Motores | `engines` (contrato `Engine`) y fábricas de SQLite, D1, PostgreSQL, PGlite, MySQL y MSSQL |
+| Hosts | Azure Functions y Cloudflare Workers |
+| `03-plugins` | `identity`, `permissions`, `embeddings`, `archivos`, `errores`, `penalizaciones` y `common`; cada plugin con `schemas`, `index` y `server` |
 
 - **Una definición, dos lados.** El schema JSON, el POJO, la entidad (singular, plural, tabla, rutas, seguridad), los `pre*` compartidos y los contratos Zod son los mismos en el client y en el server. El server agrega lo propio de SQL (caso de identificadores, columnas calculadas, la tabla de configuración de `plural/cfg`) y el client lo propio de HTTP (`baseUrl`, headers, fetch).
 - **Registro global (singleton).** Toda entidad queda registrada por su plural; los POJOs por el nombre de su entidad (para `target`); las puertas de seguridad y la sesión singleton viven ahí. Es el "contexto global" desde el que cualquier controller recupera instancias de otra entidad (`registry.pojo("productos", {...})`).
@@ -57,7 +49,7 @@ Ningún estándar o librería cubre el conjunto completo. Faltaba algo que reuni
 
 ## Garantías verificadas por tests
 
-- `tests/server/server.test.ts`: los mismos casos corren en SQLite y en PostgreSQL (PGlite); `tests/server/engines.test.ts` compila el SQL de MySQL y MSSQL y prueba el driver SQLite asíncrono.
-- `tests/http/http.test.ts`: client ↔ router ↔ server punta a punta, incluido SSE en el cable y `/cfg`.
-- `tests/plugins/`: identidad, permisos, endurecimiento del login, clientes JSON y hermeticidad entre plugins.
-- `tests/arch/arch.test.ts`: dependencias por archivo, capas, alias e imports de una línea, tipos solo en `schemas.ts` (y en una línea), `#` privados, carpetas de dos o más elementos, estructura JSON de los plugins, aliases de iswc fijados a SHA y referencia a esta documentación en cada entrada.
+- **Motores:** los mismos casos corren en SQLite y en PostgreSQL (PGlite); el SQL de MySQL y MSSQL se compila sin conexión y se prueba el driver SQLite asíncrono.
+- **HTTP:** client ↔ router ↔ server punta a punta, incluido SSE en el cable y `/cfg`.
+- **Plugins:** identidad, permisos, endurecimiento del login, clientes JSON y hermeticidad entre plugins.
+- **Arquitectura:** dependencias por archivo, capas, alias e imports de una línea, tipos solo en `schemas.ts` (y en una línea), `#` privados, carpetas de dos o más elementos, estructura JSON de los plugins, aliases de iswc fijados a SHA y referencia a esta documentación en cada entrada.

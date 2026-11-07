@@ -1,0 +1,74 @@
+{
+ "slug": "intento-penalizacion",
+ "module": "DER",
+ "tag": "iswc-flowchart",
+ "script": "diagrams/flowchart.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "flowchart": {
+   "direction": "LR",
+   "nodes": [
+    {
+     "id": "v",
+     "label": "Elige el vector",
+     "shape": "stadium"
+    },
+    {
+     "id": "p",
+     "label": "¿Penalizado?",
+     "shape": "diamond"
+    },
+    {
+     "id": "e",
+     "label": "429",
+     "shape": "stadium",
+     "desc": "No cuenta como fallo."
+    },
+    {
+     "id": "s",
+     "label": "¿Secreto correcto?",
+     "shape": "diamond"
+    },
+    {
+     "id": "f",
+     "label": "Anota el fallo",
+     "shape": "stadium",
+     "desc": "En la IP y en el global."
+    },
+    {
+     "id": "a",
+     "label": "Limpia la IP",
+     "shape": "stadium"
+    }
+   ],
+   "edges": [
+    {
+     "from": "v",
+     "to": "p"
+    },
+    {
+     "from": "p",
+     "to": "e",
+     "label": "sí"
+    },
+    {
+     "from": "p",
+     "to": "s",
+     "label": "no"
+    },
+    {
+     "from": "s",
+     "to": "f",
+     "label": "no"
+    },
+    {
+     "from": "s",
+     "to": "a",
+     "label": "sí"
+    }
+   ]
+  }
+ }
+}

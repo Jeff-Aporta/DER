@@ -1,0 +1,96 @@
+{
+ "slug": "tres-puertas",
+ "module": "DER",
+ "tag": "iswc-flowchart",
+ "script": "diagrams/flowchart.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "flowchart": {
+   "direction": "LR",
+   "nodes": [
+    {
+     "id": "r",
+     "label": "Request",
+     "shape": "stadium"
+    },
+    {
+     "id": "e",
+     "label": "extract",
+     "desc": "Saca la sesión del request."
+    },
+    {
+     "id": "pr",
+     "label": "¿Ruta protegida?",
+     "shape": "diamond"
+    },
+    {
+     "id": "pt",
+     "label": "protected",
+     "desc": "¿Hay sesión válida?"
+    },
+    {
+     "id": "pm",
+     "label": "permissions",
+     "desc": "¿Se permite la acción?"
+    },
+    {
+     "id": "ok",
+     "label": "Se atiende",
+     "shape": "stadium"
+    },
+    {
+     "id": "e401",
+     "label": "401",
+     "shape": "stadium"
+    },
+    {
+     "id": "e403",
+     "label": "403",
+     "shape": "stadium"
+    }
+   ],
+   "edges": [
+    {
+     "from": "r",
+     "to": "e"
+    },
+    {
+     "from": "e",
+     "to": "pr"
+    },
+    {
+     "from": "pr",
+     "to": "ok",
+     "label": "no"
+    },
+    {
+     "from": "pr",
+     "to": "pt",
+     "label": "sí"
+    },
+    {
+     "from": "pt",
+     "to": "e401",
+     "label": "no"
+    },
+    {
+     "from": "pt",
+     "to": "pm",
+     "label": "sí"
+    },
+    {
+     "from": "pm",
+     "to": "e403",
+     "label": "no"
+    },
+    {
+     "from": "pm",
+     "to": "ok",
+     "label": "sí"
+    }
+   ]
+  }
+ }
+}

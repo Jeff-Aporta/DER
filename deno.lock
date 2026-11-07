@@ -16,6 +16,7 @@
     "jsr:@std/streams@^1.2.0": "1.2.0",
     "npm:@electric-sql/pglite@0.3.16": "0.3.16",
     "npm:kysely@0.28.17": "0.28.17",
+    "npm:playwright@1.63.0": "1.63.0",
     "npm:zod@4.6.7": "4.6.7"
   },
   "jsr": {
@@ -79,6 +80,17 @@
     },
     "kysely@0.28.17": {
       "integrity": "sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q=="
+    },
+    "playwright-core@1.63.0": {
+      "integrity": "sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg==",
+      "bin": true
+    },
+    "playwright@1.63.0": {
+      "integrity": "sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg==",
+      "dependencies": [
+        "playwright-core"
+      ],
+      "bin": true
     },
     "zod@4.6.7": {
       "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="

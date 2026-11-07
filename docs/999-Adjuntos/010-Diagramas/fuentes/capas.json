@@ -1,0 +1,120 @@
+{
+ "slug": "capas",
+ "module": "DER",
+ "tag": "iswc-flowchart",
+ "script": "diagrams/flowchart.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "flowchart": {
+   "direction": "TB",
+   "groups": [
+    {
+     "id": "g3",
+     "name": "Plugins",
+     "hue": 280
+    },
+    {
+     "id": "g2",
+     "name": "Controllers",
+     "hue": 210
+    },
+    {
+     "id": "g1",
+     "name": "Objetos",
+     "hue": 160
+    },
+    {
+     "id": "g0",
+     "name": "Común",
+     "hue": 38
+    }
+   ],
+   "nodes": [
+    {
+     "id": "plg",
+     "label": "03-plugins",
+     "group": "g3",
+     "desc": "`identity`, `permissions`, `embeddings`, `archivos`, `errores`, `penalizaciones` y `common`. Cada plugin: `schemas`, `index` (JSON transversal) y `server`."
+    },
+    {
+     "id": "cli",
+     "label": "client",
+     "group": "g2",
+     "desc": "`ClientController` (fetch) y `createClient`. Solo necesita `zod`."
+    },
+    {
+     "id": "srv",
+     "label": "server",
+     "group": "g2",
+     "desc": "`ServerController`, `Database`, `Router`, `routes`, `doc` y `createServer`. Necesita `zod` y `kysely`."
+    },
+    {
+     "id": "mot",
+     "label": "Motores",
+     "group": "g2",
+     "desc": "`engines` (contrato `Engine`) y fábricas: SQLite, D1, PostgreSQL, PGlite, MySQL y MSSQL."
+    },
+    {
+     "id": "hos",
+     "label": "Hosts",
+     "group": "g2",
+     "desc": "Azure Functions y Cloudflare Workers."
+    },
+    {
+     "id": "bas",
+     "label": "Controller base",
+     "group": "g2",
+     "desc": "`BaseController`: CRUD, `pre*`, `pojo()`, `permissions()`. Lo común de los plugins JSON."
+    },
+    {
+     "id": "obj",
+     "label": "01-objects",
+     "group": "g1",
+     "desc": "`meta`, `zod`, `pojo`, `registry` (singleton), `query`, `entity` y `diagram`."
+    },
+    {
+     "id": "com",
+     "label": "00-common",
+     "group": "g0",
+     "desc": "`schemas` (todos los tipos y Zod), `base` (`Obj`, errores, casteos) y `sse`."
+    }
+   ],
+   "edges": [
+    {
+     "from": "plg",
+     "to": "cli"
+    },
+    {
+     "from": "plg",
+     "to": "srv"
+    },
+    {
+     "from": "srv",
+     "to": "mot"
+    },
+    {
+     "from": "srv",
+     "to": "hos"
+    },
+    {
+     "from": "cli",
+     "to": "bas"
+    },
+    {
+     "from": "srv",
+     "to": "bas"
+    },
+    {
+     "from": "bas",
+     "to": "obj"
+    },
+    {
+     "from": "obj",
+     "to": "com"
+    }
+   ]
+  }
+ }
+}

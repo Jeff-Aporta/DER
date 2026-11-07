@@ -1,0 +1,335 @@
+{
+ "slug": "er-seguridad",
+ "module": "DER",
+ "tag": "iswc-er-diagram",
+ "script": "diagrams/er-diagram.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "erDiagram": {
+   "direction": "LR",
+   "ratio": 1.4,
+   "entities": [
+    {
+     "id": "identity.usuarios",
+     "name": "usuario",
+     "attributes": [
+      {
+       "name": "iusuario",
+       "type": "varchar(120)",
+       "key": "PK"
+      },
+      {
+       "name": "nombre",
+       "type": "varchar(200)"
+      },
+      {
+       "name": "email",
+       "type": "varchar(200)"
+      },
+      {
+       "name": "bactivo",
+       "type": "bool"
+      },
+      {
+       "name": "jdata",
+       "type": "json"
+      },
+      {
+       "name": "creado",
+       "type": "datetime"
+      },
+      {
+       "name": "hash",
+       "type": "varchar(300)"
+      }
+     ]
+    },
+    {
+     "id": "identity.sesiones",
+     "name": "sesion",
+     "attributes": [
+      {
+       "name": "jti",
+       "type": "varchar(64)",
+       "key": "PK"
+      },
+      {
+       "name": "iusuario",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "emitido",
+       "type": "datetime"
+      },
+      {
+       "name": "expira",
+       "type": "datetime"
+      },
+      {
+       "name": "brevocado",
+       "type": "bool"
+      },
+      {
+       "name": "ip",
+       "type": "varchar(64)"
+      },
+      {
+       "name": "user_agent",
+       "type": "varchar(400)"
+      },
+      {
+       "name": "dispositivo",
+       "type": "varchar(40)"
+      },
+      {
+       "name": "so",
+       "type": "varchar(60)"
+      },
+      {
+       "name": "navegador",
+       "type": "varchar(60)"
+      },
+      {
+       "name": "huella",
+       "type": "varchar(40)"
+      },
+      {
+       "name": "ultimo_acceso",
+       "type": "datetime"
+      }
+     ]
+    },
+    {
+     "id": "identity.intentos",
+     "name": "intento",
+     "attributes": [
+      {
+       "name": "iintento",
+       "type": "int",
+       "key": "PK"
+      },
+      {
+       "name": "iusuario",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "ip",
+       "type": "varchar(64)"
+      },
+      {
+       "name": "user_agent",
+       "type": "varchar(400)"
+      },
+      {
+       "name": "dispositivo",
+       "type": "varchar(40)"
+      },
+      {
+       "name": "so",
+       "type": "varchar(60)"
+      },
+      {
+       "name": "navegador",
+       "type": "varchar(60)"
+      },
+      {
+       "name": "resultado",
+       "type": "varchar(20)"
+      },
+      {
+       "name": "motivo",
+       "type": "varchar(60)"
+      },
+      {
+       "name": "creado",
+       "type": "datetime"
+      }
+     ]
+    },
+    {
+     "id": "identity.eventos",
+     "name": "evento",
+     "attributes": [
+      {
+       "name": "ievento",
+       "type": "varchar(64)",
+       "key": "PK"
+      },
+      {
+       "name": "iusuario",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "accion",
+       "type": "varchar(80)"
+      },
+      {
+       "name": "entidad",
+       "type": "varchar(80)"
+      },
+      {
+       "name": "entidad_id",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "ip",
+       "type": "varchar(64)"
+      },
+      {
+       "name": "user_agent",
+       "type": "varchar(400)"
+      },
+      {
+       "name": "dispositivo",
+       "type": "varchar(40)"
+      },
+      {
+       "name": "jdata",
+       "type": "json"
+      },
+      {
+       "name": "creado",
+       "type": "datetime"
+      }
+     ]
+    },
+    {
+     "id": "permisos.grupo",
+     "name": "permisos/grupo",
+     "attributes": [
+      {
+       "name": "igrupo",
+       "type": "varchar(60)",
+       "key": "PK"
+      },
+      {
+       "name": "nombre",
+       "type": "varchar(200)"
+      }
+     ]
+    },
+    {
+     "id": "permisos.rol",
+     "name": "permisos/rol",
+     "attributes": [
+      {
+       "name": "irol",
+       "type": "varchar(60)",
+       "key": "PK"
+      },
+      {
+       "name": "igrupo",
+       "type": "varchar(60)",
+       "key": "FK"
+      },
+      {
+       "name": "nombre",
+       "type": "varchar(200)"
+      },
+      {
+       "name": "bactivo",
+       "type": "bool"
+      }
+     ]
+    },
+    {
+     "id": "permisos.rolusuario",
+     "name": "permisos/rolusuario",
+     "attributes": [
+      {
+       "name": "iusuario",
+       "type": "varchar(120)",
+       "key": "PK"
+      },
+      {
+       "name": "irol",
+       "type": "varchar(60)",
+       "key": "PK"
+      },
+      {
+       "name": "finicial",
+       "type": "datetime"
+      },
+      {
+       "name": "ffinal",
+       "type": "datetime"
+      },
+      {
+       "name": "bprincipal",
+       "type": "bool"
+      }
+     ]
+    },
+    {
+     "id": "permisos.accion",
+     "name": "permisos/accion",
+     "attributes": [
+      {
+       "name": "irol",
+       "type": "varchar(60)",
+       "key": "PK"
+      },
+      {
+       "name": "iaccion",
+       "type": "varchar(300)",
+       "key": "PK"
+      },
+      {
+       "name": "valor",
+       "type": "json"
+      }
+     ]
+    }
+   ],
+   "relations": [
+    {
+     "id": "permisos.grupo.roles",
+     "from": "permisos.grupo",
+     "to": "permisos.rol",
+     "fromCard": "one",
+     "toCard": "many",
+     "label": "roles",
+     "identifying": true
+    },
+    {
+     "id": "permisos.rol.acciones",
+     "from": "permisos.rol",
+     "to": "permisos.accion",
+     "fromCard": "one",
+     "toCard": "many",
+     "label": "acciones",
+     "identifying": true
+    },
+    {
+     "id": "permisos.rol.grupo",
+     "from": "permisos.rol",
+     "to": "permisos.grupo",
+     "fromCard": "many",
+     "toCard": "one",
+     "label": "grupo",
+     "identifying": false
+    },
+    {
+     "id": "permisos.rolusuario.rol",
+     "from": "permisos.rolusuario",
+     "to": "permisos.rol",
+     "fromCard": "many",
+     "toCard": "one",
+     "label": "rol",
+     "identifying": false
+    },
+    {
+     "id": "permisos.rolusuario.usuario",
+     "from": "permisos.rolusuario",
+     "to": "identity.usuarios",
+     "fromCard": "many",
+     "toCard": "one",
+     "label": "usuario",
+     "identifying": false
+    }
+   ]
+  }
+ }
+}

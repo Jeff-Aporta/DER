@@ -9,7 +9,7 @@ import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlit
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
 import { type AlmacenArchivos, archivosServer, COLUMNAS_AUDITORIA, dataUrl, entradaConImagenes, erroresServer, identityServer, minutosDe, penalizacionesServer, propietarioDe, proveedorLlm, servicios, type Veredicto, vectorActivo, veredicto, ZPenalizacionesConfig } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { identityCfg, SECRET } from "@Jeff-Aporta/DER/tests/_util.ts";
-import { hojaModelo } from "@Jeff-Aporta/DER/examples/diagramas-plugins.ts";
+import { fuentesModelo, hojaModelo } from "@Jeff-Aporta/DER/examples/diagramas-plugins.ts";
 
 const CODIGO = "codigo-de-prueba";
 const CFG_MULTAS = ZPenalizacionesConfig.parse({});
@@ -208,10 +208,28 @@ Deno.test("comunes: auditoría, singleton de credenciales y helpers de entrada p
   assertEquals(entradaConImagenes("mira", [{ url: "u" }])[0]!.content.map((c) => c.type), ["input_text", "input_image"]);
 });
 
-Deno.test("docs: el diagrama del modelo de datos está al día con las entidades", async () => {
+Deno.test("docs: el modelo de datos y sus fuentes están al día con las entidades", async () => {
   registry.secure(null);
   const hoja = await Deno.readTextFile(new URL("../../docs/050-Plugins/060-Modelo-de-datos.md", import.meta.url));
-  assertEquals(hoja, await hojaModelo());
+  assertEquals(hoja, hojaModelo());
+  for (const [slug, texto] of Object.entries(await fuentesModelo())) {
+    assertEquals(await Deno.readTextFile(new URL(`../../docs/999-Adjuntos/010-Diagramas/fuentes/${slug}.json`, import.meta.url)), texto, slug);
+  }
+});
+
+Deno.test("docs: cada fuente tiene su SVG y cada imagen enlazada existe", async () => {
+  const carpeta = new URL("../../docs/999-Adjuntos/010-Diagramas/", import.meta.url);
+  for await (const f of Deno.readDir(new URL("fuentes/", carpeta))) {
+    if (f.name.endsWith(".json") && !f.name.includes(".cache.")) await Deno.stat(new URL(f.name.replace(/\.json$/, ".svg"), carpeta));
+  }
+  const hojas = ["010-General/010-Arquitectura.md", "030-Controllers/010-Controllers.md", "040-Servidor/020-Hosts.md", "050-Plugins/010-Seguridad.md", "050-Plugins/020-Embeddings.md", "050-Plugins/030-Archivos.md", "050-Plugins/040-Errores.md", "050-Plugins/050-Penalizaciones.md", "050-Plugins/060-Modelo-de-datos.md"];
+  for (const h of hojas) {
+    const url = new URL(`../../docs/${h}`, import.meta.url);
+    const texto = await Deno.readTextFile(url);
+    const enlaces = [...texto.matchAll(/\]\(([^)]+\.svg)\)/g)];
+    assert(enlaces.length > 0, h);
+    for (const m of enlaces) await Deno.stat(new URL(m[1]!, url));
+  }
 });
 
 Deno.test("errores: acepta el secreto y el código por env: y exige 8 caracteres ya resueltos", async () => {

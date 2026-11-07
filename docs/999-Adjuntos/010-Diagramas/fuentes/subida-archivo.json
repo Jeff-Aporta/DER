@@ -1,0 +1,68 @@
+{
+ "slug": "subida-archivo",
+ "module": "DER",
+ "tag": "iswc-sequence-diagram",
+ "script": "diagrams/sequence-diagram.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "sequence": {
+   "actors": [
+    {
+     "id": "C",
+     "label": "Cliente"
+    },
+    {
+     "id": "P",
+     "label": "Plugin de archivos"
+    },
+    {
+     "id": "L",
+     "label": "Política"
+    },
+    {
+     "id": "A",
+     "label": "Almacén"
+    },
+    {
+     "id": "B",
+     "label": "Base de datos"
+    }
+   ],
+   "messages": [
+    {
+     "id": "m1",
+     "from": "C",
+     "to": "P",
+     "label": "POST archivos/subir"
+    },
+    {
+     "id": "m2",
+     "from": "P",
+     "to": "L",
+     "label": "alSubir: autoriza, da prefijo y extras"
+    },
+    {
+     "id": "m4",
+     "from": "P",
+     "to": "A",
+     "label": "valida y sube: subir(clave, bytes)"
+    },
+    {
+     "id": "m5",
+     "from": "P",
+     "to": "B",
+     "label": "fila; si falla, se borra el objeto"
+    },
+    {
+     "id": "m6",
+     "from": "P",
+     "to": "C",
+     "label": "archivo con URL firmada",
+     "kind": "return"
+    }
+   ]
+  }
+ }
+}

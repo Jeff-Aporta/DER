@@ -6,8 +6,6 @@ tags: [controllers]
 ---
 # Controllers
 
-[← índice](../README.md) · `src/02-controllers/controller.ts` (base) · `client/controller.ts` · `server/controller.ts`
-
 ## API común (client y server)
 
 ```ts
@@ -30,9 +28,7 @@ Siempre reciben **pojos**: se aceptan objetos planos, pero se convierten al POJO
 
 ## Flujo de una acción
 
-```
-normalizar a POJO → verify (pre*) → override de `actions` (opcional, con next) → execute
-```
+[![Flujo de una acción](../999-Adjuntos/010-Diagramas/flujo-accion.svg)](../999-Adjuntos/010-Diagramas/flujo-accion.svg)
 
 ### Verificación (`pre*`)
 
@@ -75,7 +71,7 @@ actions: {
 
 ### Sesión y permisos desde el controller
 
-`ctx.session` es la sesión del request (la pone el Router con `extract()`); fuera de un request (cliente, scripts) se usa `registry.session`, el singleton. `permissions(accion, ctx?, { method })` consulta la puerta `permissions()` del registro con esa sesión, el id de la acción y el nombre de la entidad; sin puerta, permitido. Ver [seguridad.md](../050-Plugins/010-Seguridad.md).
+`ctx.session` es la sesión del request (la pone el Router con `extract()`); fuera de un request (cliente, scripts) se usa `registry.session`, el singleton. `permissions(accion, ctx?, { method })` consulta la puerta `permissions()` del registro con esa sesión, el id de la acción y el nombre de la entidad; sin puerta, permitido.
 
 ## ClientController
 
@@ -116,9 +112,9 @@ new ServerController(ProductoEntity, {
 
 ## Router
 
-Detalles anidados en lectura y escritura (`getPropagation` / `setPropagation`): ver [propagacion.md](020-Propagacion-y-multi-db.md). Seguridad por endpoint (`security`) con las puertas del registro y los plugins JSON: ver [seguridad.md](../050-Plugins/010-Seguridad.md).
+Los detalles anidados en lectura y escritura se declaran con `getPropagation` / `setPropagation`, y la seguridad por endpoint con `security`, sobre las puertas del registro y los plugins JSON.
 
-El Router arma la **tabla de rutas** (una por acción, con id `METHOD:/ruta`) que registran los hosts (Deno/Bun/Node, Azure Functions, Cloudflare Workers). Ver [hosts.md](../040-Servidor/020-Hosts.md): `expose`, rutas irregulares (`routes`), `guard` y `cors`.
+El Router arma la **tabla de rutas** (una por acción, con id `METHOD:/ruta`) que registran los hosts (Deno/Bun/Node, Azure Functions, Cloudflare Workers), con `expose`, rutas irregulares (`routes`), `guard` y `cors`.
 
 ```ts
 const router = createRouter([productos, categorias], {

@@ -146,7 +146,7 @@ async function closure(entry: string): Promise<Map<string, string[]>> {
 }
 
 Deno.test("arch: las entradas de cliente no alcanzan nada del servidor (ni kysely, pglite o node:)", async () => {
-  const entries = ["index.ts", "src/02-controllers/client/index.ts", "src/03-plugins/client.ts", "src/03-plugins/identity/index.ts", "src/03-plugins/permissions/index.ts", "src/03-plugins/embeddings/index.ts", "src/03-plugins/archivos/index.ts", "src/03-plugins/errores/index.ts", "src/03-plugins/penalizaciones/index.ts"];
+  const entries = ["index.ts", "src/02-controllers/client/index.ts", "src/03-plugins/client.ts", "src/03-plugins/identity/index.ts", "src/03-plugins/permissions/index.ts", "src/03-plugins/embeddings/index.ts", "src/03-plugins/archivos/index.ts", "src/03-plugins/errores/index.ts", "src/03-plugins/penalizaciones/index.ts", "src/03-plugins/tks/index.ts", "src/03-plugins/mensajes/index.ts", "src/03-plugins/calificaciones/index.ts", "src/03-plugins/reacciones/index.ts"];
   for (const entry of entries) {
     for (const [file, externos] of await closure(entry)) {
       assert(!file.includes("02-controllers/server/"), `${entry} alcanza ${file}`);
@@ -157,7 +157,7 @@ Deno.test("arch: las entradas de cliente no alcanzan nada del servidor (ni kysel
 });
 
 Deno.test("arch: cada plugin es JSON: schemas.ts, index.ts (transversal) y server.ts (push de particularidades); common/ con crypto y device", async () => {
-  for (const plugin of ["identity", "permissions", "embeddings", "archivos", "errores", "penalizaciones"]) {
+  for (const plugin of ["identity", "permissions", "embeddings", "archivos", "errores", "penalizaciones", "tks", "mensajes", "calificaciones", "reacciones"]) {
     for (const f of ["schemas.ts", "index.ts", "server.ts"]) await Deno.stat(new URL(`src/03-plugins/${plugin}/${f}`, ROOT));
     const index = await read(`src/03-plugins/${plugin}/index.ts`);
     assert(/export const \w+: PluginDef = \{/.test(index), `${plugin}/index.ts debe exportar el JSON transversal (PluginDef)`);
@@ -221,7 +221,7 @@ Deno.test("arch: sin private/protected con nombre (los miembros privados usan #)
 
 Deno.test("skills: cada archivo de src/ enlaza por CDN la skill general y la particular de su carpeta", async () => {
   const BASE = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/";
-  const particular = (f: string) => f.startsWith("src/03-plugins/identity/") ? "identity.md" : f.startsWith("src/03-plugins/permissions/") ? "permissions.md" : f.startsWith("src/03-plugins/embeddings/") ? "embeddings.md" : f.startsWith("src/03-plugins/archivos/") ? "archivos.md" : f.startsWith("src/03-plugins/errores/") ? "errores.md" : f.startsWith("src/03-plugins/penalizaciones/") ? "penalizaciones.md" : f.startsWith("src/03-plugins/") ? "plugins.md" : f.startsWith("src/02-controllers/server/") ? "servidor.md" : f.startsWith("src/02-controllers/") ? "controllers.md" : "objetos.md";
+  const particular = (f: string) => f.startsWith("src/03-plugins/identity/") ? "identity.md" : f.startsWith("src/03-plugins/permissions/") ? "permissions.md" : f.startsWith("src/03-plugins/embeddings/") ? "embeddings.md" : f.startsWith("src/03-plugins/archivos/") ? "archivos.md" : f.startsWith("src/03-plugins/errores/") ? "errores.md" : f.startsWith("src/03-plugins/penalizaciones/") ? "penalizaciones.md" : f.startsWith("src/03-plugins/tks/") ? "tks.md" : f.startsWith("src/03-plugins/mensajes/") ? "mensajes.md" : f.startsWith("src/03-plugins/calificaciones/") ? "calificaciones.md" : f.startsWith("src/03-plugins/reacciones/") ? "reacciones.md" : f.startsWith("src/03-plugins/") ? "plugins.md" : f.startsWith("src/02-controllers/server/") ? "servidor.md" : f.startsWith("src/02-controllers/") ? "controllers.md" : "objetos.md";
   const bad: string[] = [];
   for (const f of SRC) {
     const head = (await read(f)).split("\nimport ")[0] ?? "";
@@ -230,7 +230,7 @@ Deno.test("skills: cada archivo de src/ enlaza por CDN la skill general y la par
   }
   assertEquals(bad, []);
   const index = await read("skills/README.md");
-  for (const s of ["consumo-cdn", "objetos", "controllers", "servidor", "plugins", "identity", "permissions", "embeddings", "archivos", "errores", "penalizaciones", "estilo"]) {
+  for (const s of ["consumo-cdn", "objetos", "controllers", "servidor", "plugins", "identity", "permissions", "embeddings", "archivos", "errores", "penalizaciones", "tks", "mensajes", "calificaciones", "reacciones", "estilo"]) {
     assert(index.includes(`${BASE}${s}.md`), `skills/README.md no enlaza ${s}.md por CDN`);
     await Deno.stat(new URL(`skills/${s}.md`, ROOT));
   }

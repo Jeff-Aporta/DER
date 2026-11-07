@@ -6,8 +6,6 @@ tags: [plugins, archivos, carpetas, almacen, auditoria]
 ---
 # Gestión de archivos
 
-[← índice](../README.md) · `src/03-plugins/archivos/` · skill: [archivos.md](../../skills/archivos.md) · modelo: [060-Modelo-de-datos](060-Modelo-de-datos.md)
-
 Carpetas y archivos como en un sistema de ficheros, con CRUD, árbol, URLs firmadas y relación libre con cualquier tabla. DER no conoce ningún servicio de almacenamiento: el consumidor vincula un `AlmacenArchivos` con `subir`, `bajar` y `borrar`, y puede cambiarlo sin tocar nada más.
 
 ## Entidades
@@ -17,7 +15,7 @@ Carpetas y archivos como en un sistema de ficheros, con CRUD, árbol, URLs firma
 | `carpetas` | `archivos_carpetas` | `icarpeta`, `ipadre`, `nombre`, `ruta` |
 | `archivos` | `archivos` | `iarchivo`, `icarpeta`, `nombre`, `clave`, `mime`, `bytes`, `ancho`, `alto`, `duracion`, `origin`, `idorigin` |
 
-Las dos llevan las [columnas de auditoría](../../skills/plugins.md#auditoría).
+Las dos llevan las columnas de auditoría: `propietario_tipo`, `propietario`, `apporigin`, `iporigin`, `fhcre` y `fhmod`.
 
 **Relación libre:** `origin` nombra la tabla u origen y `idorigin` la fila (`errores` / `17`). Índice por `(origin, idorigin)`. No hay FK rígida: cualquier tabla presente o futura se relaciona sin migrar.
 
@@ -25,10 +23,9 @@ Las dos llevan las [columnas de auditoría](../../skills/plugins.md#auditoría).
 
 ## Flujo de una subida
 
-1. `alSubir` de la política autoriza y aporta `prefijo` y `extras`.
-2. Se rechaza lo vacío, lo que excede el límite y lo ejecutable (extensión o mime).
-3. Clave `<prefijo>/<año>/<mes>/<uuid>-<nombre seguro>`.
-4. Objeto al almacén y luego fila; si la fila falla, se borra el objeto.
+[![Flujo de una subida](../999-Adjuntos/010-Diagramas/subida-archivo.svg)](../999-Adjuntos/010-Diagramas/subida-archivo.svg)
+
+La clave queda `<prefijo>/<año>/<mes>/<uuid>-<nombre seguro>`.
 
 ## Descarga
 

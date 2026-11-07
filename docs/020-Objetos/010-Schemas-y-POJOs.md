@@ -6,8 +6,6 @@ tags: [objetos, pojo, zod]
 ---
 # Schemas, POJOs y Zod
 
-[← índice](../README.md) · tipos en `src/00-common/schemas.ts` · lógica en `src/01-objects/{meta,pojo,zod}.ts`
-
 ## Schema JSON
 
 ```ts
@@ -32,7 +30,7 @@ export const ProductoSchema = defineSchema({
 ```
 
 `put` elige la operación con la que el `PUT singular/pks...` aplica el cuerpo sobre el registro actual; por defecto
-`insert` (ajustes parciales, fusión profunda en los json con molde). Ver [modo del PUT](../030-Controllers/030-SSE-y-cfg.md).
+`insert` (ajustes parciales, fusión profunda en los json con molde).
 
 `defineSchema` es la identidad tipada: conserva los literales para inferir los tipos TS de cada campo.
 
@@ -52,7 +50,7 @@ export const ProductoSchema = defineSchema({
 
 **Fechas siempre ISO 8601.** Una `datetime` entra como `Date`, epoch o texto ISO (`2024-02-29T05:00:00-05:00`, `2024-02-29 10:00`, `2024-02-29`); cualquier otro formato (`29/02/2024`, `Feb 29`) es `null` y Zod lo rechaza. Un texto **sin zona se lee como UTC**, nunca con la zona del proceso. Se almacena y se transporta en UTC (`…Z`; en MySQL/MSSQL como `datetime` naive en UTC, y al leer se devuelve con la `Z`), así cambiar el país o la zona horaria del servidor o del cliente nunca corre los datos: la zona se aplica solo al mostrar (`toLocaleString`, `Intl`). `date` (`YYYY-MM-DD`) y `time` (`HH:MM:SS`) no llevan zona por diseño.
 
-Opciones: `pk`, `autoincrement` (solo pk entera; en SQLite exige pk única), `sequence` (ver [secuencias](../040-Servidor/010-Motores-seed-y-sync.md)), `nullable` (default `true`, salvo las pk), `length`, `precision`/`scale`, `unique`, `default` (literal o `{ sql }`), `enum`, `virtual`, `zod` (refina el tipo; en `json` es su molde).
+Opciones: `pk`, `autoincrement` (solo pk entera; en SQLite exige pk única), `sequence`, `nullable` (default `true`, salvo las pk), `length`, `precision`/`scale`, `unique`, `default` (literal o `{ sql }`), `enum`, `virtual`, `zod` (refina el tipo; en `json` es su molde).
 
 ### Relaciones (`RelationDef`)
 
@@ -72,7 +70,7 @@ export class Producto extends pojoOf(ProductoSchema) {
 - `pojoOf(schema)` genera un getter/setter casteado por columna y relación. Los datos viven en `this.f`.
 - También se puede escribir a mano (`class X extends Pojo { static override schema = S; get/set ... }`), con los casteos de `base.ts` (`toStr`, `toInt`, `toBool`…).
 - `undefined` significa "no definido": `toJSON()` lo omite y un PUT no lo toca. `null` es un valor.
-- API: `fromJSON`, `fromList`, `assign`, `toJSON`, `pkValues`, `pkOnly`, más las acciones JSON ([obj.md](020-Obj-y-acciones-JSON.md)): `insert`, `insertIgnore`, `update`, `delete`, `get`, `replace`.
+- API: `fromJSON`, `fromList`, `assign`, `toJSON`, `pkValues`, `pkOnly`, más las acciones JSON: `insert`, `insertIgnore`, `update`, `delete`, `get`, `replace`.
 - Nombres reservados (no pueden ser columnas): `f`, `assign`, `toJSON`, `pkValues`, `pkOnly`, `insert`, `insertIgnore`, `update`, `delete`, `get`, `replace`.
 
 ## Zod generado
@@ -87,4 +85,4 @@ export class Producto extends pojoOf(ProductoSchema) {
 | `pk` | GET y DELETE |
 | `molde` | molde de `Obj.insert`: `null` → null si la columna admite null; si no, se quita |
 
-Los mensajes de error salen en español (`Falta el campo requerido "x"`, `"x" no puede ser nulo`, `"x" debe ser uno de: …`, `"x" supera N caracteres`). `ZQuerySpec`, `ZInclude`, `ZConsulta`, `ZJson`, `ZAccionObj` y `ZRefObj` están en `src/00-common/schemas.ts`. `z` se reexporta para que la app use la misma instancia.
+Los mensajes de error salen en español (`Falta el campo requerido "x"`, `"x" no puede ser nulo`, `"x" debe ser uno de: …`, `"x" supera N caracteres`). `ZQuerySpec`, `ZInclude`, `ZConsulta`, `ZJson`, `ZAccionObj` y `ZRefObj` se exportan junto a los tipos. `z` se reexporta para que la app use la misma instancia.

@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "diagramas": {
+    "anatomia-plugin": {
+      "huella": "b227bd31d62f257af68295c0c1e533a7f2f2f9d6a42ccbeb52f66b43d4c335d1",
+      "svg": "../anatomia-plugin.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:09.525Z",
+      "ancho": 392,
+      "alto": 144
+    },
+    "capas": {
+      "huella": "6a7ccf1578d7c01180068b7a146813cc9b7788b3fb8d71cb64000c0b4bebf0f4",
+      "svg": "../capas.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:15.582Z",
+      "ancho": 508,
+      "alto": 412
+    },
+    "ciclo-error": {
+      "huella": "36258a447beffe5f0a6b97d8dc253a5b32cbe17a5f44da628aeb3725d4dbd540",
+      "svg": "../ciclo-error.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:21.924Z",
+      "ancho": 1580,
+      "alto": 76
+    },
+    "der-permisos": {
+      "huella": "778063c26c710acea1b7095e7294dfe0a90a212e489d955ccad6e3cea2b4ba49",
+      "svg": "../der-permisos.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:28.638Z",
+      "ancho": 840,
+      "alto": 344
+    },
+    "embeber-cache": {
+      "huella": "14d5c4261e0478865e8b9d7e5e7176ea164dd1df8fa2e241f8ee75d6f8b7b994",
+      "svg": "../embeber-cache.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:35.675Z",
+      "ancho": 1276,
+      "alto": 148
+    },
+    "er-embeddings": {
+      "huella": "ce40b9451f2592754b0d3441e972ab0570de8a544804b2c27aeb8e91f835b487",
+      "svg": "../er-embeddings.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:41.853Z",
+      "ancho": 776,
+      "alto": 488
+    },
+    "er-reportes": {
+      "huella": "a8fa6be33b45ba5f52600a9fd701093457c8a09b17337712fb7a34799c0ebd09",
+      "svg": "../er-reportes.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:49.223Z",
+      "ancho": 673,
+      "alto": 848
+    },
+    "er-seguridad": {
+      "huella": "42d91b9f71c7357534052abebecea65e78bb786fe582df35da08237605295cd8",
+      "svg": "../er-seguridad.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:59:56.104Z",
+      "ancho": 912,
+      "alto": 1024
+    },
+    "flujo-accion": {
+      "huella": "0465e2ce5075e8127fab7e9cbf58f1973f310f6b2b122d6f4aa915c22582949d",
+      "svg": "../flujo-accion.svg",
+      "png": null,
+      "fecha": "2026-11-04T01:00:02.273Z",
+      "ancho": 1228,
+      "alto": 148
+    },
+    "intento-penalizacion": {
+      "huella": "298213fcdb6fc96041e4a4e76f64a1132b3b40a9280ac05907011b7606f337eb",
+      "svg": "../intento-penalizacion.svg",
+      "png": null,
+      "fecha": "2026-11-04T01:00:08.500Z",
+      "ancho": 860,
+      "alto": 188
+    },
+    "recorrido-peticion": {
+      "huella": "f161a44955b89850322c9702cd6366ab3d62de75e01c03dffdfb2641ba233295",
+      "svg": "../recorrido-peticion.svg",
+      "png": null,
+      "fecha": "2026-11-04T01:00:14.088Z",
+      "ancho": 1000,
+      "alto": 584
+    },
+    "reporte-punta-a-punta": {
+      "huella": "f0d9577a5cbfa4cbb35687bc4b5d2a413bb0e72958f7f7342c2d45f1fa919628",
+      "svg": "../reporte-punta-a-punta.svg",
+      "png": null,
+      "fecha": "2026-11-04T00:57:56.816Z",
+      "ancho": 876,
+      "alto": 680
+    },
+    "subida-archivo": {
+      "huella": "85d00fbba702e1d39334c5d725e6aa97791e114168f061653bd750633505c71d",
+      "svg": "../subida-archivo.svg",
+      "png": null,
+      "fecha": "2026-11-04T01:03:29.805Z",
+      "ancho": 868,
+      "alto": 440
+    },
+    "tres-puertas": {
+      "huella": "5c1d4dcdefd5ee376bed49017e6b46b8e6dda89ba82a67d3179947874a66e758",
+      "svg": "../tres-puertas.svg",
+      "png": null,
+      "fecha": "2026-11-04T01:00:20.551Z",
+      "ancho": 1132,
+      "alto": 148
+    }
+  }
+}

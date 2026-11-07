@@ -1,0 +1,181 @@
+{
+ "slug": "er-embeddings",
+ "module": "DER",
+ "tag": "iswc-er-diagram",
+ "script": "diagrams/er-diagram.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "erDiagram": {
+   "direction": "LR",
+   "ratio": 1.4,
+   "entities": [
+    {
+     "id": "embeddings.cache",
+     "name": "embeddings/entrada",
+     "attributes": [
+      {
+       "name": "icache",
+       "type": "int",
+       "key": "PK"
+      },
+      {
+       "name": "huella",
+       "type": "varchar(64)"
+      },
+      {
+       "name": "modelo",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "dims",
+       "type": "int"
+      },
+      {
+       "name": "iproyeccion",
+       "type": "varchar(40)"
+      },
+      {
+       "name": "tipo",
+       "type": "varchar(20)"
+      },
+      {
+       "name": "entidad",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "id",
+       "type": "varchar(200)"
+      },
+      {
+       "name": "vector",
+       "type": "text"
+      },
+      {
+       "name": "bytes",
+       "type": "int"
+      },
+      {
+       "name": "hits",
+       "type": "int"
+      },
+      {
+       "name": "fultimohit",
+       "type": "datetime"
+      },
+      {
+       "name": "fcreado",
+       "type": "datetime"
+      }
+     ]
+    },
+    {
+     "id": "embeddings.proyeccion",
+     "name": "embeddings/proyeccion",
+     "attributes": [
+      {
+       "name": "iproyeccion",
+       "type": "varchar(40)",
+       "key": "PK"
+      },
+      {
+       "name": "modelo",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "dimsorigen",
+       "type": "int"
+      },
+      {
+       "name": "dims",
+       "type": "int"
+      },
+      {
+       "name": "decimales",
+       "type": "int"
+      },
+      {
+       "name": "metodo",
+       "type": "varchar(20)"
+      },
+      {
+       "name": "semilla",
+       "type": "bigint"
+      },
+      {
+       "name": "version",
+       "type": "int"
+      },
+      {
+       "name": "fcreado",
+       "type": "datetime"
+      }
+     ]
+    },
+    {
+     "id": "embeddings.contador",
+     "name": "embeddings/contador",
+     "attributes": [
+      {
+       "name": "modelo",
+       "type": "varchar(120)",
+       "key": "PK"
+      },
+      {
+       "name": "dims",
+       "type": "int",
+       "key": "PK"
+      },
+      {
+       "name": "tipo",
+       "type": "varchar(20)",
+       "key": "PK"
+      },
+      {
+       "name": "entidad",
+       "type": "varchar(120)",
+       "key": "PK"
+      },
+      {
+       "name": "hits",
+       "type": "int"
+      },
+      {
+       "name": "misses",
+       "type": "int"
+      },
+      {
+       "name": "purgadas",
+       "type": "int"
+      },
+      {
+       "name": "factualizado",
+       "type": "datetime"
+      }
+     ]
+    },
+    {
+     "id": "embeddings.cursor",
+     "name": "embeddings/cursor",
+     "attributes": [
+      {
+       "name": "entidad",
+       "type": "varchar(120)",
+       "key": "PK"
+      },
+      {
+       "name": "cursor",
+       "type": "varchar(200)"
+      },
+      {
+       "name": "factualizado",
+       "type": "datetime"
+      }
+     ]
+    }
+   ],
+   "relations": []
+  }
+ }
+}

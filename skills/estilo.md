@@ -29,6 +29,7 @@
 | tipo que depende de Kysely | `src/02-controllers/server/schemas.ts` |
 | motor nuevo | constante en `server/engines.ts` + fábrica `server/<motor>.ts` + `ALLOWED` del guardián + `tests/server/engines.test.ts` |
 | plugin nuevo | `src/03-plugins/<plugin>/{schemas,index,server}.ts` + exportes en `03-plugins/index.ts` y `client.ts` + skill `skills/<plugin>.md` |
+| diagrama de los docs | fuente en `docs/999-Adjuntos/010-Diagramas/fuentes/<slug>.json` (con `attrs: { "diagram-style": "insoft" }` y sin título interno: la leyenda de la figura lo nombra), `deno task diagramas:svg` y en la hoja `[![Alt](../999-Adjuntos/010-Diagramas/<slug>.svg)](../999-Adjuntos/010-Diagramas/<slug>.svg)`. `iswc-state-diagram` no admite ese estilo y sale negro en SVG: usa flowchart. Los ER de plugins se generan con `deno task diagramas` |
 | regla de negocio | spec `[W-*]` nuevo + test que la describe |
 
 ## Nomenclatura

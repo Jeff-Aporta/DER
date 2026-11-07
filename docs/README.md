@@ -6,13 +6,13 @@ tags: [indice, agentes]
 ---
 # DER: punto de entrada
 
-> **Para agentes LLM:** este es el índice. Todo `index.ts` consumible por CDN apunta aquí. Lee primero esta página, después solo el documento del tema que necesites. Las reglas de la sección [Reglas para agentes](#reglas-para-agentes) son obligatorias. Las **specs fundación** (el WHAT desde el que se reconstruye `src/`) viven en `specs/` (ver `specs/FOUNDATION.md` y `specs/W2H.md`).
+> **Para agentes LLM:** lee primero esta página y después solo la hoja del tema que necesites. Las reglas de la sección «Reglas para agentes» son obligatorias.
 
 Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en JSON, los schemas de las entidades y sus POJOs, y reusarlos para:
 
 - **Client:** controllers `fetch` que validan (Zod + `pre*`) antes de llamar a la API.
 - **Server:** controllers SQL agnósticos del motor (PostgreSQL, PGlite, SQLite, MySQL, MSSQL), con relaciones anidadas, filtros, paginación, `seed()`, SSE, configuración de la entidad (`plural/cfg`) y documentación servida (`plural/doc`).
-- **Plugins JSON:** identidad, permisos, caché de embeddings, gestión de archivos, errores y penalizaciones como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
+- **Plugins JSON:** identidad, permisos, caché de embeddings, gestión de archivos, errores, penalizaciones, tiquetes, mensajes, calificaciones y reacciones como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
 
 ## Mapa del paquete
 
@@ -35,29 +35,6 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 | Plugins de seguridad (client): los JSON transversales | `src/03-plugins/` | `src/03-plugins/client.ts` | `zod` |
 
 `index.ts` en la raíz equivale a `src/02-controllers/index.ts` (el núcleo compartido, solo `zod`). Cada `index.ts` reexporta todo lo de la capa anterior: con importar **una** entrada basta. Lo de is-webcomponents (`Obj`, sus contratos y los tipos de los diagramas) llega por CDN con los alias `@Jeff-Aporta/wc-base/` y `@Jeff-Aporta/wc-diagrams/` fijados a un SHA en `deno.json`.
-
-## Documentos
-
-| Tema | Documento |
-|---|---|
-| Arquitectura, capas y decisiones (por qué Kysely, Zod, `Obj`; qué se investigó) | [010-General/010-Arquitectura.md](010-General/010-Arquitectura.md) |
-| Consumir por CDN (jsDelivr / raw GitHub), import map y dependencias | [010-General/020-Consumo-por-CDN.md](010-General/020-Consumo-por-CDN.md) |
-| Schemas JSON, columnas, relaciones, POJOs, casteos y Zod | [020-Objetos/010-Schemas-y-POJOs.md](020-Objetos/010-Schemas-y-POJOs.md) |
-| Acciones JSON de POJOs y `Obj` (insert, insertIgnore, update, delete, get, replace) | [020-Objetos/020-Obj-y-acciones-JSON.md](020-Objetos/020-Obj-y-acciones-JSON.md) |
-| Entidades: singular/plural, tabla, registro global, rutas REST, endpoints, `/sse`, `/cfg`, seguridad | [020-Objetos/030-Entidades-y-rutas.md](020-Objetos/030-Entidades-y-rutas.md) |
-| Controllers: flujo, `pre*`, hooks, overrides, `pojo()`, `permissions()`, client y server | [030-Controllers/010-Controllers.md](030-Controllers/010-Controllers.md) |
-| `query()`: filtros, operadores, relaciones, orden, paginación, include | [020-Objetos/040-Query.md](020-Objetos/040-Query.md) |
-| Motores SQL: PG, PGlite, SQLite, MySQL, MSSQL, `seed()`, `syncSchema()`, secuencias (base 2..36), índices, nuevo motor | [040-Servidor/010-Motores-seed-y-sync.md](040-Servidor/010-Motores-seed-y-sync.md) |
-| Server-Sent Events, configuración de la entidad y modo del PUT | [030-Controllers/030-SSE-y-cfg.md](030-Controllers/030-SSE-y-cfg.md) |
-| Documentación servida: md autogenerado + secciones en `/doc`, vista iswc en `/doc?v=1`, diagramas con los tipos del kit | [030-Controllers/040-Documentacion-servida.md](030-Controllers/040-Documentacion-servida.md) |
-| Hosts: tabla de rutas, Azure Functions, Cloudflare Workers, rutas irregulares, CORS, guard | [040-Servidor/020-Hosts.md](040-Servidor/020-Hosts.md) |
-| Seguridad: puertas del registro, plugins JSON de identidad y permisos, `createClient`/`createServer`, plugin propio | [050-Plugins/010-Seguridad.md](050-Plugins/010-Seguridad.md) |
-| Embeddings: caché por huella, búsqueda (exacta primero), reducción, reglas de purga en JSON, estadísticas | [050-Plugins/020-Embeddings.md](050-Plugins/020-Embeddings.md) |
-| Gestión de archivos: carpetas, archivos, almacén del consumidor, relación libre con otras tablas | [050-Plugins/030-Archivos.md](050-Plugins/030-Archivos.md) |
-| Errores: reportes de cualquier app atendidos por agentes | [050-Plugins/040-Errores.md](050-Plugins/040-Errores.md) |
-| Penalizaciones: vectores por IP y global contra fuerza bruta | [050-Plugins/050-Penalizaciones.md](050-Plugins/050-Penalizaciones.md) |
-| Modelo de datos y diagrama ER de archivos, errores y penalizaciones | [050-Plugins/060-Modelo-de-datos.md](050-Plugins/060-Modelo-de-datos.md) |
-| Propagación de detalles (`getPropagation` / `setPropagation`), seed en cascada y controllers en bases/motores distintos | [030-Controllers/020-Propagacion-y-multi-db.md](030-Controllers/020-Propagacion-y-multi-db.md) |
 
 ## Ejemplo mínimo
 
@@ -100,8 +77,6 @@ const productos = new ClientController(ProductoEntity, { baseUrl: "/api" });
 const caros = await productos.query({ where: { precio: { gt: 10 } }, include: { categoria: true } });
 ```
 
-Ejemplo completo y ejecutable: `examples/domain.ts` (compartido) y `examples/backend.ts` (server). Los tests (`tests/`) son la especificación ejecutable: `deno task test`.
-
 ## Reglas para agentes
 
 1. **Tipos y schemas Zod solo en `schemas.ts`**, siempre con `type` (nunca `interface`) y **cada tipo en una línea**. Todo lo común va en `src/00-common/schemas.ts`; lo del server que depende de Kysely en `src/02-controllers/server/schemas.ts`; lo de cada plugin en su `schemas.ts`. Lo vigila `tests/arch/arch.test.ts`.
@@ -120,4 +95,4 @@ Ejemplo completo y ejecutable: `examples/domain.ts` (compartido) y `examples/bac
 14. **Documentación modular:** cada hoja `.md` vive en su carpeta numerada, lleva frontmatter con `Titulo` y se lista en `docs/index.html`. Un párrafo es una sola línea.
 15. **Tests:** `tests/<tema>/<nombre>.test.ts`, en carpetas de dos o más archivos; helpers sin sufijo (`tests/_util.ts`). Un test rojo se arregla, nunca se salta.
 16. **Nomenclatura:** schema JSON `UsuarioSchema`, POJO `Usuario`, entidad REST `UsuarioEntity`, instancia de controller en plural `usuarios`; tablas con el prefijo de su dominio (`permisos_roles`, `identity_usuarios`), nombres de entidad `dominio.entidad` (`permisos.rol`). Un plugin no reusa clases de otro: referencia su entidad por nombre y sigue funcionando sin ella.
-17. **Specs antes de cerrar:** todo cambio observable actualiza `specs/foundation/` siguiendo `specs/W2H.md`. Luego `deno task check`, `deno lint` y `deno task test` en verde (solo Deno: no hay package.json ni node_modules).
+17. **Antes de cerrar:** `deno task check`, `deno lint` y `deno task test` en verde (solo Deno: no hay package.json ni node_modules).

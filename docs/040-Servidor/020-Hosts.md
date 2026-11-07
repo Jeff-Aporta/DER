@@ -6,8 +6,6 @@ tags: [servidor, hosts]
 ---
 # Hosts: Azure Functions, Cloudflare Workers, Deno/Bun/Node
 
-[← índice](../README.md) · tabla: `src/02-controllers/server/router.ts` + `routes.ts` · hosts: `src/02-controllers/server/hosts/<host>.ts` · tipos en `src/02-controllers/server/schemas.ts`
-
 Mismo modelo que `registrarEntidad` de ISS: **cada acción definida en el controller es una ruta propia**, con parámetros `{pk}`, id estable `METHOD:/ruta` (para seguridad por ruta), sin duplicados ni ambigüedades. El `Router` construye esa **tabla de rutas** una vez y cada host la registra a su manera:
 
 | Host | Entrada | Cómo registra |
@@ -19,6 +17,8 @@ Mismo modelo que `registrarEntidad` de ISS: **cada acción definida en el contro
 Los hosts no tienen dependencias: el `app` de `@azure/functions` lo pasa el consumidor (tipos estructurales `AzureApp`, `AzureHttpRequest`, `AzureHttpResponseInit`), y Workers no necesita nada.
 
 ## Qué se registra por controller
+
+[![Recorrido de una petición](../999-Adjuntos/010-Diagramas/recorrido-peticion.svg)](../999-Adjuntos/010-Diagramas/recorrido-peticion.svg)
 
 | id | acción |
 |---|---|

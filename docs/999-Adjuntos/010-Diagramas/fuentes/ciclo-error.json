@@ -1,0 +1,74 @@
+{
+ "slug": "ciclo-error",
+ "module": "DER",
+ "tag": "iswc-flowchart",
+ "script": "diagrams/flowchart.min.js",
+ "attrs": {
+  "diagram-style": "insoft"
+ },
+ "payload": {
+  "flowchart": {
+   "direction": "LR",
+   "nodes": [
+    {
+     "id": "i",
+     "label": "Reporte",
+     "shape": "stadium"
+    },
+    {
+     "id": "rec",
+     "label": "recibiendo",
+     "desc": "Faltan adjuntos."
+    },
+    {
+     "id": "pen",
+     "label": "pendiente",
+     "desc": "En la cola."
+    },
+    {
+     "id": "pro",
+     "label": "en_proceso",
+     "desc": "Un agente lo tiene tomado."
+    },
+    {
+     "id": "f",
+     "label": "Atendido (fila borrada)",
+     "shape": "stadium"
+    }
+   ],
+   "edges": [
+    {
+     "from": "i",
+     "to": "rec",
+     "label": "con adjuntos"
+    },
+    {
+     "from": "i",
+     "to": "pen",
+     "label": "sin adjuntos"
+    },
+    {
+     "from": "rec",
+     "to": "pen",
+     "label": "listo o vencido"
+    },
+    {
+     "from": "pen",
+     "to": "pro",
+     "label": "tomar"
+    },
+    {
+     "from": "pro",
+     "to": "pen",
+     "label": "soltar o toma vencida",
+     "kind": "dashed"
+    },
+    {
+     "from": "pro",
+     "to": "f",
+     "label": "DELETE errores"
+    }
+   ]
+  }
+ }
+}

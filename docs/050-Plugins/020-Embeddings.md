@@ -6,8 +6,6 @@ tags: [plugins, embeddings, cache, busqueda, json]
 ---
 # Embeddings: caché, búsqueda y purga declarativa
 
-[← índice](../README.md) · `src/03-plugins/embeddings/` · ejemplo de `cfg` completo en el [README del repo](../../README.md)
-
 La búsqueda por embeddings es estándar en DER. En el server los embeddings son una **caché simple**: si la huella del texto ya está, se incrementa y se devuelve sin llamar al modelo. Es un plugin JSON como identidad y permisos: `createClient(embeddings, ...)` y `createServer(embeddingsServer, { db, cfg, services })`.
 
 ## Tablas
@@ -26,6 +24,8 @@ Columnas de la caché: `icache`, `huella` (SHA-256 del texto canónico), `modelo
 **Una fila por referencia.** Dos registros con el mismo texto cuestan una sola llamada al modelo, pero tienen una fila cada uno: así una regla por entidad borra exactamente lo suyo y no deja sin vector al otro. Un documento cuyo texto cambia pierde su fila anterior.
 
 ## Operaciones
+
+[![Embeber con caché](../999-Adjuntos/010-Diagramas/embeber-cache.svg)](../999-Adjuntos/010-Diagramas/embeber-cache.svg)
 
 | Op (server y client) | Ruta | Qué hace |
 |---|---|---|

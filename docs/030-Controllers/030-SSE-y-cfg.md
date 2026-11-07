@@ -6,8 +6,6 @@ tags: [controllers, sse, cfg]
 ---
 # Server-Sent Events, configuración de la entidad (`plural/cfg`) y modo del PUT
 
-[← índice](../README.md)
-
 ## SSE (`/sse`)
 
 Cualquier acción o endpoint tiene su variante SSE agregando `/sse` a la ruta, con el **mismo método** (`POST producto/sse`, `GET productos/sse`, `POST producto/1/ajustarStock/sse`). Sirve para feedback de procesos o el efecto "type write" de un LLM.
@@ -15,7 +13,7 @@ Cualquier acción o endpoint tiene su variante SSE agregando `/sse` a la ruta, c
 - **Cada evento es texto plano.** Qué representa (JSON, XML, tokens…) lo decide quien consume.
 - El servidor define qué se envía y cómo: `sse: { post(pojo, send, ctx) { send("..."); } }` en el ServerController, o `endpoints.<n>.sse`.
 - Los `pre*` corren **antes** de abrir el stream: si fallan, la respuesta es un 400 normal, no un stream.
-- Formato según [MDN](https://developer.mozilla.org/es/docs/Web/API/Server-sent_events/Using_server-sent_events): `data: <línea>` por cada línea (los textos multilínea se respetan), un evento por `send`, `event: error` si el handler lanza y el cierre de la conexión marca el fin.
+- Formato estándar de Server-Sent Events: `data: <línea>` por cada línea (los textos multilínea se respetan), un evento por `send`, `event: error` si el handler lanza y el cierre de la conexión marca el fin.
 - Client: `for await (const texto of ctrl.stream("post", pojo)) { ... }`. Usa `fetch` + parser propio (no `EventSource`), así que funciona con POST, PUT y DELETE con body. Para GET también sirve `new EventSource(url)`.
 - En proceso (server), `ctrl.stream(...)` itera los textos sin HTTP.
 

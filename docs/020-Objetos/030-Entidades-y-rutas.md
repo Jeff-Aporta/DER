@@ -6,8 +6,6 @@ tags: [objetos, rutas, rest, registro]
 ---
 # Entidades y rutas REST
 
-[← índice](../README.md) · `src/01-objects/entity.ts` · `src/01-objects/registry.ts` · tipos `EntityDef`, `EndpointDef`, `CfgDef`, `Hooks`, `SecurityDef`
-
 ```ts
 export const ProductoEntity = defineEntity({
   pojo: Producto,                   // clase; o `schema: ProductoSchema` y el POJO se genera (pojos indirectos: ctrl.pojo())
@@ -42,7 +40,7 @@ registry.entities()                       // [{ key, entity }]
 registry.has("productos")
 ```
 
-Ahí mismo viven las **puertas de seguridad** (`registry.secure({ extract, protected, permissions })`) y la **sesión singleton** (`registry.session`): ver [seguridad.md](../050-Plugins/010-Seguridad.md).
+Ahí mismo viven las **puertas de seguridad** (`registry.secure({ extract, protected, permissions })`) y la **sesión singleton** (`registry.session`).
 
 ## Tabla de rutas
 
@@ -73,12 +71,12 @@ Ahí mismo viven las **puertas de seguridad** (`registry.secure({ extract, prote
 - Una ruta puede tener varios segmentos (`singular: "pedido/linea"` → `pedido/linea/1/2`).
 - Al resolver una ruta, el plural tiene prioridad sobre el singular.
 - Segmentos reservados para endpoints: `sse`, `cfg`, `doc`. Un endpoint tampoco puede llamarse como una acción CRUD.
-- **`query` no es una ruta aparte**: es `GET plural?q=` (ver [query.md](040-Query.md)). Comparte el id `GET:/plural` con `list` para permisos, pero su seguridad (`public`/`protected`) se decide por la acción `query`.
+- **`query` no es una ruta aparte**: es `GET plural?q=`. Comparte el id `GET:/plural` con `list` para permisos, pero su seguridad (`public`/`protected`) se decide por la acción `query`.
 - Respuestas: `post`/`postList` → 201; `null` en get/put/delete → 404; `/cfg` sin tabla de cfg en el server → 404; un `pre*` → 400 `{ error }`; sin sesión en ruta protegida → 401; permiso negado → 403; error interno → 500 (con el mensaje solo si `exposeErrors`).
 
 ## Rutas irregulares
 
-Los paths que no siguen REST (`IrregularPath`) se declaran en JSON. **Dentro de la entidad** (`paths`) cuelgan de su `plural` (default) o `singular`, y con `pks: true` llevan las pks (`usuario/{iusuario}/sufijo`; el handler las recibe en `input.pks`): `paths: { resumen: { method: "GET", path: "resumen" } }` → `productos/resumen`. En el server se implementan en `config.paths` (`this` = el controller) y en el client se llaman con `plugin.call("resumen", body?, pks?)` o con `fetch`. Los que no pertenecen a ninguna entidad (`irregularPaths` de un plugin, `routes` del router) van con su ruta completa. Ver [hosts.md](../040-Servidor/020-Hosts.md) y [seguridad.md](../050-Plugins/010-Seguridad.md).
+Los paths que no siguen REST (`IrregularPath`) se declaran en JSON. **Dentro de la entidad** (`paths`) cuelgan de su `plural` (default) o `singular`, y con `pks: true` llevan las pks (`usuario/{iusuario}/sufijo`; el handler las recibe en `input.pks`): `paths: { resumen: { method: "GET", path: "resumen" } }` → `productos/resumen`. En el server se implementan en `config.paths` (`this` = el controller) y en el client se llaman con `plugin.call("resumen", body?, pks?)` o con `fetch`. Los que no pertenecen a ninguna entidad (`irregularPaths` de un plugin, `routes` del router) van con su ruta completa.
 
 `exposed: false` no publica ninguna ruta de la entidad; `administrable: false` publica solo lecturas (list, get, query, doc, getCfg). Ambos son explícitos en las entidades de los plugins.
 

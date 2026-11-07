@@ -81,6 +81,19 @@
 - **[W-PLG-72]** Escala configurable, por defecto 0, 0, 5, 10, 15, 20, 25 y 30 minutos, repitiendo el último.
 - **[W-PLG-73]** Un intento rechazado por estar penalizado no cuenta, y durante la penalización ni el secreto correcto pasa.
 
+### Tiquetes, mensajes, calificaciones y reacciones
+
+- **[W-PLG-80]** Tiquetes: entidad `tks` (tabla `tks_tks`) con `itk` autoincremental, `requerimiento` (html|md), `proposito`, `jtodo` (`[{hecho, contenido, jedit}]`), `estado` (columna kanban), `bfinalizado`, `fhcre`, `bactivo`, `iusuario` y `jasignados` (`{usuarios, roles, grupos}`; `*` en grupos = todos). CRUD completo y `POST tk` como alta.
+- **[W-PLG-81]** El alta de un tiquete pone `fhcre` (ahora), `iusuario` (la sesión), `estado` (`por_hacer`) y `bfinalizado` (la regla); `cfg.estadosFinalizados` declara los estados que cierran un tiquete y, con esa lista, el estado manda sobre el valor manual; sin lista, `cfg.permitirFinalizadoManual` deja marcarlo a mano.
+- **[W-PLG-82]** La baja de un tiquete es lógica: `DELETE` (y el borrado en plural) archiva (`bactivo` false) y la fila no se borra.
+- **[W-PLG-83]** `GET tks/mis` devuelve los tiquetes que la sesión ve (quien lo creó, o si está asignado por usuario, rol o grupo; `*` = todos), con la paginación de DER (`page`, `pageSize`) y los filtros `estado` y `q`.
+- **[W-PLG-84]** Mensajes: entidad `mensajes` (tabla `mensajes_mensajes`) con la PK (`tdespacio`, `iref`, `imensaje`), `jcontenido` (historial de versiones: la última es la vigente), `indexcita`, `bactivo`, `iusuario` y la virtual `qtotalrespuestas`. El índice es `x`, `x.y`, `x.y.z`… sin límite de niveles.
+- **[W-PLG-85]** `POST mensajes/publicar` calcula el índice siguiente del hilo (el hijo libre de la cita) y guarda la primera versión; `PUT mensaje/{tdespacio}/{iref}/{imensaje}/editar` agrega una versión sin perder lo anterior; `GET mensajes/hilo` devuelve el árbol.
+- **[W-PLG-86]** Adjuntos: entidad `adjuntos` (tabla `mensajes_adjuntos`) con la ficha del archivo (`clave` en el almacén del consumidor, `url`, `mime`, `bytes`); los bytes los mueve el consumidor.
+- **[W-PLG-87]** Calificaciones: entidad `calificaciones` (tabla `calificaciones_calificaciones`) con la PK (`tdespacio`, `iref`, `iusuario`) y `valor` entero de -10 a 10 (0 neutro); fuera de rango es 400; no hay borrado (se cambia, incluso a 0).
+- **[W-PLG-88]** Reacciones: entidad `reacciones` (tabla `reacciones_reacciones`) con la PK (`tdespacio`, `iref`, `iusuario`) y `reaccion` (emoji o clave corta); una por usuario y entidad, cambiable y retirable.
+- **[W-PLG-89]** Las referencias (espacio, id de la entidad, usuario) son definiciones abiertas: sin FK. La coherencia la mantiene el sistema, no el motor.
+
 ## 2. HOW débil
 
 - **[HW-PLG-01]** Las operaciones en proceso (`login`, `verify`, `logout`, `can`, `profile`, `load`…) son las mismas funciones que usan los handlers HTTP: una sola implementación.

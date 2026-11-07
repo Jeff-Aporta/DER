@@ -6,9 +6,9 @@ tags: [plugins, seguridad, jwt, json]
 ---
 # Seguridad: puertas del registro y plugins JSON
 
-[← índice](../README.md) · `src/01-objects/registry.ts` (puertas y sesión) · `src/03-plugins/` · tipos y Zod de cada plugin en su `schemas.ts` · contratos de plugin (`PluginDef`, `IrregularRoute`, `SecurityDef`, `SecurityHooks`) en `src/00-common/schemas.ts`; los de server (`ServerPluginDef`, `ServerPlugin`) en `src/02-controllers/server/schemas.ts`
-
 ## Las tres puertas (registro global)
+
+[![Las tres puertas](../999-Adjuntos/010-Diagramas/tres-puertas.svg)](../999-Adjuntos/010-Diagramas/tres-puertas.svg)
 
 La seguridad del Router no depende de ningún plugin: depende de tres puertas de **libre definición** en el registro global (`registry.secure({...})`):
 
@@ -60,7 +60,7 @@ routes: [{ method: "GET", path: "reportes/x", security: "protected", handler }] 
 
 Orden en cada request: `extract` → (ruta protegida) `protected` → (con `permissions`) puerta de permisos → `guard` → `pre*`/`preConfirm` → acción. En una ruta pública la sesión se intenta igual (`ctx.session`), pero un token inválido no la bloquea.
 
-## Plugin de identidad (`src/03-plugins/identity/`)
+## Plugin de identidad
 
 Las acciones de sesión son **paths de la entidad `usuarios`**: las que aún no conocen al usuario cuelgan del plural (`usuarios/…`); las del usuario de la sesión cuelgan del singular **sin pks** (`usuario/…`: el usuario es el del token). Solo el JWKS es un path irregular del plugin (ruta estándar).
 
@@ -81,16 +81,11 @@ Las acciones de sesión son **paths de la entidad `usuarios`**: las que aún no 
 - **`extract`:** `Authorization: Bearer <token>` → `{ id: sub, claims }`; sin cabecera → `null` (anónimo).
 - **`seed`:** crea `admin` si está configurado y no existe. La secret key debe tener al menos 32 caracteres y nunca se versiona: va por `env:`.
 
-## Plugin de permisos (`src/03-plugins/permissions/`)
+## Plugin de permisos
 
 ### DER
 
-```
-permisos_grupos        (igrupo pk, nombre)                              grupo al que pertenecen los roles
-permisos_roles         (irol pk, igrupo, nombre, bactivo)               el rol pertenece a un grupo
-permisos_rolesusuario  (iusuario pk, irol pk, finicial, ffinal, bprincipal)   vigencia y rol principal; relación `usuario` → `identity.usuarios` (si existe)
-permisos_accionesrol   (irol pk, iaccion pk, valor json)                iaccion = id de ruta, acción personalizada o "*"
-```
+[![DER de permisos](../999-Adjuntos/010-Diagramas/der-permisos.svg)](../999-Adjuntos/010-Diagramas/der-permisos.svg)
 
 ### Vector de acciones
 
@@ -143,19 +138,14 @@ createServer(permissionsServer, { db, cfg: { grupo: "API", actions: ["auditoria"
 
 ## Anatomía de un plugin JSON
 
-```
-src/03-plugins/<plugin>/
-  schemas.ts   tipos (uno por línea) y Zod compartidos (sólo zod: seguro para el cliente)
-  index.ts     el JSON TRANSVERSAL (`PluginDef`): entities (schema, singular/plural, table, exposed, administrable, security, hooks, paths…) e irregularPaths
-  server.ts    `Obj.insert(transversal, { ...particularidades })`: handlers de los paths, hidden/actions/expose por entidad, security (puertas), cfg (Zod), seed, setup
-```
+[![Anatomía de un plugin](../999-Adjuntos/010-Diagramas/anatomia-plugin.svg)](../999-Adjuntos/010-Diagramas/anatomia-plugin.svg)
 
 - **El client y el server hablan el mismo idioma:** el server no es otro JSON, es el transversal con un push encima. Lo que el JSON define de la entidad (`EntityDef`) va a la entidad; lo demás (`hidden`, `actions`, `expose`, `sse`, `handler`/`sse` de endpoints y paths…) a la config del `ServerController`.
 - **`exposed` y `administrable` explícitos por entidad:** `exposed: false` no publica ninguna ruta de la entidad; `administrable: false` publica solo lecturas (list, get, query, doc, getCfg): así el consumidor decide qué entidades del plugin se administran por CRUD (y el DER de permisos puede dar permisos sobre ellas).
 - **Pojos indirectos:** `plugin.controllers.usuarios.pojo({ iusuario: "ana" })` o `registry.pojo("usuarios", ...)`; el plugin nunca exporta clases.
 - **Paths irregulares** (`IrregularPath`: `{ method, path, prefix?, pks?, security?, zod?, returns?, ops? }`): dentro de una entidad (`paths`) cuelgan de su `plural` (default) o `singular`, y con `pks: true` llevan las pks (`usuario/{iusuario}/sufijo`, el handler las recibe en `input.pks`); a nivel de plugin (`irregularPaths`) no pertenecen a ninguna entidad. El client los llama con `plugin.call("path", body?, pks?)` (valida `zod` antes del fetch); el server les pone `handler(input, ctx)` / `sse(input, send, ctx)` con `this` = el plugin armado.
 - **`ops` de cada path:** funciones con `this` = el plugin armado (`ClientPlugin` o `ServerPlugin`) que quedan como métodos (`auth.login()`); las del `index.ts` son de cliente, las del `server.ts` de server, y el server puede sobreescribir las del cliente.
-- `tests/arch/arch.test.ts` vigila la estructura y que ninguna entrada de cliente alcance nada del servidor (ni por `import type`).
+- Un guardián vigila la estructura y que ninguna entrada de cliente alcance nada del servidor (ni por `import type`).
 
 ### Clientes
 
@@ -225,7 +215,7 @@ createServer(identityServer, { db, cfg: {
 ### Decisiones
 
 1. **IP real:** con `trustProxy: N`, el salto N desde el final de `X-Forwarded-For`; con 0 (default), el primero; luego `X-Real-IP`.
-2. **Dispositivo:** se deriva del `user-agent` (sin dependencias; `src/03-plugins/common/device.ts`) y se identifica con `huella` = SHA-256 del UA.
+2. **Dispositivo:** se deriva del `user-agent` (sin dependencias) y se identifica con `huella` = SHA-256 del UA.
 3. **Bloqueo:** cuenta fallos por **IP o usuario** dentro de `max(windowSeconds, lockSeconds)`; al alcanzar `maxAttempts` responde **429** «Demasiados intentos fallidos» incluso con la contraseña correcta, y expira solo.
 4. **Dispositivo nuevo:** el primer login de un usuario nunca es «nuevo»; se compara la `huella` contra sus sesiones.
 5. **Viaje imposible (básico):** sin geolocalización; cambia la IP y pasan menos de `travel.minMinutes` desde el último login correcto. Con `block: true` responde 403; si no, sólo se audita.

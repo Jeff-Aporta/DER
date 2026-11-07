@@ -6,8 +6,6 @@ tags: [objetos, obj, json]
 ---
 # `Obj` y acciones JSON de los POJOs
 
-[← índice](../README.md) · `src/00-common/base.ts` reexporta `Obj` de `Jeff-Aporta/is-webcomponents` **por CDN** (alias `@Jeff-Aporta/wc-base/`, fijado a un SHA en `deno.json`) · contratos en `src/00-common/schemas.ts`
-
 `Obj` reúne las operaciones **virtuales**: transforman JSON **en memoria**, sin leer archivos ni la red. Las **físicas** (`RefObj`: referencias `{ path, query, actions }` que leen otros JSON) viven en iswc y DER no las usa.
 
 ## Nomenclatura
@@ -44,4 +42,4 @@ Reglas:
 3. `null` en `insert`: en una columna nullable deja `null`; en una no nula la quita (queda sin definir); en un `json` con molde aplica la semántica del molde (opcional → se borra, default → el default…).
 4. Entidad: `ProductoEntity.patch(pojo, cambios)` devuelve una copia con el `insert` aplicado (el original no cambia) y `ProductoEntity.aplicar(pojo, acciones)` aplica una lista `TAccionObj[]` y valida.
 
-El PUT singular aplica por defecto esta misma semántica de `insert` sobre el registro (`schema.put` elige otra), y `plural/cfg` ajusta la configuración de la entidad con `update` ([sse-y-cfg.md](../030-Controllers/030-SSE-y-cfg.md)).
+El PUT singular aplica por defecto esta misma semántica de `insert` sobre el registro (`schema.put` elige otra), y `plural/cfg` ajusta la configuración de la entidad con `update`.

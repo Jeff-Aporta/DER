@@ -6,8 +6,6 @@ tags: [controllers, propagacion, multidb]
 ---
 # Propagación de detalles (`getPropagation` / `setPropagation`)
 
-[← índice](../README.md) · `src/02-controllers/server/controller.ts` · tipos `WritePropagation` e `Include`
-
 Las relaciones del schema (`kind: "one" | "many"`, `on`) definen la **cardinalidad**. El consumidor decide qué detalles se **leen** y cuáles se **escriben** junto al padre, que pueden ser distintos:
 
 ```ts
@@ -61,4 +59,4 @@ new ServerController(ProductoEntity, { db: pg, table: "productos" });
 new ServerController(PedidoEntity, { db: lite, table: "pedidos", getPropagation: () => ({ lineas: { producto: true } }) });
 ```
 
-Las columnas locales de `on` se agregan solas a la salida cuando una relación es de otra base (las necesita el join). Probado con SQLite + PostgreSQL mezclados en `tests/multidb.test.ts`.
+Las columnas locales de `on` se agregan solas a la salida cuando una relación es de otra base (las necesita el join). Está probado con SQLite y PostgreSQL mezclados.
