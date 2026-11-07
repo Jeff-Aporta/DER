@@ -17,8 +17,14 @@ export const ZTksConfig = z.strictObject({ estadosFinalizados: z.array(z.string(
 /** Configuración ya validada. */
 export type TksConfig = z.infer<typeof ZTksConfig>;
 
-/** Fila de un tk (tiquete). */
-export type Tk = { itk: number; requerimiento: string; proposito: string | null; jtodo: Pendientes | null; estado: string; bfinalizado: boolean; fhcre: Date | null; bactivo: boolean; iusuario: string | null; jasignados: Asignados | null; qtotalmensajes: number | null; qcalificacion: number | null };
+/**
+ * Fila de un tk (tiquete).
+ *
+ * `itk` es TEXTO: la numeración la quema una secuencia en base 36 con relleno de ceros a 4 dígitos
+ * (`0001`, `0002`… `000a`, `0010`…), así el número admite letras y cada empresa puede adaptarlo con
+ * su propio controller (otra base, otro relleno o un prefijo).
+ */
+export type Tk = { itk: string; requerimiento: string; proposito: string | null; jtodo: Pendientes | null; estado: string; bfinalizado: boolean; fhcre: Date | null; bactivo: boolean; iusuario: string | null; jasignados: Asignados | null; qtotalmensajes: number | null; qcalificacion: number | null };
 
 /** Datos para crear o cambiar un tk (lo que el front envía). */
 export type TkInput = { requerimiento?: string | undefined; proposito?: string | null | undefined; jtodo?: Pendientes | null | undefined; estado?: string | undefined; bfinalizado?: boolean | undefined; iusuario?: string | null | undefined; jasignados?: Asignados | null | undefined };

@@ -29,7 +29,7 @@ const lista = await tks.misTks();
 
 | columna | tipo | qué es |
 |---|---|---|
-| `itk` | int pk autoincrement | el número del tiquete (1, 2, 3…) |
+| `itk` | string pk (secuencia) | el número del tiquete: base 36 con relleno a 4 dígitos (`0001`, `0002`… `000a`, `0010`) |
 | `requerimiento` | text | el contenido (html|md) |
 | `proposito` | string 300 | la idea resumida del foco |
 | `jtodo` | json | los pendientes: `[{ hecho, contenido, jedit }]` |
@@ -45,6 +45,8 @@ const lista = await tks.misTks();
 ## Reglas
 
 - El alta pone `fhcre` (ahora), `iusuario` (la sesión), `estado` (`por_hacer`) y `bfinalizado` (la regla).
+- La numeración (`itk`) es una secuencia en base 36 con relleno de ceros a 4 dígitos (`0001`, `0002`… `000a`): el
+  número admite letras y cada empresa puede adaptarlo con su controller (otra base, otro relleno o un prefijo).
 - `cfg.estadosFinalizados`: los estados que cierran un tiquete; con esa lista, `bfinalizado` lo manda el estado y el
   valor manual no cuenta. Sin lista, el usuario puede marcarlo a mano (`cfg.permitirFinalizadoManual`).
 - La baja es lógica: `DELETE` archiva (`bactivo` false) y la fila nunca se borra.

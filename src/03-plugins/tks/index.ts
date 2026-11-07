@@ -36,7 +36,7 @@ export const tksPlugin: PluginDef = {
       security: true,
       schema: {
         columns: {
-          itk: { type: "int", pk: true, autoincrement: true },
+          itk: { type: "string", pk: true, length: 12, sequence: { name: "tks_itk", start: 1, increment: 1, base: 36, as: "string", pattern: "{n:4}" } },
           requerimiento: { type: "text", nullable: false },
           proposito: { type: "string", length: 300 },
           jtodo: { type: "json" },

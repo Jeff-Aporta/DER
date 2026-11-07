@@ -83,7 +83,7 @@
 
 ### Tiquetes, mensajes, calificaciones y reacciones
 
-- **[W-PLG-80]** Tiquetes: entidad `tks` (tabla `tks_tks`) con `itk` autoincremental, `requerimiento` (html|md), `proposito`, `jtodo` (`[{hecho, contenido, jedit}]`), `estado` (columna kanban), `bfinalizado`, `fhcre`, `bactivo`, `iusuario` y `jasignados` (`{usuarios, roles, grupos}`; `*` en grupos = todos). CRUD completo y `POST tk` como alta.
+- **[W-PLG-80]** Tiquetes: entidad `tks` (tabla `tks_tks`) con `itk` texto (secuencia en base 36 con relleno de ceros a 4 dígitos: `0001`, `0002`… `000a`; adaptable por el controller de cada empresa), `requerimiento` (html|md), `proposito`, `jtodo` (`[{hecho, contenido, jedit}]`), `estado` (columna kanban), `bfinalizado`, `fhcre`, `bactivo`, `iusuario` y `jasignados` (`{usuarios, roles, grupos}`; `*` en grupos = todos). CRUD completo y `POST tk` como alta.
 - **[W-PLG-81]** El alta de un tiquete pone `fhcre` (ahora), `iusuario` (la sesión), `estado` (`por_hacer`) y `bfinalizado` (la regla); `cfg.estadosFinalizados` declara los estados que cierran un tiquete y, con esa lista, el estado manda sobre el valor manual; sin lista, `cfg.permitirFinalizadoManual` deja marcarlo a mano.
 - **[W-PLG-82]** La baja de un tiquete es lógica: `DELETE` (y el borrado en plural) archiva (`bactivo` false) y la fila no se borra.
 - **[W-PLG-83]** `GET tks/mis` devuelve los tiquetes que la sesión ve (quien lo creó, o si está asignado por usuario, rol o grupo; `*` = todos), con la paginación de DER (`page`, `pageSize`) y los filtros `estado` y `q`.

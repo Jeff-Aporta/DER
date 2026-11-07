@@ -45,25 +45,41 @@ Deno.test("tks: alta con autoincremental y los defaults del servidor", async () 
   const r = await call(router, "POST", "tk", { body: { requerimiento: "#1 Arreglar el login", proposito: "El login no guarda" }, headers: como("ana") });
   assertEquals(r.status, 201, JSON.stringify(r.data));
   const tk = r.data as Tk;
-  assertEquals(tk.itk, 1);
+  assertEquals(tk.itk, "0001", "la numeración es base 36 con relleno a 4 dígitos");
   assertEquals(tk.estado, "por_hacer");
   assertEquals(tk.iusuario, "ana");
   assertEquals(tk.bactivo, true);
   assertEquals(tk.bfinalizado, false);
   assert(tk.fhcre, "debe poner la fecha de alta");
   const r2 = await call(router, "POST", "tk", { body: { requerimiento: "#2 otro" }, headers: como("beto") });
-  assertEquals((r2.data as Tk).itk, 2);
+  assertEquals((r2.data as Tk).itk, "0002");
+  await cerrar();
+});
+
+
+Deno.test("tks: la numeración es base 36 con relleno a 4 dígitos (después del 9 aparecen letras)", async () => {
+  const { router, cerrar } = await montar();
+  let ultimo = "";
+  for (let i = 0; i < 11; i++) {
+    const r = await call(router, "POST", "tk", { body: { requerimiento: "#" + i }, headers: como("ana") });
+    ultimo = (r.data as Tk).itk;
+  }
+  assertEquals(ultimo, "000b", "el 11 se quema como 'b' en base 36");
+  const lista = await call(router, "GET", "tks", { headers: como("ana") });
+  const numeros = (lista.data as Tk[]).map((t) => t.itk);
+  assertEquals(numeros.includes("000a"), true, "el 10 es 'a'");
+  assertEquals(numeros.includes("0001"), true);
   await cerrar();
 });
 
 Deno.test("tks: la regla de cierre marca bfinalizado y manda sobre el manual", async () => {
   const { router, cerrar } = await montar();
   await call(router, "POST", "tk", { body: { requerimiento: "#1" }, headers: como("ana") });
-  const fin = await call(router, "PUT", "tk/1", { body: { estado: "finalizado" }, headers: como("ana") });
+  const fin = await call(router, "PUT", "tk/0001", { body: { estado: "finalizado" }, headers: como("ana") });
   assertEquals((fin.data as Tk).bfinalizado, true);
-  const otro = await call(router, "PUT", "tk/1", { body: { estado: "en_proceso" }, headers: como("ana") });
+  const otro = await call(router, "PUT", "tk/0001", { body: { estado: "en_proceso" }, headers: como("ana") });
   assertEquals((otro.data as Tk).bfinalizado, false);
-  const manual = await call(router, "PUT", "tk/1", { body: { bfinalizado: true }, headers: como("ana") });
+  const manual = await call(router, "PUT", "tk/0001", { body: { bfinalizado: true }, headers: como("ana") });
   assertEquals((manual.data as Tk).bfinalizado, false, "con regla declarada manda el estado, no el manual");
   await cerrar();
 });
@@ -71,10 +87,10 @@ Deno.test("tks: la regla de cierre marca bfinalizado y manda sobre el manual", a
 Deno.test("tks: la baja es lógica (archiva, no borra)", async () => {
   const { router, cerrar } = await montar();
   await call(router, "POST", "tk", { body: { requerimiento: "#1" }, headers: como("ana") });
-  const del = await call(router, "DELETE", "tk/1", { headers: como("ana") });
+  const del = await call(router, "DELETE", "tk/0001", { headers: como("ana") });
   assertEquals(del.status, 200);
   assertEquals((del.data as Tk).bactivo, false);
-  const sigue = await call(router, "GET", "tk/1", { headers: como("ana") });
+  const sigue = await call(router, "GET", "tk/0001", { headers: como("ana") });
   assertEquals(sigue.status, 200, "la fila se conserva");
   assertEquals((sigue.data as Tk).bactivo, false);
   await cerrar();
@@ -88,11 +104,11 @@ Deno.test("tks: misTks ve por usuario, rol, grupo y comodín, y pagina", async (
   await call(router, "POST", "tk", { body: { requerimiento: "#4", proposito: "cuatro", jasignados: { usuarios: [], roles: [], grupos: ["soporte"] } }, headers: como("ana") });
   await call(router, "POST", "tk", { body: { requerimiento: "#5", proposito: "cinco", jasignados: { usuarios: [], roles: [], grupos: ["*"] } }, headers: como("ana") });
   const r = await call(router, "GET", "tks/mis", { headers: como("carlos", { "x-roles": "tecnico", "x-grupos": "soporte" }) });
-  const ids = ((r.data as { tks: Tk[]; total: number }).tks).map((t) => t.itk).sort((a, b) => a - b);
-  assertEquals(ids, [3, 4, 5], "ve por rol, por grupo y el comodín; no ve los de otro usuario");
+  const ids = ((r.data as { tks: Tk[]; total: number }).tks).map((t) => t.itk).sort();
+  assertEquals(ids, ["0003", "0004", "0005"], "ve por rol, por grupo y el comodín; no ve los de otro usuario");
   assertEquals((r.data as { tks: Tk[]; total: number }).total, 3, "el total es de los visibles, no de la tabla");
   const propia = await call(router, "GET", "tks/mis", { headers: como("ana") });
-  assertEquals((propia.data as { tks: Tk[] }).tks.map((t) => t.itk).sort((a, b) => a - b), [1, 2, 3, 4, 5], "quien lo creó lo ve siempre; sin asignación no lo ven los demás");
+  assertEquals((propia.data as { tks: Tk[] }).tks.map((t) => t.itk).sort(), ["0001", "0002", "0003", "0004", "0005"], "quien lo creó lo ve siempre; sin asignación no lo ven los demás");
   const pag = await call(router, "GET", "tks/mis?page=1&pageSize=2", { headers: como("carlos", { "x-roles": "tecnico", "x-grupos": "soporte" }) });
   assertEquals((pag.data as { tks: Tk[]; total: number }).tks.length, 2);
   assertEquals((pag.data as { tks: Tk[]; total: number }).total, 3, "el total no depende de la página");

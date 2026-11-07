@@ -40,18 +40,18 @@ const plugins = new WeakMap<object, ServerPlugin>();
 
 /** Métrica: cuántos mensajes tiene el tk (cuenta los del espacio `tks` con su id como referencia). */
 const SQL_MENSAJES = {
-  sqlite: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = cast({itk} as text))",
-  pg: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = cast({itk} as text))",
-  mysql: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = cast({itk} as char))",
-  mssql: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = cast({itk} as varchar(60)))",
+  sqlite: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
+  pg: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
+  mysql: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
+  mssql: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
 };
 
 /** Métrica: la calificación promedio del tk (nulo si nadie lo ha calificado). */
 const SQL_CALIFICACION = {
-  sqlite: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = cast({itk} as text))",
-  pg: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = cast({itk} as text))",
-  mysql: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = cast({itk} as char))",
-  mssql: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = cast({itk} as varchar(60)))",
+  sqlite: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
+  pg: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
+  mysql: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
+  mssql: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
 };
 
 /** Perfil de la sesión (usuario, roles y grupos) para evaluar las asignaciones. */
