@@ -25,9 +25,10 @@ export type JsonPrimitive = string | number | boolean | null;
  * Secuencia de una columna: global (`CREATE SEQUENCE` en PG/MSSQL; tabla `_sequences` en SQLite/MySQL) con `name` para
  * compartirla, `start` e `increment`; `scope` = consecutivo por grupo (máximo + incremento dentro del grupo); `pattern`
  * = el número formateado (`"FAC-{n:5}"` → `FAC-00042`); `base` (2..36, default 10) = base en la que se quema el
- * número (base > 10 exige columna string); `as` = `number` (sólo base 10 en columna numérica) o `string`.
+ * número (base > 10 exige columna string); `as` = `number` (sólo base 10 en columna numérica) o `string`;
+ * `mayus` = quema el número en mayúsculas (`base` > 10).
  */
-export type SequenceDef = { name?: string | undefined; start?: number | undefined; increment?: number | undefined; scope?: string[] | undefined; pattern?: string | undefined; base?: number | undefined; as?: "number" | "string" | undefined };
+export type SequenceDef = { name?: string | undefined; start?: number | undefined; increment?: number | undefined; scope?: string[] | undefined; pattern?: string | undefined; base?: number | undefined; as?: "number" | "string" | undefined; mayus?: boolean | undefined };
 /** `pk` forma parte de la llave; `autoincrement` = identity del motor (sólo pks enteras); `nullable` default true salvo pks; `default` literal o `{ sql }`; `enum` valores permitidos (Zod automático); `virtual` no se persiste (`computed` en el server); `sequence` valor generado al insertar; `zod` refina el valor (en `json` es su molde). */
 export type ColumnDef = { type: ColumnType; pk?: boolean; autoincrement?: boolean; nullable?: boolean; length?: number; precision?: number; scale?: number; unique?: boolean; default?: JsonPrimitive | { sql: string }; enum?: readonly (string | number)[]; virtual?: boolean; sequence?: true | SequenceDef; zod?: z.ZodType };
 /** `one` → objeto (1:1 / N:1), `many` → lista (1:N). `target` = nombre de la entidad (JSON puro, se resuelve en diferido) o thunk a la clase. `on` = `columnaLocal: columnaDelDetalle`. */

@@ -859,7 +859,8 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
     } else n = await this.engine.nextValue(exec, this.sequenceName(field));
     if (def.as === "number") return n;
     const text = n.toString(def.base);
-    return def.pattern ? formatSequence(def.pattern, text) : text;
+    const quemado = def.mayus ? text.toUpperCase() : text;
+    return def.pattern ? formatSequence(def.pattern, quemado) : quemado;
   }
 
   /** Completa las columnas con secuencia que no vienen en el pojo (antes del INSERT). */

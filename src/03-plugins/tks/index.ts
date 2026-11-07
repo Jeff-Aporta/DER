@@ -36,11 +36,11 @@ export const tksPlugin: PluginDef = {
       security: true,
       schema: {
         columns: {
-          itk: { type: "string", pk: true, length: 12, sequence: { name: "tks_itk", start: 1, increment: 1, base: 36, as: "string", pattern: "{n:4}" } },
+          itk: { type: "string", pk: true, length: 12, sequence: { name: "tks_itk", start: 1, increment: 1, base: 36, as: "string", mayus: true, pattern: "{n:6}" } },
           requerimiento: { type: "text", nullable: false },
           proposito: { type: "string", length: 300 },
           jtodo: { type: "json" },
-          estado: { type: "string", length: 40, nullable: false, default: "por_hacer" },
+          estado: { type: "string", length: 40, nullable: false, default: "POR_HACER" },
           bfinalizado: { type: "bool", default: false },
           fhcre: { type: "datetime" },
           bactivo: { type: "bool", default: true },

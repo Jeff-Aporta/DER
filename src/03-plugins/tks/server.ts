@@ -12,7 +12,7 @@
  *   plugins de mensajes y de calificaciones: un plugin no depende de otro.
  *
  * ```ts
- * const tks = createServer(tksServer, { db, cfg: { estadosFinalizados: ["finalizado"] } });
+ * const tks = createServer(tksServer, { db, cfg: { estadosFinalizados: ["FINALIZADO"] } });
  * ```
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
@@ -33,7 +33,7 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/tks/index.ts";
 export const ESPACIO_TKS = "tks";
 
 /** Configuración por defecto si el consumidor no declaró otra. */
-const CFG_DEFECTO: TksConfig = { estadosFinalizados: ["finalizado"], permitirFinalizadoManual: true };
+const CFG_DEFECTO: TksConfig = { estadosFinalizados: ["FINALIZADO"], permitirFinalizadoManual: true };
 
 /** Plugin dueño de cada controller, para los hooks (de ahí sale la configuración). */
 const plugins = new WeakMap<object, ServerPlugin>();
@@ -71,7 +71,12 @@ function visible(tk: Tk, perfil: PerfilAsignado): boolean {
 /** La regla de cierre: el estado de cierre marca `bfinalizado`; sin estado de cierre, manda lo que ponga el usuario. */
 function reglaFinalizado(cfg: TksConfig, tk: Tk): void {
   const estados = cfg.estadosFinalizados ?? [];
-  if (estados.length) tk.bfinalizado = estados.includes(String(tk.estado));
+  // El estado es un texto libre: la regla compara sin distinguir mayúsculas (así cada empresa puede
+  // escribirlo como quiera: "finalizado", "FINALIZADO", "Finalizado"…).
+  if (estados.length) {
+    const actual = String(tk.estado).toUpperCase();
+    tk.bfinalizado = estados.some((e) => String(e).toUpperCase() === actual);
+  }
   else if (!cfg.permitirFinalizadoManual) tk.bfinalizado = false;
 }
 
@@ -92,7 +97,7 @@ export const tksServer: ServerPluginDef = Obj.insert(tksPlugin, {
           const cfg = (plugins.get(this)?.cfg as TksConfig | undefined) ?? CFG_DEFECTO;
           if (!tk.fhcre) tk.fhcre = new Date();
           if (!tk.iusuario && ctx.session?.id) tk.iusuario = String(ctx.session.id);
-          if (!tk.estado) tk.estado = "por_hacer";
+          if (!tk.estado) tk.estado = "POR_HACER";
           if (tk.bactivo === null || tk.bactivo === undefined) tk.bactivo = true;
           reglaFinalizado(cfg, tk);
           return null;
