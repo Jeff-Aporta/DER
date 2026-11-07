@@ -88,12 +88,14 @@ Deno.test("tks: misTks ve por usuario, rol, grupo y comodín, y pagina", async (
   await call(router, "POST", "tk", { body: { requerimiento: "#4", proposito: "cuatro", jasignados: { usuarios: [], roles: [], grupos: ["soporte"] } }, headers: como("ana") });
   await call(router, "POST", "tk", { body: { requerimiento: "#5", proposito: "cinco", jasignados: { usuarios: [], roles: [], grupos: ["*"] } }, headers: como("ana") });
   const r = await call(router, "GET", "tks/mis", { headers: como("carlos", { "x-roles": "tecnico", "x-grupos": "soporte" }) });
-  const ids = (r.data as Tk[]).map((t) => t.itk).sort((a, b) => a - b);
+  const ids = ((r.data as { tks: Tk[]; total: number }).tks).map((t) => t.itk).sort((a, b) => a - b);
   assertEquals(ids, [3, 4, 5], "ve por rol, por grupo y el comodín; no ve los de otro usuario");
+  assertEquals((r.data as { tks: Tk[]; total: number }).total, 3, "el total es de los visibles, no de la tabla");
   const propia = await call(router, "GET", "tks/mis", { headers: como("ana") });
-  assertEquals((propia.data as Tk[]).map((t) => t.itk).sort((a, b) => a - b), [1, 2, 3, 4, 5], "quien lo creó lo ve siempre; sin asignación no lo ven los demás");
+  assertEquals((propia.data as { tks: Tk[] }).tks.map((t) => t.itk).sort((a, b) => a - b), [1, 2, 3, 4, 5], "quien lo creó lo ve siempre; sin asignación no lo ven los demás");
   const pag = await call(router, "GET", "tks/mis?page=1&pageSize=2", { headers: como("carlos", { "x-roles": "tecnico", "x-grupos": "soporte" }) });
-  assertEquals((pag.data as Tk[]).length, 2);
+  assertEquals((pag.data as { tks: Tk[]; total: number }).tks.length, 2);
+  assertEquals((pag.data as { tks: Tk[]; total: number }).total, 3, "el total no depende de la página");
   await cerrar();
 });
 

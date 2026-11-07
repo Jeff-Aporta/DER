@@ -146,7 +146,7 @@ export const tksServer: ServerPluginDef = Obj.insert(tksPlugin, {
         },
         misTks: {
           /** Lo que la sesión ve, con la paginación de DER: page, pageSize, estado y q (búsqueda). */
-          async handler(this: ServerPlugin, i: ExtraRouteInput, ctx: ServerCtx): Promise<Tk[]> {
+          async handler(this: ServerPlugin, i: ExtraRouteInput, ctx: ServerCtx): Promise<{ tks: Tk[]; total: number }> {
             const ctrl = this.controllers["tks"]!;
             const perfil = perfilDe(ctx);
             const pagina = Math.max(1, Number(i.query.get("page") ?? 1) || 1);
@@ -156,7 +156,7 @@ export const tksServer: ServerPluginDef = Obj.insert(tksPlugin, {
             const filas = await ctrl.query({ where: { bactivo: true }, orderBy: "-itk", pageSize: ctrl.entity.maxPageSize }, { ...ctx, include: {} }) as Tk[];
             const propias = filas.filter((t) => visible(t, perfil));
             const filtradas = propias.filter((t) => (estado ? String(t.estado) === estado : true)).filter((t) => (busqueda ? String(t.proposito ?? "").toLowerCase().includes(busqueda) || String(t.requerimiento ?? "").toLowerCase().includes(busqueda) : true));
-            return filtradas.slice((pagina - 1) * tamano, pagina * tamano);
+            return { tks: filtradas.slice((pagina - 1) * tamano, pagina * tamano), total: filtradas.length };
           },
         },
       },

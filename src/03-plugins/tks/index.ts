@@ -59,8 +59,8 @@ export const tksPlugin: PluginDef = {
           returns: "json",
           ops: {
             /** `GET tks/mis`: los tks que la sesión puede ver (creador, asignados por usuario, rol o grupo). */
-            misTks(this: ClientPlugin): Promise<Tk[]> {
-              return this.call<Tk[]>("misTks");
+            misTks(this: ClientPlugin): Promise<{ tks: Tk[]; total: number }> {
+              return this.call<{ tks: Tk[]; total: number }>("misTks");
             },
           },
         },

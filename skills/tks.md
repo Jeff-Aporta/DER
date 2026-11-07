@@ -49,7 +49,8 @@ const lista = await tks.misTks();
   valor manual no cuenta. Sin lista, el usuario puede marcarlo a mano (`cfg.permitirFinalizadoManual`).
 - La baja es lógica: `DELETE` archiva (`bactivo` false) y la fila nunca se borra.
 - `misTks`: lo que la sesión ve (quien lo creó o si está asignado por usuario, rol o grupo; `*` en grupos = todos), con
-  la paginación de DER (`page`, `pageSize`) y filtros (`estado`, `q`).
+  la paginación de DER (`page`, `pageSize`) y filtros (`estado`, `q`). Responde `{ tks, total }`: la página y el total de
+  los visibles (el total es de los visibles, no de la tabla).
 - Las columnas de métrica se encienden en `seed` si el consumidor instaló los plugins de mensajes y de calificaciones:
   un plugin no depende de otro.
 
