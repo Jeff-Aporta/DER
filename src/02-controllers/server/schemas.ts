@@ -132,11 +132,21 @@ export type DocViewOptions = { pin?: string; title?: string; theme?: "light" | "
 /** Driver SQLite asíncrono estilo `sqlite3` (node-sqlite3): `all`/`run` con callback. */
 export type AsyncSqlite = { all(sql: string, params: unknown[], cb: (err: Error | null, rows: unknown[]) => void): unknown; run(sql: string, params: unknown[], cb: (this: { changes?: number; lastID?: number }, err: Error | null) => void): unknown; close?(cb?: (err: Error | null) => void): unknown };
 
-/** Resultado de `D1PreparedStatement.all()`: filas en `results`, contadores en `meta`. */
-export type D1RunResult = { results?: unknown[]; meta?: { changes?: number | null; last_row_id?: number | null } };
-/** Sentencia preparada de D1: `bind(...)` encadena y `all()` ejecuta (filas y `meta` para toda sentencia). */
-export type D1StatementLike = { bind(...values: unknown[]): D1StatementLike; all(): Promise<D1RunResult> };
+/** Metadatos de una ejecución D1: filas afectadas y último id insertado. */
+export type D1Meta = { changes?: number | null; last_row_id?: number | null };
+/** Resultado de `D1PreparedStatement.all()`/`run()`: filas en `results`, contadores en `meta`. */
+export type D1RunResult = { results?: unknown[]; meta?: D1Meta };
+/** Función `bind` de una sentencia D1. */
+export type D1Bind = (...values: unknown[]) => D1StatementLike;
+/** Métodos de ejecución de una sentencia D1. */
+export type D1Execute = { all(): Promise<D1RunResult>; run?(): Promise<D1RunResult> };
+/** Sentencia D1: `bind`, `all`/`run` y `first` (la primera fila). */
+export type D1StatementLike = { bind: D1Bind } & D1Execute & { first?(columnName?: string): Promise<unknown | null> };
 /** Binding `D1Database` de un Worker de Cloudflare (lo mínimo que usa el driver). */
 export type D1Like = { prepare(sql: string): D1StatementLike };
+/** Adaptador de D1 por HTTP: endpoint de query, token Bearer y `fetch` inyectable para pruebas. */
+export type D1HttpOptions = { endpoint: string; token: string; fetch?: typeof fetch };
+/** Variables de entorno que alimentan el adaptador HTTP de D1. */
+export type D1HttpEnv = { D1_HTTP_ENDPOINT?: string; D1_HTTP_TOKEN?: string };
 /** Fila de `pragma_table_info` unida a su tabla (introspector de D1). */
 export type D1ColumnRow = { tabla: string; name: string; type: string; notnull: number; dflt_value: unknown; pk: number };

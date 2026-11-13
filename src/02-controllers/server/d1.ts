@@ -15,7 +15,7 @@
  */
 import { type CompiledQuery, type DatabaseConnection, type DatabaseIntrospector, type DatabaseMetadata, type Dialect, type Driver, type Kysely, type QueryResult, type SchemaMetadata, sql, SqliteAdapter, SqliteQueryCompiler, type TableMetadata } from "kysely";
 import { Database } from "@Jeff-Aporta/DER/src/02-controllers/server/database.ts";
-import type { D1ColumnRow, D1Like, D1RunResult, DbFactoryOptions } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import type { D1ColumnRow, D1HttpEnv, D1HttpOptions, D1Like, D1RunResult, D1StatementLike, DbFactoryOptions } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { sqlite } from "@Jeff-Aporta/DER/src/02-controllers/server/engines.ts";
 
 export * from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
@@ -91,15 +91,34 @@ class D1Introspector implements DatabaseIntrospector {
   }
   /** Tablas y vistas del usuario (sin `sqlite_*` ni `_cf_*`) con sus columnas. */
   async getTables(): Promise<TableMetadata[]> {
-    const tablas = await sql<{ name: string; sql: string | null; type: string }>`select name, sql, type from sqlite_master where type in ('table', 'view') and substr(name, 1, 7) != 'sqlite_' and substr(name, 1, 4) != '_cf_' order by name`.execute(this.#db);
-    const columnas = await sql<D1ColumnRow>`select tl.name as tabla, p.name, p.type, p."notnull", p.dflt_value, p.pk from sqlite_master tl, pragma_table_info(tl.name) p where tl.type in ('table', 'view') and substr(tl.name, 1, 7) != 'sqlite_' and substr(tl.name, 1, 4) != '_cf_' order by tl.name, p.cid`.execute(this.#db);
+    const tablas = await sql<
+      { name: string; sql: string | null; type: string }
+    >`select name, sql, type from sqlite_master where type in ('table', 'view') and substr(name, 1, 7) != 'sqlite_' and substr(name, 1, 4) != '_cf_' order by name`
+      .execute(this.#db);
+    const columnas = await sql<
+      D1ColumnRow
+    >`select tl.name as tabla, p.name, p.type, p."notnull", p.dflt_value, p.pk from sqlite_master tl, pragma_table_info(tl.name) p where tl.type in ('table', 'view') and substr(tl.name, 1, 7) != 'sqlite_' and substr(tl.name, 1, 4) != '_cf_' order by tl.name, p.cid`
+      .execute(this.#db);
     const porTabla = new Map<string, D1ColumnRow[]>();
     for (const c of columnas.rows) porTabla.set(c.tabla, [...(porTabla.get(c.tabla) ?? []), c]);
     return tablas.rows.map((t) => {
       const cols = porTabla.get(t.name) ?? [];
       const pks = cols.filter((c) => c.pk > 0);
-      const auto = /autoincrement/i.test(t.sql ?? "") || (pks.length === 1 && pks[0]!.type.toLowerCase() === "integer") ? pks[0]?.name : undefined;
-      return { name: t.name, isView: t.type === "view", columns: cols.map((c) => ({ name: c.name, dataType: c.type, isNullable: !c.notnull, isAutoIncrementing: c.name === auto, hasDefaultValue: c.dflt_value != null })) };
+      const auto =
+        /autoincrement/i.test(t.sql ?? "") || (pks.length === 1 && pks[0]!.type.toLowerCase() === "integer")
+          ? pks[0]?.name
+          : undefined;
+      return {
+        name: t.name,
+        isView: t.type === "view",
+        columns: cols.map((c) => ({
+          name: c.name,
+          dataType: c.type,
+          isNullable: !c.notnull,
+          isAutoIncrementing: c.name === auto,
+          hasDefaultValue: c.dflt_value != null,
+        })),
+      };
     });
   }
   /** Metadatos completos (sólo tablas). */
@@ -110,10 +129,108 @@ class D1Introspector implements DatabaseIntrospector {
 
 /** Dialecto de Kysely para un binding D1 (compilador y adaptador de SQLite; introspector que ignora `_cf_*`). */
 export function d1Dialect(d1: D1Like): Dialect {
-  return { createDriver: () => new D1Driver(d1), createQueryCompiler: () => new SqliteQueryCompiler(), createAdapter: () => new SqliteAdapter(), createIntrospector: (k) => new D1Introspector(k) };
+  return {
+    createDriver: () => new D1Driver(d1),
+    createQueryCompiler: () => new SqliteQueryCompiler(),
+    createAdapter: () => new SqliteAdapter(),
+    createIntrospector: (k) => new D1Introspector(k),
+  };
 }
 
 /** Base DER sobre el binding D1 del Worker (`env.DB`): motor `sqlite`. */
 export function d1Database(d1: D1Like, opts: DbFactoryOptions = {}): Database {
   return new Database({ engine: sqlite, dialect: d1Dialect(d1), ...opts });
+}
+
+/** Endpoint REST de Cloudflare para consultar una base D1. */
+export function d1HttpEndpoint(
+  accountId: string,
+  databaseId: string,
+  base = "https://api.cloudflare.com/client/v4",
+): string {
+  return `${base.replace(/\/+$/, "")}/accounts/${encodeURIComponent(accountId)}/d1/database/${
+    encodeURIComponent(databaseId)
+  }/query`;
+}
+
+/**
+ * Sentencia D1 sobre la API HTTP: emula `prepare().bind()` con un POST JSON `{ sql, params }`.
+ * `all()` y `run()` devuelven el mismo `D1Result`; `first()` devuelve la primera fila.
+ */
+class D1HttpStatement implements D1StatementLike {
+  #params: unknown[] = [];
+  constructor(readonly sql: string, readonly options: D1HttpOptions) {}
+  /** Fija los parámetros de la sentencia (la API REST los viaja en `params`). */
+  bind(...values: unknown[]): D1StatementLike {
+    this.#params = values;
+    return this;
+  }
+  /** Ejecuta la sentencia y devuelve filas y metadatos. */
+  async all(): Promise<D1RunResult> {
+    const doFetch = this.options.fetch ?? fetch;
+    const headers = new Headers();
+    headers.set("authorization", `Bearer ${this.options.token}`);
+    headers.set("content-type", "application/json");
+    const res = await doFetch(this.options.endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ sql: this.sql, params: this.#params }),
+    });
+    const envelope = await res.json() as {
+      success?: boolean;
+      result?: D1RunResult[];
+      errors?: { message?: string }[];
+      messages?: { message?: string }[];
+    };
+    if (!res.ok || envelope.success === false) {
+      const detalle = envelope.errors?.[0]?.message ?? envelope.messages?.[0]?.message ??
+        `HTTP ${res.status}`;
+      throw new Error(`D1 HTTP: ${detalle}`);
+    }
+    const result = envelope.result?.[0];
+    if (!result) throw new Error("D1 HTTP: la respuesta no trae resultado");
+    if ((result as { success?: boolean }).success === false) throw new Error("D1 HTTP: la consulta falló");
+    return result;
+  }
+  /** Alias de `all()`, igual que en el binding D1. */
+  run(): Promise<D1RunResult> {
+    return this.all();
+  }
+  /** Primera fila; con `columnName`, el valor de esa columna. */
+  async first(columnName?: string): Promise<unknown | null> {
+    const result = await this.all();
+    const row = result.results?.[0];
+    if (!row) return null;
+    if (!columnName) return row;
+    const value = (row as Record<string, unknown>)[columnName];
+    return value === undefined ? null : value;
+  }
+}
+
+/**
+ * Adaptador D1 por HTTP: el mismo contrato `prepare/bind/all/run/first` del binding, sobre
+ * `POST {endpoint}` con `{ sql, params }` y token Bearer. No imprime ni incluye el token en los errores.
+ */
+export function d1HttpD1(options: D1HttpOptions): D1Like {
+  if (!options.endpoint) throw new Error("D1 HTTP: falta el endpoint");
+  if (!options.token) throw new Error("D1 HTTP: falta el token");
+  return {
+    prepare(sql: string): D1StatementLike {
+      return new D1HttpStatement(sql, options);
+    },
+  };
+}
+
+/** Base DER sobre la API HTTP de D1 (mismo motor SQLite que el binding). */
+export function d1HttpDatabase(options: D1HttpOptions, opts: DbFactoryOptions = {}): Database {
+  return d1Database(d1HttpD1(options), opts);
+}
+
+/** Base DER sobre D1 HTTP con `D1_HTTP_ENDPOINT` y `D1_HTTP_TOKEN` del entorno. */
+export function d1HttpDatabaseFromEnv(env: D1HttpEnv, opts: DbFactoryOptions = {}): Database {
+  const endpoint = env.D1_HTTP_ENDPOINT;
+  const token = env.D1_HTTP_TOKEN;
+  if (!endpoint) throw new Error("D1 HTTP: falta D1_HTTP_ENDPOINT");
+  if (!token) throw new Error("D1 HTTP: falta D1_HTTP_TOKEN");
+  return d1HttpDatabase({ endpoint, token }, opts);
 }
