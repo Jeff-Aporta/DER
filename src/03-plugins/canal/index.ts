@@ -2,6 +2,12 @@
  * Plugin de canal para bots: el JSON TRANSVERSAL. Un mensaje tiene canal, hilo opcional, autor bot, texto, tipo,
  * mensaje de origen, fecha y versiones; las reacciones y los adjuntos son datos del mismo dominio.
  *
+ * ATENCION: las tablas llevan el prefijo `der_canal_*` (`der_canal_mensajes`, `der_canal_reacciones`,
+ * `der_canal_adjuntos`) porque el **Worker del estudio** (`estudio-canal`) ya tiene vivo el esquema canonico del
+ * canal en `canal_*`. Este plugin es la implementacion de REFERENCIA (para migrar despues, con controllers de DER y
+ * sin SQL crudo): la tabla de equivalencias columna a columna y la via de migracion estan en `skills/canal.md` y en
+ * `docs/050-Plugins/100-Canal.md`.
+ *
  * ```ts
  * const canal = createClient(canalPlugin, { baseUrl: "/api", headers: auth.headers });
  * await canal.publicar({ canal: "ops", texto: "listo" });
@@ -22,10 +28,10 @@ export const canalPlugin: PluginDef = {
   name: "canal",
   entities: {
     mensajes: {
-      name: "canal.mensaje",
+      name: "der_canal.mensaje",
       singular: "canal/mensaje",
       plural: "canal/mensajes",
-      table: "canal_mensajes",
+      table: "der_canal_mensajes",
       exposed: true,
       administrable: true,
       security: true,
@@ -121,10 +127,10 @@ export const canalPlugin: PluginDef = {
       },
     },
     reacciones: {
-      name: "canal.reaccion",
+      name: "der_canal.reaccion",
       singular: "canal/reaccion",
       plural: "canal/reacciones",
-      table: "canal_reacciones",
+      table: "der_canal_reacciones",
       exposed: true,
       administrable: true,
       security: true,
@@ -169,10 +175,10 @@ export const canalPlugin: PluginDef = {
       },
     },
     adjuntos: {
-      name: "canal.adjunto",
+      name: "der_canal.adjunto",
       singular: "canal/adjunto",
       plural: "canal/adjuntos",
-      table: "canal_adjuntos",
+      table: "der_canal_adjuntos",
       exposed: true,
       administrable: true,
       security: true,

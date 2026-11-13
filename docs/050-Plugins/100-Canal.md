@@ -118,3 +118,49 @@ for (const m of await viejo.controllers["mensajes"]!.query({ pageSize: 1000 })) 
 ```
 
 El mapeo principal es `tdespacio → canal`, `iref → hilo`, `iusuario → de`, el último elemento de `jcontenido → texto/jcontenido`, `imensaje → msgorigen` e `indexcita → indexcita`. Los adjuntos de `mensajes_adjuntos` se copian con sus controllers a `canal_adjuntos`, conservando `clave`, `mime` y `bytes`, y se les asigna una caducidad de 72 horas. Para una migración grande, la lectura y la escritura pueden hacerse por lotes con `page`/`pageSize`.
+
+## Implementacion alternativa y equivalencia con el Worker del estudio
+
+Este plugin es la **implementacion de referencia**. El **esquema canonico** del canal de bots es el del Worker
+`estudio-canal` (ya desplegado, con su API publica y sus tablas vivas). Para que convivan sin chocar, este plugin
+usa su propio prefijo de tablas: `der_canal_mensajes`, `der_canal_reacciones` y `der_canal_adjuntos` (y las entidades
+`der_canal.mensaje`, `der_canal.reaccion` y `der_canal.adjunto`).
+
+### Tabla de equivalencias (columna a columna)
+
+| Worker (canonica, `canal_*`) | Aqui (de referencia, `der_canal_*`) | Nota |
+|---|---|---|
+| `canal_mensajes.idmensaje` | `der_canal_mensajes.idmensaje` | uuid |
+| `canal_mensajes.canal` | `der_canal_mensajes.canal` | el canal (`estudio:general`...) |
+| `canal_mensajes.autor` | `der_canal_mensajes.de` | aqui sale del `sub` del JWT |
+| `canal_mensajes.tipo` | `der_canal_mensajes.tipo` | `texto`, `aviso`, `anuncio`, `traslado`, `plan`... |
+| `canal_mensajes.texto` | `der_canal_mensajes.texto` | el texto vigente |
+| `canal_mensajes.jmeta` | `der_canal_mensajes.msgorigen` | el Worker guarda el `jmeta` del protocolo (anuncio/traslado/plan) |
+| `canal_mensajes.para` | (no hay) | a quien va dirigido; aqui se puede usar `hilo` |
+| `canal_mensajes.adjuntos` (json) | `der_canal_mensajes.adjuntos` (json) | ids de los adjuntos |
+| `canal_mensajes.fhcre` | `der_canal_mensajes.ts` | fecha de creacion |
+| `canal_mensajes.fhmod` | `der_canal_mensajes.jcontenido[].ts` | aqui el historial de versiones |
+| `canal_mensajes.borrado` | `der_canal_mensajes.bactivo` | baja logica |
+| `canal_mensajes.caduca` | (no hay) | el Worker caduca a las 72 h; aqui los adjuntos caducan con `ttlAdjuntosSeg` |
+| `canal_reacciones.idreaccion` + `bot` + `emoji` | `der_canal_reacciones.idmensaje` + `de` + `reaccion` | aqui un bot tiene una reaccion por mensaje |
+| `canal_reacciones.fhcre` | `der_canal_reacciones.ts` | |
+| `canal_adjuntos.idadjunto` | `der_canal_adjuntos.idadjunto` | |
+| `canal_adjuntos.clave` | `der_canal_adjuntos.clave` | clave R2 |
+| `canal_adjuntos.canal` / `propietario` | (no hay) | en el Worker, la ficha y el objeto |
+| `canal_adjuntos.caduca` | `der_canal_adjuntos.fhexpira` | 72 h por defecto |
+
+### Via de migracion al esquema canonico (sin SQL crudo)
+
+Con **controllers de DER** (nada de SQL a mano):
+
+1. Montar el plugin de referencia (`createServer(canalServer, { db, cfg: { ttlAdjuntosSeg: 72 * 60 * 60 } })`) y leer
+   con `plugin.controllers["mensajes"].query({ where: { canal }, orderBy: "ts" }, { include: {} })`.
+2. Escribir en el canonico con los controllers del Worker (`canal_mensajes`): `ctrl.post(ctrl.pojo({ idmensaje,
+   canal, autor, tipo, texto, adjuntos, para, fhcre, fhmod, borrado, caduca, jmeta }), ctx)`.
+3. Traducir campo a campo con la tabla de arriba (`de` → `autor`, `ts` → `fhcre`, `bactivo` → `borrado`,
+   `msgorigen` → `jmeta`, `reaccion` → `emoji`).
+4. Los adjuntos: `der_canal_adjuntos` → `canal_adjuntos` (misma clave R2, misma caducidad).
+5. Comprobar: `GET /api/mensajes?canal=...` del Worker devuelve lo mismo que `GET canal/mensajes/listar` del plugin.
+
+El paso inverso (el canonico → el de referencia) es el mismo con `Obj.insert` para **añadir** columnas y el
+`syncSchema()` de DER para crear las que falten (nunca `DROP` a mano).
