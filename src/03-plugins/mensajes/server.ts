@@ -2,6 +2,8 @@
  * Plugin de mensajes (server): el transversal con las particularidades del servidor.
  *
  * - `publicar` calcula el índice siguiente del hilo (el hijo libre de la cita) y guarda la primera versión.
+ *   El autor (`iusuario`) y la fecha de la versión (`fhcre`) los puede fijar quien publica: si no, la fecha es
+ *   la de ahora y el autor, el de la sesión.
  * - `editar` agrega una versión al historial: lo anterior nunca se pierde (la última es la vigente).
  * - `hilo` devuelve el árbol del hilo (primer nivel y respuestas anidadas).
  * - La baja es lógica: `DELETE` marca `bactivo` false y la fila se conserva.
@@ -112,10 +114,10 @@ export const mensajesServer: ServerPluginDef = Obj.insert(mensajesPlugin, {
               tdespacio: input.tdespacio,
               iref: input.iref,
               imensaje,
-              jcontenido: [{ contenido: input.contenido, fhcre: new Date().toISOString(), adjuntos: input.adjuntos ?? [] }],
+              jcontenido: [{ contenido: input.contenido, fhcre: input.fhcre ?? new Date().toISOString(), adjuntos: input.adjuntos ?? [] }],
               indexcita: padre,
               bactivo: true,
-              iusuario: ctx.session?.id ? String(ctx.session.id) : null,
+              iusuario: input.iusuario ?? (ctx.session?.id ? String(ctx.session.id) : null),
             }), ctx) as Mensaje;
           },
         },
@@ -130,7 +132,7 @@ export const mensajesServer: ServerPluginDef = Obj.insert(mensajesPlugin, {
             const ctrl = this.controllers["mensajes"]!;
             const actual = await ctrl.get(ctrl.pojo({ tdespacio, iref, imensaje }), { ...ctx, include: {} }) as Mensaje | null;
             if (!actual) throw new NotFoundError("El mensaje no existe");
-            const historial: ContenidoMensaje = [...(actual.jcontenido ?? []), { contenido: input.contenido, fhcre: new Date().toISOString(), adjuntos: input.adjuntos ?? [] }];
+            const historial: ContenidoMensaje = [...(actual.jcontenido ?? []), { contenido: input.contenido, fhcre: input.fhcre ?? new Date().toISOString(), adjuntos: input.adjuntos ?? [] }];
             return await ctrl.put(ctrl.pojo({ tdespacio, iref, imensaje, jcontenido: historial }), ctx) as Mensaje;
           },
         },

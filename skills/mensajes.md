@@ -47,6 +47,14 @@ await router.seed();
 | CRUD `mensajes` | completo (el `imensaje` lo pone quien llama) |
 | CRUD `adjuntos` | fichas de los adjuntos (los bytes los mueve el almacén del consumidor) |
 
+## El autor y la fecha
+
+- `publicar` acepta dos campos opcionales: `iusuario` (quién escribe) y `fhcre` (la fecha de esa versión, ISO).
+- Si no se dan, manda la sesión (el `iusuario`) y la hora de ahora (el `fhcre`).
+- `editar` acepta `fhcre`: la fecha de la versión nueva (la anterior no se toca).
+- Sirve para lo que viene de otro sitio (un chat, un correo, un formulario): así el mensaje conserva su hora
+  original y el sistema puede ordenarlo por ella.
+
 ## Errores comunes
 
 - El `POST` del CRUD exige el `imensaje`: para que lo calcule el servidor, use `mensajes/publicar`.

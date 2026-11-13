@@ -8,6 +8,8 @@
  *
  * El `imensaje` es el índice en el hilo (`0`, `1`, `10.0`, `10.0.1`…) y el `jcontenido` el historial de versiones
  * (la última es la vigente). Las llaves son abiertas: no hay FK, el sistema mantiene la coherencia.
+ * Quien publica puede fijar el autor (`iusuario`) y la fecha de la versión (`fhcre`): lo que llega de otra parte
+ * (un chat, un correo) conserva así su hora original.
  *
  * ```ts
  * const mensajes = createClient(mensajesPlugin, { baseUrl: "/api", headers: auth.headers });
@@ -52,7 +54,7 @@ export const mensajesPlugin: PluginDef = {
           zod: ZPublicarMensaje,
           returns: "json",
           ops: {
-            /** `POST mensajes/publicar`: publica un mensaje; el servidor calcula el índice siguiente del hilo. */
+            /** `POST mensajes/publicar`: publica un mensaje; el servidor calcula el índice siguiente del hilo. `iusuario` (el autor) y `fhcre` (la fecha de la versión) son opcionales: si no, la fecha es la de ahora y el autor, el de la sesión. */
             publicar(this: ClientPlugin, input: PublicarMensajeInput): Promise<Mensaje> {
               return this.call<Mensaje>("publicar", input);
             },
@@ -66,7 +68,7 @@ export const mensajesPlugin: PluginDef = {
           zod: ZEditarMensaje,
           returns: "json",
           ops: {
-            /** `PUT mensaje/{tdespacio}/{iref}/{imensaje}/editar`: agrega una versión; lo anterior se conserva. */
+            /** `PUT mensaje/{tdespacio}/{iref}/{imensaje}/editar`: agrega una versión; lo anterior se conserva. `fhcre` fija la fecha de esa versión (si no, la de ahora). */
             editar(this: ClientPlugin, tdespacio: string, iref: string, imensaje: string, input: EditarMensajeInput): Promise<Mensaje> {
               return this.call<Mensaje>("editar", input, { tdespacio, iref, imensaje });
             },

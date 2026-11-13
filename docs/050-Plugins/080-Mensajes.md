@@ -46,6 +46,18 @@ DER. Solo cambian el componente y las reglas del controlador; el modelo es uno.
 | CRUD `adjuntos` | sesión | fichas de los adjuntos |
 | `POST adjuntos/registrar` | sesión | registra un adjunto ya subido al almacén |
 
+## El autor y la fecha (opcionales)
+
+Quien publica puede fijar dos cosas más, para que un mensaje que viene de otro sistema conserve su autoría y su hora:
+
+| Campo | Dónde | Qué es |
+|---|---|---|
+| `iusuario` | `publicar` | quién escribe (si no, el de la sesión) |
+| `fhcre` | `publicar` y `editar` | la fecha de esa versión, ISO (`2026-11-13T10:00:00.000Z`); si no, la de ahora |
+
+El `fhcre` de la **primera** versión es la hora del mensaje; el de las siguientes, la de cada edición. Sirve para
+ordenar el hilo por su tiempo real (el índice es el orden de publicación, no necesariamente el cronológico).
+
 ## Montar
 
 ```ts
