@@ -75,3 +75,39 @@ export const ZPendiente = z.strictObject({ hecho: z.boolean(), contenido: z.stri
 export const ZValorCalificacion = z.number().int().min(-10).max(10);
 /** Zod de la reacción. */
 export const ZReaccion = z.string().min(1).max(64);
+
+// ===================================================================================== JWT HS256 para bots
+
+/** Claims de un token HS256: `sub` identifica al bot; `exp` se exige al verificar. */
+export type JwtHs256Claims = { sub: string; exp?: number; iat?: number; nbf?: number; jti?: string; iss?: string; aud?: string | string[]; [key: string]: unknown };
+/** Opciones para firmar un token HS256: vida, emisor, audiencia y reloj (ms). */
+export type JwtHs256SignOptions = { expiresIn?: number; issuer?: string; audience?: string; now?: number };
+/** Opciones para verificar un token HS256: emisor, audiencia, reloj (ms) y tolerancia (s). */
+export type JwtHs256VerifyOptions = { issuer?: string; audience?: string; now?: number; clockToleranceSec?: number };
+/** Configuración del middleware HS256 reutilizable por un Worker. */
+export type JwtHs256MiddlewareOptions = { secret: string; issuer?: string; audience?: string; now?: number; clockToleranceSec?: number };
+/** Opciones para tomar el secreto HS256 del entorno. */
+export type JwtHs256EnvOptions = { secretEnv?: string; issuer?: string; audience?: string; now?: number; clockToleranceSec?: number };
+
+// ===================================================================================== R2
+
+/** Metadatos HTTP de un objeto R2. */
+export type R2HttpMetadata = { contentType?: string; contentDisposition?: string; cacheControl?: string; cacheExpiry?: Date };
+/** Opciones mínimas de `R2Bucket.put`. */
+export type R2PutOptionsLike = { httpMetadata?: R2HttpMetadata; customMetadata?: Record<string, string> };
+/** Objeto R2 con su cuerpo opcional (lo devuelve `get`; `head` no trae cuerpo). */
+export type R2ObjectLike = { key: string; size: number; uploaded: Date; httpMetadata?: R2HttpMetadata; customMetadata?: Record<string, string>; body?: ReadableStream<Uint8Array> };
+/** Opciones mínimas de `R2Bucket.list`. */
+export type R2ListOptionsLike = { prefix?: string; cursor?: string; limit?: number; include?: string[] };
+/** Página de objetos R2. */
+export type R2ObjectsLike = { objects: R2ObjectLike[]; truncated: boolean; cursor?: string };
+/** Binding `R2Bucket` de Cloudflare (la superficie que usa el helper). */
+export type R2BucketLike = { put(key: string, value: Uint8Array, options?: R2PutOptionsLike): Promise<unknown>; get(key: string): Promise<R2ObjectLike | null>; delete(key: string | string[]): Promise<void>; list(options?: R2ListOptionsLike): Promise<R2ObjectsLike> };
+/** Opciones del almacén R2: vida, prefijo y reloj (ms). */
+export type R2Opciones = { ttlSeg?: number; prefix?: string; now?: () => number };
+/** Ficha de un objeto subido a R2. */
+export type R2Descriptor = { clave: string; bytes: number; mime: string; expira: string };
+/** Resultado de purgar objetos vencidos. */
+export type R2PurgeResult = { escaneados: number; borrados: number };
+/** Almacén R2 compatible con el contrato de archivos de DER. */
+export type R2Almacen = { subir(clave: string, bytes: Uint8Array, meta: { mime: string; nombre: string }): Promise<void>; subirConCaducidad(clave: string, bytes: Uint8Array, meta: { mime: string; nombre: string; ttlSeg?: number }): Promise<R2Descriptor>; bajar(clave: string): Promise<{ cuerpo: BodyInit | null; mime?: string; bytes?: number } | null>; borrar(clave: string): Promise<void>; purgarVencidos(): Promise<R2PurgeResult> };

@@ -80,6 +80,32 @@ servicios.vincular("almacen", miAlmacen);
 servicios.credencial("agente")?.["url"];   // un env: sin definir queda fuera: el servicio es opcional
 ```
 
+## JWT HS256 para bots
+
+El helper es independiente de la base de datos y del plugin de identidad:
+
+```ts
+import { jwtAuthMiddlewareFromEnv, jwtSecurityHooks, signJwtHs256 } from "@Jeff-Aporta/DER/src/03-plugins/common/jwt.ts";
+
+const token = await signJwtHs256({ sub: "bot:ana", canales: ["general"] }, env.JWT_SECRET, { expiresIn: 3600, issuer: "bots" });
+registry.secure(jwtSecurityHooks({ secret: env.JWT_SECRET, issuer: "bots" }));
+// o, sin tocar el registro: const auth = jwtAuthMiddlewareFromEnv(env, { issuer: "bots" });
+```
+
+`verifyJwtHs256` acepta sólo `HS256`, exige `sub` y `exp`, y puede comprobar `iss` y `aud`. `signJwtHs256` añade `iat` y `exp` (una hora por defecto). `jwtAuthMiddleware` lee `Authorization: Bearer`; sin cabecera devuelve `null` y un token inválido produce 401. El secreto debe tener al menos 32 caracteres.
+
+## Cloudflare R2
+
+`r2Almacen(bucket)` implementa el contrato `AlmacenArchivos` del plugin de archivos y añade una caducidad por objeto:
+
+```ts
+const almacen = r2Almacen(env.FILES);                    // TTL: 72 horas
+const ficha = await almacen.subirConCaducidad(clave, bytes, { mime: "image/png", nombre: "a.png" });
+export const scheduled = r2CronHandler(env.FILES);       // purga los vencidos
+```
+
+La caducidad se guarda en el metadato `der-expira` (epoch en segundos). Al bajar, un objeto vencido se borra y no se entrega. Para el borrado automático real, el Worker debe ejecutar `r2CronHandler` con un trigger Cron y, como red de seguridad, el bucket R2 debe tener una regla de lifecycle que elimine objetos a los 3 días. R2 no ofrece una caducidad nativa por objeto: el helper aplica esa política en lectura y purga.
+
 ## Proveedor de LLM
 
 `proveedorLlm({ credencial, acciones, reglas })` no llama a ningún modelo: el consumidor escribe cada acción con su API y su credencial, y las reglas dicen qué hacer por mime. `dataUrl` y `entradaConImagenes` arman la entrada multimodal de un modelo tipo «responses».

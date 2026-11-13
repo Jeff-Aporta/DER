@@ -21,6 +21,8 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/common/auditoria.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/crypto.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/device.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/llm.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/common/jwt.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/common/r2.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/schemas.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/servicios.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/server.ts";
