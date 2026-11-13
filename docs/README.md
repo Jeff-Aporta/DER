@@ -12,7 +12,7 @@ Librería TypeScript (Deno primero, sin build) para definir **una sola vez**, en
 
 - **Client:** controllers `fetch` que validan (Zod + `pre*`) antes de llamar a la API.
 - **Server:** controllers SQL agnósticos del motor (PostgreSQL, PGlite, SQLite, MySQL, MSSQL), con relaciones anidadas, filtros, paginación, `seed()`, SSE, configuración de la entidad (`plural/cfg`) y documentación servida (`plural/doc`).
-- **Plugins JSON:** identidad, permisos, caché de embeddings, gestión de archivos, errores, penalizaciones, tiquetes, mensajes, calificaciones y reacciones como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
+- **Plugins JSON:** identidad, permisos, caché de embeddings, gestión de archivos, errores, penalizaciones, tiquetes, mensajes, calificaciones, reacciones y canal de bots como un JSON transversal que el consumidor arma con `createClient` / `createServer`; herméticos y reemplazables por un sistema propio.
 
 ## Mapa del paquete
 

@@ -25,6 +25,7 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/common/jwt.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/r2.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/schemas.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/servicios.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/canal/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/errores/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/tks/server.ts";

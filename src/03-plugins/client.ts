@@ -14,6 +14,7 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/mensajes/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/calificaciones/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/reacciones/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/social.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/canal/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/identity/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/penalizaciones/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/index.ts";

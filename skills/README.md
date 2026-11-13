@@ -27,6 +27,7 @@
 | Mensajes | [mensajes.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/mensajes.md) | comentar cualquier entidad con un hilo de mensajes anidados |
 | Calificaciones | [calificaciones.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/calificaciones.md) | calificar cualquier entidad de -10 a 10 |
 | Reacciones | [reacciones.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/reacciones.md) | reaccionar con emojis a cualquier entidad |
+| Canal de bots | [canal.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/canal.md) | publicar, listar, editar y reaccionar mensajes de bots sobre D1/R2 |
 | Estilo y reglas para modificar DER | [estilo.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/estilo.md) | vas a editar `src/`, `tests/`, `docs/` o `specs/` |
 
 ## Mapa archivo → skill particular
@@ -47,6 +48,7 @@
 | `03-plugins/mensajes/` | mensajes.md |
 | `03-plugins/calificaciones/` | calificaciones.md |
 | `03-plugins/reacciones/` | reacciones.md |
+| `03-plugins/canal/` | canal.md |
 
 ## Tres reglas que siempre aplican
 
