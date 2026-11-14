@@ -48,11 +48,13 @@ import {
   type Mensaje,
   type Presencia,
   type Reaccion,
+  type Tunel,
   ZCanal,
   ZEditar,
   ZLatido,
   ZPublicar,
   ZReaccionar,
+  ZTunel,
 } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/schemas.ts";
 
 /** Margen de reloj (segundos): un token que acaba de caducar se acepta estos segundos. */
@@ -688,6 +690,35 @@ export const canalVpsServer: ServerPluginDef = Obj.insert(canalVpsPlugin, {
           caduca: adjunto.caduca instanceof Date ? adjunto.caduca.toISOString() : "",
           vida_horas: VIDA_HORAS,
         };
+      },
+    },
+    /** `GET /api/tunel`: el hostname publico por el que se entra al servicio (lo escribe el conector del tunel). */
+    tunel: {
+      async handler(this: ServerPlugin) {
+        const filas = await this.controllers["tuneles"]!.query({ orderBy: "-actualizado", pageSize: 10 }, {
+          include: {},
+        }) as Tunel[];
+        return { tunel: filas[0] ?? null, tuneles: filas };
+      },
+    },
+    /** `POST /api/tunel`: publica el hostname del tunel (lo hace el conector al arrancar). */
+    publicarTunel: {
+      async handler(this: ServerPlugin, i: ExtraRouteInput, ctx: ServerCtx) {
+        const entrada = valido(ZTunel, i.body);
+        const ctrl = this.controllers["tuneles"]!;
+        const ahora = new Date();
+        const idtunel = entrada.idtunel ?? "canal";
+        const existe = await ctrl.get(ctrl.pojo({ idtunel }), { include: {} }) as Tunel | null;
+        if (existe) {
+          return await ctrl.put(
+            ctrl.pojo({ idtunel, hostname: entrada.hostname, actualizado: ahora }),
+            ctx,
+          ) as Tunel;
+        }
+        return await ctrl.post(
+          ctrl.pojo({ idtunel, hostname: entrada.hostname, actualizado: ahora }),
+          ctx,
+        ) as Tunel;
       },
     },
     /** `GET /api/archivos/{idadjunto}/descarga?exp=&sig=`: la descarga por URL firmada (sin JWT: la firma es el permiso). */

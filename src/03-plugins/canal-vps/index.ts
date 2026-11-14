@@ -136,6 +136,22 @@ export const canalVpsPlugin: PluginDef = {
         "estado",
       ],
     },
+    tuneles: {
+      name: "canal.tunel",
+      singular: "tunel",
+      plural: "tuneles",
+      table: "canal_tunel",
+      exposed: false,
+      administrable: true,
+      schema: {
+        columns: {
+          idtunel: { type: "string", length: 64, pk: true },
+          hostname: { type: "string", length: 300, nullable: false },
+          actualizado: { type: "datetime" },
+        },
+      },
+      listColumns: ["idtunel", "hostname", "actualizado"],
+    },
   },
   irregularPaths: {
     salud: { method: "GET", path: "salud", security: "public" },

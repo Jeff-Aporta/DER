@@ -68,6 +68,13 @@ export type Adjunto = {
   estado: string | null;
 };
 
+/** El tunel por el que se entra al servicio (el hostname publico: lo escribe el conector del tunel). */
+export type Tunel = {
+  idtunel: string;
+  hostname: string;
+  actualizado: Date | null;
+};
+
 /** Publicar un mensaje. */
 export const ZPublicar = z.strictObject({
   canal: z.string().min(1).max(60),
@@ -101,4 +108,10 @@ export const ZCanal = z.strictObject({
 /** El latido del bot. */
 export const ZLatido = z.strictObject({
   canales: z.array(z.string().min(1).max(60)).max(20).optional(),
+});
+
+/** Publicar el hostname del tunel (lo hace el conector del tunel al arrancar). */
+export const ZTunel = z.strictObject({
+  idtunel: z.string().min(1).max(64).optional(),
+  hostname: z.string().min(1).max(300),
 });
