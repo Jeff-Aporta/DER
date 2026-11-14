@@ -36,7 +36,9 @@
     "./plugins/reacciones": "./src/03-plugins/reacciones/server.ts",
     "./plugins/reacciones/client": "./src/03-plugins/reacciones/index.ts",
     "./plugins/canal": "./src/03-plugins/canal/server.ts",
-    "./plugins/canal/client": "./src/03-plugins/canal/index.ts"
+    "./plugins/canal/client": "./src/03-plugins/canal/index.ts",
+    "./plugins/canal-vps": "./src/03-plugins/canal-vps/server.ts",
+    "./plugins/canal-vps/client": "./src/03-plugins/canal-vps/index.ts"
   },
   "imports": {
     "@Jeff-Aporta/DER/": "./",
