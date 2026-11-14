@@ -108,15 +108,21 @@ export function puedeEditar(ctx: ServerCtx, autor: string): boolean {
 }
 
 /**
- * ¿El token tiene acceso a ese canal? (la claim `canales`: vacia o ausente = todos).
+ * Los canales a los que el token tiene acceso (la claim `canales`): `null` = todos (vacia o ausente).
  * El Worker solo usaba esa claim para el realtime; aqui tambien protege la API.
  */
-export function puedeCanal(ctx: ServerCtx, canal: string): void {
+export function canalesPermitidos(ctx: ServerCtx): string[] | null {
   const permitidos = ctx.session?.claims?.["canales"];
-  if (!Array.isArray(permitidos)) return;
+  if (!Array.isArray(permitidos)) return null;
   const lista = permitidos.filter((x): x is string => typeof x === "string");
-  if (!lista.length) return;
-  if (!lista.includes(canal)) throw new HttpError(403, `El token no tiene acceso al canal ${canal}`);
+  return lista.length ? lista : null;
+}
+
+/** ¿El token tiene acceso a ese canal? (si no, 403). */
+export function puedeCanal(ctx: ServerCtx, canal: string): void {
+  const permitidos = canalesPermitidos(ctx);
+  if (!permitidos) return;
+  if (!permitidos.includes(canal)) throw new HttpError(403, `El token no tiene acceso al canal ${canal}`);
 }
 
 /** El token del request: `Authorization: Bearer <token>` (o la cabecera `x-canal-token`). */
@@ -366,7 +372,7 @@ export const canalVpsServer: ServerPluginDef = Obj.insert(canalVpsPlugin, {
     },
     /** `GET /api/mensajes?canal=&desde=&limite=&para=&tipo=`: la memoria (los mensajes desde una marca). */
     mensajes: {
-      async handler(this: ServerPlugin, i: ExtraRouteInput) {
+      async handler(this: ServerPlugin, i: ExtraRouteInput, ctx: ServerCtx) {
         const canal = i.query.get("canal")?.trim() ?? "";
         const desde = i.query.get("desde")?.trim() ?? "";
         const incluirBorrados = (i.query.get("incluir") ?? "").includes("borrados");
@@ -377,6 +383,11 @@ export const canalVpsServer: ServerPluginDef = Obj.insert(canalVpsPlugin, {
         );
         const where: Record<string, unknown> = {};
         if (canal) where["canal"] = canal;
+        // un token acotado a unos canales no lee los demas (ni siquiera "todos")
+        const permitidos = canalesPermitidos(ctx);
+        if (permitidos && (!canal || !permitidos.includes(canal))) {
+          throw new HttpError(403, `El token no tiene acceso al canal ${canal || "(todos)"}`);
+        }
         if (!incluirBorrados) where["borrado"] = false;
         if (desde) {
           const fecha = Date.parse(desde);
