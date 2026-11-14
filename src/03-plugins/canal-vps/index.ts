@@ -173,5 +173,7 @@ export const canalVpsPlugin: PluginDef = {
     descargarArchivo: { method: "GET", path: "archivos/{idadjunto}", security: "protected" },
     firmaArchivo: { method: "GET", path: "archivos/{idadjunto}/firma", security: "protected" },
     descargarFirmado: { method: "GET", path: "archivos/{idadjunto}/descarga", security: "public" },
+    tunel: { method: "GET", path: "tunel", security: "protected" },
+    publicarTunel: { method: "POST", path: "tunel", security: "protected" },
   },
 };
