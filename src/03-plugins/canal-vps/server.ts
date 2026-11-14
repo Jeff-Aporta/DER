@@ -134,6 +134,21 @@ export function tokenDeRequest(req: Request): string | null {
   return alterno ? alterno.trim() : null;
 }
 
+/**
+ * La base publica del servicio: la del request (con `X-Forwarded-Proto`, que es lo que pone el tunel de Cloudflare),
+ * o la de la configuracion si el request no trae Host.
+ */
+export function baseDe(req: Request, configurada?: unknown): URL {
+  const url = new URL(req.url);
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? url.host;
+  const proto = req.headers.get("x-forwarded-proto") ?? url.protocol.replace(":", "");
+  if (!host) {
+    const fija = String(configurada ?? "");
+    if (fija) return new URL(fija);
+  }
+  return new URL(`${proto}://${host}`);
+}
+
 /** Una respuesta 201 con lo creado (JSON, como el resto de la API). */
 function creado(datos: unknown): Response {
   return new Response(JSON.stringify(datos), {
@@ -664,8 +679,7 @@ export const canalVpsServer: ServerPluginDef = Obj.insert(canalVpsPlugin, {
         if (!adjunto) throw new NotFoundError("El fichero no existe");
         const exp = Math.floor(Date.now() / 1000) + VIDA_FIRMA_MIN * 60;
         const firma = await firmarDescarga(String(this.cfg["secreto"] ?? ""), id, exp);
-        const base = new URL(String(this.cfg["urlBase"] ?? "") || i.request.url);
-        const url = new URL(`/api/archivos/${id}/descarga`, base);
+        const url = new URL(`/api/archivos/${id}/descarga`, baseDe(i.request, this.cfg["urlBase"]));
         url.searchParams.set("exp", String(exp));
         url.searchParams.set("sig", firma);
         return {
