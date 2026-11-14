@@ -2,9 +2,57 @@
 Titulo: Canal de bots: mensajes, reacciones y adjuntos
 Estado: vigente
 Autor:
-tags: [plugins, bots, canal, d1, r2, jwt]
+tags: [plugins, bots, canal, d1, r2, jwt, sqlite, tunel]
 ---
 # Canal de bots
+
+## El plugin `canal-vps`: el canal propio (el que vive en el VPS, sin D1)
+
+Hay **dos** plugins de canal, con propositos distintos:
+
+| Plugin | Para que | Tablas |
+|---|---|---|
+| `canal` | el plugin de **referencia** (el transversal): mensajes, reacciones y adjuntos con **R2** | `der_canal_*` |
+| `canal-vps` | el **canal propio** del estudio: el mismo protocolo del Worker `estudio-canal`, pero con la memoria en la **SQLite del VPS** | `canal_*` (el esquema canonico) |
+
+El `canal-vps` es el que usa el servicio del estudio (`canal/servicio/` en el repo del estudio): la API es
+**la misma que servia el Worker** (mismas rutas, mismos codigos, mismos cuerpos), asi que los bots no cambian
+ni una linea: solo el `CANAL_URL`.
+
+### El esquema canonico (`canal_*`)
+
+| Tabla | Contenido | Indices |
+|---|---|---|
+| `canal_canales` | los canales (se crean al vuelo) | pk `canal` |
+| `canal_mensajes` | los mensajes (`idmensaje`, `canal`, `autor`, `tipo`, `texto`, `adjuntos`, `para`, `fhcre`, `fhmod`, `borrado`, `caduca`, `jmeta`) | **`(canal, fhcre)`** (el listado del canal), `(caduca)` |
+| `canal_reacciones` | las reacciones | `(idmensaje)` |
+| `canal_presencia` | quien esta conectado (pk `bot` + `canal`) | pk |
+| `canal_adjuntos` | las fichas de los ficheros (72 h) | `(canal)` |
+| `canal_tunel` | el hostname publico por el que se entra (lo publica el conector del tunel) | pk `idtunel` |
+
+El indice `(canal, fhcre)` es el que evita releer la tabla entera (lo que agotaba el limite diario de D1).
+
+### La API (la del protocolo)
+
+```ts
+const canal = createServer(canalVpsServer, {
+  db,
+  cfg: { secreto: "env:CANAL_JWT", almacen, urlBase, difundir },
+});
+const router = createRouter([], { basePath: "/api", plugins: [canal] });
+await router.seed();
+```
+
+- `GET /api/salud` (publico), `GET /api/protocolo` (publico), `POST /api/instalar`.
+- `GET|POST /api/mensajes`, `GET|PATCH|DELETE /api/mensajes/{id}`.
+- `GET|POST /api/reacciones`, `GET|POST /api/canales`, `GET /api/presencia`, `POST /api/presencia/latido`.
+- `GET|POST /api/archivos`, `GET /api/archivos/{id}`, `GET /api/archivos/{id}/firma`,
+  `GET /api/archivos/{id}/descarga?exp=&sig=`.
+- `GET|POST /api/tunel`.
+
+La puerta es el **JWT HS256** (`secreto`): sin token valido, **401**. La claim `canales` acota al bot a
+esos canales (403 si toca otro). El realtime es la `SalaCanal` (en memoria): el servicio la alimenta con
+`difundir` y le entrega los sockets.
 
 El plugin `canal` es la base de datos del canal entre bots. Reutiliza el patrón de versiones de `mensajes` (`jcontenido`, `indexcita` y baja lógica), pero añade los datos que necesita un sistema distribuido de bots: canal, hilo, autor, tipo, mensaje de origen, marca de tiempo, reacciones y adjuntos R2.
 

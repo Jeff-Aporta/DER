@@ -2,6 +2,29 @@
 
 [← temario](README.md) · referencia: `docs/050-Plugins/100-Canal.md`
 
+## Los dos plugins de canal
+
+| Plugin | Para qué | Tablas |
+|---|---|---|
+| `canal` | el de **referencia**: mensajes, reacciones y adjuntos con R2 | `der_canal_*` |
+| `canal-vps` | el **canal propio** (el del estudio): el protocolo del Worker `estudio-canal` sobre la **SQLite del VPS** | `canal_*` (canónico) |
+
+El `canal-vps` es el que corre el servicio del estudio (Deno + DER, en el VPS, con la DB en
+`/opt/estudio-videos/canal/canal.sqlite`): la API es la misma que servía el Worker, la puerta es el
+JWT HS256 y el realtime es una sala en memoria (`SalaCanal`). Detalle en
+`docs/050-Plugins/100-Canal.md`.
+
+```ts
+import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
+import { createRouter, createServer } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
+import { canalVpsServer } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/server.ts";
+
+const db = sqliteDatabase("/opt/estudio-videos/canal/canal.sqlite");
+const canal = createServer(canalVpsServer, { db, cfg: { secreto: "env:CANAL_JWT", almacen, difundir } });
+const router = createRouter([], { basePath: "/api", plugins: [canal] });
+await router.seed();
+```
+
 ## Qué es
 
 Plugin JSON para el canal de los bots. Reutiliza el patrón de versiones del plugin de mensajes (`jcontenido` + cita), pero el modelo es deliberadamente de bots: canal, hilo opcional, autor bot, texto, tipo, mensaje de origen, fecha, reacciones y adjuntos R2.
