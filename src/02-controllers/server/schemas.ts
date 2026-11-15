@@ -150,3 +150,20 @@ export type D1HttpOptions = { endpoint: string; token: string; fetch?: typeof fe
 export type D1HttpEnv = { D1_HTTP_ENDPOINT?: string; D1_HTTP_TOKEN?: string };
 /** Fila de `pragma_table_info` unida a su tabla (introspector de D1). */
 export type D1ColumnRow = { tabla: string; name: string; type: string; notnull: number; dflt_value: unknown; pk: number };
+
+/** Valor que viaja por el protocolo SQLite HTTP: escalar JSON o un binario como `{ $b64 }`. */
+export type SqliteHttpValue = string | number | boolean | null | { $b64: string };
+/** Sentencia del protocolo: SQL con sus parámetros posicionales. */
+export type SqliteHttpStmt = { sql: string; params?: SqliteHttpValue[] };
+/** Petición del protocolo: `exec` (una sentencia, dentro o fuera de `tx`), `batch` (lista atómica), `begin`, `commit` y `rollback`. */
+export type SqliteHttpRequest = { op: "exec" | "batch" | "begin" | "commit" | "rollback"; db: string; sql?: string; params?: SqliteHttpValue[]; stmts?: SqliteHttpStmt[]; tx?: string };
+/** Resultado de una sentencia: filas, filas afectadas y último id insertado. */
+export type SqliteHttpResult = { rows: Record<string, SqliteHttpValue>[]; changes: number; lastId: number | null };
+/** Respuesta del protocolo: el resultado de `exec`, los de `batch`, el `tx` de `begin` o el `error`. */
+export type SqliteHttpResponse = Partial<SqliteHttpResult> & { results?: SqliteHttpResult[]; tx?: string; error?: string };
+/** Opciones del cliente: `endpoint` del anfitrión, `db` (nombre lógico de la base), `secreto` HMAC (≥ 32), `token` Bearer opcional y `fetch` inyectable. */
+export type SqliteHttpOptions = { endpoint: string | (() => string | Promise<string>); db: string; secreto: string; token?: string | (() => string | Promise<string>); fetch?: typeof fetch };
+/** Opciones del anfitrión: carpeta de las bases, secreto HMAC, ventana de la firma, vida máxima de una transacción, filtro de bases y puerta extra. */
+export type SqliteHttpHostOptions = { dir: string; secreto: string; ventanaMs?: number; txTimeoutMs?: number; permitir?(db: string): boolean; autorizar?(req: Request): boolean | Promise<boolean> };
+/** Anfitrión armado: `fetch` atiende el protocolo y `close` cierra las bases abiertas. */
+export type SqliteHttpHost = { fetch(req: Request): Promise<Response>; close(): void };

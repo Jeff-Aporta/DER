@@ -38,6 +38,25 @@ const db = d1HttpDatabase({ endpoint, token: env.CF_API_TOKEN });
 
 La API real es `POST /accounts/{account}/d1/database/{database}/query` con `Authorization: Bearer` y cuerpo `{ sql, params }`; el adaptador lo presenta como `prepare/bind/all/run/first`. El token nunca se imprime ni se incluye en los errores. El binding evita saltos de red y es la opción recomendada dentro de un Worker.
 
+## SQLite por HTTP (Worker con los datos en el VPS)
+
+Para un API en Workers cuyos datos viven en una SQLite propia: sin los límites de escritura de D1 y con transacciones reales.
+
+```ts
+// Worker
+import { sqliteHttpDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite-http.ts";
+const db = sqliteHttpDatabase({ endpoint: env.DB_URL, db: "central", secreto: env.DB_SECRETO });
+// VPS
+import { sqliteHttpHost } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite-http-host.ts";
+Deno.serve({ hostname: "127.0.0.1", port: 8098 }, sqliteHttpHost({ dir: "/var/lib/app/db", secreto }).fetch);
+```
+
+- `db` es un nombre lógico (`central`, `empresa-12`): cada uno es un archivo aparte. `endpoint` y `token` pueden ser funciones (un túnel cuyo hostname cambia).
+- Cada petición va firmada con HMAC (`secreto` ≥ 32, el mismo en los dos lados) y vence a los 60 s.
+- `db.transaction()` es atómico de verdad; una transacción abandonada se revierte sola a los 15 s. `new SqliteHttpClient(opts).batch([...])` manda un lote atómico en un viaje.
+- Cada sentencia es un viaje de red: nada de consultas en bucle.
+- El anfitrión importa `node:sqlite`: nunca se importa desde el Worker.
+
 ## Seed y migraciones
 
 - `db.seed()` / `router.seed()`: `CREATE TABLE IF NOT EXISTS` + secuencias + índices + tabla de cfg, en cascada por la propagación (cada controller en su base).

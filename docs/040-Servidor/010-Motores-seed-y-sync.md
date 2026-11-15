@@ -16,8 +16,38 @@ tags: [servidor, motores, migraciones]
 | `server/mysql.ts` | `mysqlDatabase(pool, opts)` | pool `mysql2`, lo aporta el consumidor | `mysql2` |
 | `server/mssql.ts` | `mssqlDatabase({ tarn, tedious }, opts)` | `tedious` + `tarn`, los aporta el consumidor | `tedious`, `tarn` |
 | `server/d1.ts` | `d1Database(env.DB, opts)` | binding `D1Database` de Cloudflare Workers (motor `sqlite`; transacciones no-op: D1 no las tiene interactivas) | — |
+| `server/sqlite-http.ts` | `sqliteHttpDatabase({ endpoint, db, secreto }, opts)` | una SQLite remota por HTTP firmado (motor `sqlite`; transacciones REALES; sin `node:`: corre en Workers) | — |
+| `server/sqlite-http-host.ts` | `sqliteHttpHost({ dir, secreto })` | el otro extremo: atiende el protocolo sobre archivos `node:sqlite` (corre en el VPS, nunca en un Worker) | — |
 
 `opts` = `{ identifierCase?, cfg? }`. Cualquier dialecto de Kysely sirve con `new Database({ engine, dialect, identifierCase })`.
+
+## SQLite por HTTP: Worker con los datos en un VPS
+
+Cuando el API corre en un Worker pero los datos deben vivir en una SQLite propia (sin los límites de escritura de D1 y con transacciones de verdad), el Worker usa `sqliteHttpDatabase` y el VPS corre `sqliteHttpHost`. Los controllers no cambian: es el motor `sqlite`.
+
+```ts
+// Worker (sin node:)
+import { createRouter, sqliteHttpDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite-http.ts";
+const db = sqliteHttpDatabase({ endpoint: () => urlDelTunel(env), db: "central", secreto: env.DB_SECRETO });
+
+// VPS (Deno, detrás del túnel; escucha solo en 127.0.0.1)
+import { sqliteHttpHost } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite-http-host.ts";
+const host = sqliteHttpHost({ dir: "/var/lib/mi-app/db", secreto: Deno.env.get("DB_SECRETO")! });
+Deno.serve({ hostname: "127.0.0.1", port: 8098 }, host.fetch);
+```
+
+| Tema | Comportamiento |
+|---|---|
+| Protocolo | `POST` JSON `{ op, db, sql?, params?, stmts?, tx? }` con `op` = `exec`, `batch`, `begin`, `commit`, `rollback` |
+| Firma | `x-der-ts` (epoch ms) y `x-der-firma` = HMAC-SHA256 hex de `ts.cuerpo`; fuera de `ventanaMs` (60 s) o sin firma: `401` |
+| Bases | `db` es un nombre `[a-z0-9][a-z0-9_-]*` → `<dir>/<db>.sqlite` (WAL). Una base por inquilino es un nombre distinto; `permitir(db)` las filtra |
+| Transacciones | `begin` devuelve un `tx`; cada `exec` lo nombra; `commit`/`rollback` la cierran. Abandonada, se revierte sola a los `txTimeoutMs` (15 s) y la siguiente entra |
+| Lote | `client.batch([...])`: varias sentencias en una transacción y un solo viaje de red |
+| Concurrencia | escrituras y transacciones en fila por una conexión; lecturas sueltas por otra, sin esperar |
+| Binarios | viajan como `{ "$b64": "…" }`; `bigint` como número; booleanos como 0/1 |
+| Errores | `400` petición · `401` firma · `403` base no permitida · `409` transacción vencida · `500` SQL; el secreto nunca sale en un mensaje |
+
+Cada sentencia es un viaje de red: agrupa las escrituras de un flujo en `db.transaction()` o en un `batch` y evita los bucles de consultas.
 
 ## Qué cambia entre motores (todo dentro del `Engine`)
 
