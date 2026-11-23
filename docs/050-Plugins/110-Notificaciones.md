@@ -30,7 +30,13 @@ Para APIs con rutas y sesión propias, `crearNotificaciones({ db, services })` d
 
 `services.alNotificar(filas)` tras cada creación; el transporte (SSE, WebSocket) lo pone el consumidor.
 
+## Actor y push
+
+`iactor`/`actor` = quién lo hizo (avatar y nombre; nadie se notifica a sí mismo). `notificaciones_suscripciones`
+guarda los dispositivos (`webpush` con VAPID, `fcm` con Capacitor); `services.enviarPush` hace el envío real y una
+respuesta «caducada» desactiva la suscripción. Detalle en la skill.
+
 ## Pruebas
 
 `tests/plugins/notificaciones.test.ts`: bandeja por sesión, lecturas por usuario de las `*`, contador, nadie marca
-las de otro, verbos sin router.
+las de otro, verbos sin router, actor que no se notifica a sí mismo, suscripciones sin duplicados y caducadas.

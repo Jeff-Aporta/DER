@@ -58,6 +58,33 @@ const notif = createClient(notificacionesPlugin, { baseUrl: "/api", headers: aut
 await notif.bandeja();  await notif.leer({ todas: true });  await notif.notificar({ destinatarios: ["ana"], titulo: "Hola" });
 ```
 
+## Quién lo hizo (estilo red social)
+
+`notificar` acepta `iactor` (id de quien lo hizo) y `actor` (su nombre): el front pinta su avatar y el texto
+«Ana registró a Luz». Nadie recibe la notificación de algo que hizo él mismo (ni en la suya ni en las `*`).
+
+## Push fuera de la app (navegador y Android)
+
+| tabla | columnas |
+|---|---|
+| `notificaciones_suscripciones` | `id` (sha256 del endpoint), `iusuario`, `canal` (`webpush` · `fcm`), `endpoint`, `claves` (p256dh/auth), `agente`, `activa`, `fhcre` |
+
+| Ruta | Qué hace |
+|---|---|
+| `POST notificaciones/suscribir` `{ canal, endpoint, claves? }` | guarda la suscripción del dispositivo de la sesión (sin duplicados) |
+| `POST notificaciones/desuscribir` `{ endpoint }` | la desactiva |
+
+DER **no envía** push: tras crear, llama `services.enviarPush(suscripcion, notificacion)` por cada suscripción activa
+del destinatario (las `*` a todas). Si devuelve `"caducada"`, la suscripción se desactiva.
+
+- **Navegador (Web Push)**: el consumidor genera claves VAPID (`VAPID_PUBLICA`/`VAPID_PRIVADA` en el entorno), el
+  front pide permiso, registra un service worker y hace `registration.pushManager.subscribe({ userVisibleOnly: true,
+  applicationServerKey })`; manda `subscription.toJSON()` a `suscribir` con `canal: "webpush"`. `enviarPush` cifra y
+  envía con la librería de Web Push que elija el consumidor.
+- **Android (FCM vía Capacitor)**: al migrar, `@capacitor/push-notifications` da el token → `suscribir` con
+  `canal: "fcm"` y el token en `endpoint`; `enviarPush` llama a la API HTTP v1 de FCM con la cuenta de servicio.
+- Sin `enviarPush`, las suscripciones se guardan y no se envía nada (la campana y el SSE siguen funcionando).
+
 ## Errores comunes
 
 - `leer` sin `ids` ni `todas` → 400.

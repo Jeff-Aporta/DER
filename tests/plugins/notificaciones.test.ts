@@ -111,3 +111,32 @@ Deno.test("notificaciones: sin sesión no hay bandeja; sin router, los verbos y 
   assertEquals(await solo.noLeidas("ana"), 1);
   await db.destroy();
 });
+
+Deno.test("notificaciones: el actor no se notifica a sí mismo y la bandeja trae quién lo hizo", async () => {
+  const { notif, cerrar } = await montar();
+  await notif.notificar({ destinatarios: ["ana", "beto"], titulo: "Ana registró a Luz", iactor: "ana", actor: "Ana" });
+  await notif.notificar({ destinatarios: ["*"], titulo: "Ana publicó una noticia", iactor: "ana", actor: "Ana" });
+  assertEquals(await notif.noLeidas("ana"), 0, "ni la propia ni la general que ella originó");
+  const b = await notif.bandeja("beto");
+  assertEquals(b.noLeidas, 2);
+  assertEquals(b.items[0]?.actor, "Ana");
+  await cerrar();
+});
+
+Deno.test("notificaciones: suscripciones de push por usuario, sin duplicados, y enviarPush desactiva las caducadas", async () => {
+  registry.secure(null);
+  const db = sqliteDatabase();
+  const enviados: string[] = [];
+  const notif = crearNotificaciones({ db, services: { enviarPush: (s: { endpoint: string }) => (enviados.push(s.endpoint), s.endpoint.includes("vieja") ? "caducada" : "ok") } });
+  await notif.seed();
+  await notif.suscribir("ana", { canal: "webpush", endpoint: "https://push.example/ana-1", claves: { p256dh: "x", auth: "y" } });
+  await notif.suscribir("ana", { canal: "webpush", endpoint: "https://push.example/ana-1", claves: { p256dh: "x", auth: "y" } });
+  await notif.suscribir("ana", { canal: "fcm", endpoint: "token-fcm-vieja-123" });
+  assertEquals((await notif.suscripciones("ana")).length, 2, "el mismo endpoint no se duplica");
+  await notif.notificar({ destinatarios: ["ana"], titulo: "Hola" });
+  assertEquals(enviados.length, 2);
+  assertEquals((await notif.suscripciones("ana")).length, 1, "la caducada queda inactiva");
+  assertEquals((await notif.desuscribir("ana", "https://push.example/ana-1")).bajas, 1);
+  assertEquals((await notif.suscripciones("ana")).length, 0);
+  await db.destroy();
+});
