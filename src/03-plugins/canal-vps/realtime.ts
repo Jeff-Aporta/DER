@@ -9,40 +9,12 @@
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/canal.md
  */
-import { VERSION_PROTOCOLO, VIDA_HORAS } from "./protocolo.ts";
+import { VERSION_PROTOCOLO, VIDA_HORAS } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/protocolo.ts";
+import type { AdjuntoSocket, PresenciaSala, SalaAvisos, SocketSala } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/schemas.ts";
 
-/** Un socket de la sala (lo que el servicio entrega: su WebSocket). */
-export type SocketSala = {
-  /** Envia un texto al bot. */
-  enviar(texto: string): void;
-  /** Cierra el socket. */
-  cerrar(codigo?: number, motivo?: string): void;
-};
 
-/** Lo que la sala guarda de cada socket. */
-export type AdjuntoSocket = {
-  /** Quien es el bot. */
-  bot: string;
-  /** A que canales esta suscrito. */
-  canales: string[];
-  /** Que filtro quiere: `todos`, `para` o `mencion`. */
-  filtro: string;
-  /** La maquina donde vive. */
-  nodo: string;
-  /** Cuando entro. */
-  desde: string;
-};
 
-/** Un bot conectado (para la presencia). */
-export type PresenciaSala = { bot: string; canal: string; nodo: string; desde: string };
 
-/** Avisos de la sala: el servicio los usa para marcar la presencia en la base. */
-export type SalaAvisos = {
-  /** Un bot entra (o cambia de canales): se marca su presencia. */
-  alEntrar?(bot: string, canales: string[], nodo: string): void | Promise<void>;
-  /** Un bot se va (no le queda ningun socket): su presencia pasa a desconectado. */
-  alSalir?(bot: string, canales: string[], nodo: string): void | Promise<void>;
-};
 
 /**
  * La sala: un conjunto de sockets, cada uno con su bot, sus canales y su filtro.

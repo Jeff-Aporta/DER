@@ -17,45 +17,12 @@
 import { HttpError, NotFoundError, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
-import type {
-  ExtraRouteInput,
-  ServerCtx,
-  ServerPlugin,
-  ServerPluginDef,
-} from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import type { ExtraRouteInput, ServerCtx, ServerPlugin, ServerPluginDef } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { jwtSession, verifyJwtHs256 } from "@Jeff-Aporta/DER/src/03-plugins/common/jwt.ts";
 import { canalVpsPlugin } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/index.ts";
-import {
-  type AlmacenFicheros,
-  claveDe,
-  firmarDescarga,
-  verificarDescarga,
-} from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/almacen.ts";
-import {
-  AVISO_CADUCIDAD,
-  caducaDesde,
-  CANAL_GENERAL,
-  catalogoProtocolo,
-  SERVICIO,
-  VENTANA_PRESENCIA_MS,
-  VERSION_PROTOCOLO,
-  VIDA_FIRMA_MIN,
-  VIDA_HORAS,
-} from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/protocolo.ts";
-import {
-  type Adjunto,
-  type Canal,
-  type Mensaje,
-  type Presencia,
-  type Reaccion,
-  type Tunel,
-  ZCanal,
-  ZEditar,
-  ZLatido,
-  ZPublicar,
-  ZReaccionar,
-  ZTunel,
-} from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/schemas.ts";
+import { claveDe, firmarDescarga, verificarDescarga } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/almacen.ts";
+import { AVISO_CADUCIDAD, caducaDesde, CANAL_GENERAL, catalogoProtocolo, SERVICIO, VENTANA_PRESENCIA_MS, VERSION_PROTOCOLO, VIDA_FIRMA_MIN, VIDA_HORAS } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/protocolo.ts";
+import { type AlmacenFicheros, type Adjunto, type Canal, type Mensaje, type Presencia, type Reaccion, type Tunel, ZCanal, ZEditar, ZLatido, ZPublicar, ZReaccionar, ZTunel } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/schemas.ts";
 
 /** Margen de reloj (segundos): un token que acaba de caducar se acepta estos segundos. */
 export const MARGEN_RELOJ_SEG = 30;
@@ -66,17 +33,6 @@ export const LIMITE_BYTES = 20 * 1024 * 1024;
 /** Cuantos mensajes devuelve de golpe el listado como maximo. */
 export const LIMITE_MENSAJES = 500;
 
-/** La configuracion del plugin (la resuelve `createServer`: el secreto llega por `"env:CANAL_JWT"`). */
-export type CanalVpsConfig = {
-  /** El secreto HS256 con el que se firman y verifican los tokens (`CANAL_JWT`): nunca se imprime. */
-  secreto: string;
-  /** El almacen de ficheros (el disco del VPS). */
-  almacen?: AlmacenFicheros | undefined;
-  /** La URL publica del servicio (para firmar las descargas). Si no, se usa la del request. */
-  urlBase?: string | undefined;
-  /** Difunde un evento en la sala (lo pone el servicio: el realtime). */
-  difundir?: ((evento: Record<string, unknown>, canal: string) => void) | undefined;
-};
 
 /** Valida con un Zod y lanza 400 con el detalle en espanol. */
 function valido<T>(

@@ -7,6 +7,7 @@
  *   `(canal)` en los adjuntos.
  * - Las entidades van `exposed: false`: las rutas las define el protocolo (no el CRUD generico), igual que en el Worker.
  *
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/canal.md
  */

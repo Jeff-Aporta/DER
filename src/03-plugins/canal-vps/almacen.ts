@@ -8,33 +8,9 @@
  * Skill particular (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/canal.md
  */
 import { firmarHmac, verificarHmac } from "@Jeff-Aporta/DER/src/03-plugins/common/crypto.ts";
-import { PREFIJO_ARCHIVOS } from "./protocolo.ts";
+import { PREFIJO_ARCHIVOS } from "@Jeff-Aporta/DER/src/03-plugins/canal-vps/protocolo.ts";
 
-/** Los metadatos que viajan con el fichero. */
-export type MetadatosFichero = {
-  /** Quien lo subio. */
-  propietario: string;
-  /** En que canal se compartio. */
-  canal: string;
-  /** El nombre original del fichero. */
-  nombre: string;
-  /** Su tipo. */
-  mime: string;
-  /** Cuantos bytes tiene. */
-  bytes: number;
-  /** Cuando caduca (ISO). */
-  caduca: string;
-};
 
-/** Lo que el servicio da al plugin para guardar los ficheros (el disco del VPS). */
-export type AlmacenFicheros = {
-  /** Sube un fichero (lo escribe con sus metadatos). */
-  subir(clave: string, bytes: Uint8Array, meta: MetadatosFichero): Promise<void>;
-  /** Lee un fichero (o `null` si no esta). */
-  leer(clave: string): Promise<{ cuerpo: Uint8Array<ArrayBuffer>; mime: string | null } | null>;
-  /** Borra un fichero (si existe). */
-  borrar(clave: string): Promise<void>;
-};
 
 /** La clave del fichero: `canal/<canal>/<aaaa-mm>/<id>-<nombre>` (la misma que usaba R2). */
 export function claveDe(canal: string, id: string, nombre: string): string {

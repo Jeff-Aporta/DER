@@ -12,6 +12,8 @@
  *
  * El Worker de Cloudflare (`estudio-canal`) implementa el MISMO protocolo con D1 + R2 + Durable Object: por eso los bots
  * no cambian ni una linea cuando el `CANAL_URL` pasa a apuntar al tunel hacia este servicio.
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/canal.md
  */
 
 /** Nombre del servicio (tambien sale en `/api/salud`). */
