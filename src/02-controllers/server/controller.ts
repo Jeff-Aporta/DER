@@ -102,11 +102,13 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
 
   #compileComputed(alias: string, def: ComputedSql): Raw {
     let src: Raw | string | undefined;
-    if (typeof def === "function") src = def({ col: (f) => this.col(alias, f), alias, engine: this.engine });
+    if (typeof def === "function") src = def({ col: (f) => this.col(alias, f), alias, engine: this.engine, table: this.entity.table });
     else if (typeof def === "object") src = (def as Record<string, string | undefined>)[this.engine.name];
     else src = def;
     if (src === undefined) throw new Error(`computed sin expresión para el motor ${this.engine.name}`);
     if (typeof src !== "string") return src;
+    // «{#tabla}» = la tabla real de la entidad: una subconsulta sobre sí misma sigue funcionando si se renombra la tabla.
+    src = src.replaceAll("{#tabla}", this.entity.table);
     // "{precio} * {stock}" → partes crudas + referencias
     const parts: Raw[] = [];
     let last = 0;

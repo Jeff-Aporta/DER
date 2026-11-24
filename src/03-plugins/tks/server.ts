@@ -39,20 +39,10 @@ const CFG_DEFECTO: TksConfig = { estadosFinalizados: ["FINALIZADO"], permitirFin
 const plugins = new WeakMap<object, ServerPlugin>();
 
 /** Métrica: cuántos mensajes tiene el tk (cuenta los del espacio `tks` con su id como referencia). */
-const SQL_MENSAJES = {
-  sqlite: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
-  pg: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
-  mysql: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
-  mssql: "(select count(*) from mensajes_mensajes m where m.tdespacio = 'tks' and m.iref = {itk})",
-};
+const SQL_MENSAJES = (tabla: string): ComputedSql => `(select count(*) from ${tabla} m where m.tdespacio = 'tks' and m.iref = {itk})`;
 
 /** Métrica: la calificación promedio del tk (nulo si nadie lo ha calificado). */
-const SQL_CALIFICACION = {
-  sqlite: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
-  pg: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
-  mysql: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
-  mssql: "(select avg(c.valor) from calificaciones_calificaciones c where c.tdespacio = 'tks' and c.iref = {itk})",
-};
+const SQL_CALIFICACION = (tabla: string): ComputedSql => `(select avg(c.valor) from ${tabla} c where c.tdespacio = 'tks' and c.iref = {itk})`;
 
 /** Perfil de la sesión (usuario, roles y grupos) para evaluar las asignaciones. */
 function perfilDe(ctx: ServerCtx): PerfilAsignado {
@@ -171,9 +161,9 @@ export const tksServer: ServerPluginDef = Obj.insert(tksPlugin, {
     const ctrl = this.controllers["tks"]!;
     const computed: Record<string, ComputedSql> = { ...(ctrl.config.computed ?? {}) };
     const mensajes = findController("mensajes");
-    if (mensajes && mensajes.db === ctrl.db) computed["qtotalmensajes"] = SQL_MENSAJES;
+    if (mensajes && mensajes.db === ctrl.db) computed["qtotalmensajes"] = SQL_MENSAJES(mensajes.entity.table);
     const calificaciones = findController("calificaciones");
-    if (calificaciones && calificaciones.db === ctrl.db) computed["qcalificacion"] = SQL_CALIFICACION;
+    if (calificaciones && calificaciones.db === ctrl.db) computed["qcalificacion"] = SQL_CALIFICACION(calificaciones.entity.table);
     ctrl.config.computed = computed;
   },
   setup(this: ServerPlugin) {

@@ -72,3 +72,20 @@ Deno.test("calificaciones: promedio, la propia y quienes calificaron", opts, asy
   assertEquals((await c.calificadores("noticia", "1")).filas.map((f) => f.iusuario), ["ana", "beto"]);
   await db.destroy();
 });
+
+Deno.test("mensajes con la tabla renombrada (Obj.insert): la métrica de respuestas usa la tabla real", opts, async () => {
+  const { Obj } = await import("@Jeff-Aporta/DER/src/00-common/base.ts");
+  const { createServer } = await import("@Jeff-Aporta/DER/src/02-controllers/server/plugin.ts");
+  const { mensajesServer } = await import("@Jeff-Aporta/DER/src/03-plugins/mensajes/server.ts");
+  const db = sqliteDatabase();
+  const def = Obj.insert(mensajesServer, { entities: { mensajes: { name: "x.comentario", plural: "comentarios_x", table: "x_comentarios" }, adjuntos: { name: "x.comentario_adjunto", plural: "comentarios_x_adj", table: "x_comentarios_adj" } } });
+  // deno-lint-ignore no-explicit-any
+  const m = createServer(def as never, { db, cfg: {} }) as any;
+  await m.seed();
+  await m.publicar({ tdespacio: "n", iref: "1", contenido: "raíz", iusuario: "a" });
+  await m.publicar({ tdespacio: "n", iref: "1", contenido: "resp", indexcita: "0", iusuario: "b" });
+  const fila = await m.controllers["mensajes"].get(m.controllers["mensajes"].pojo({ tdespacio: "n", iref: "1", imensaje: "0" }));
+  assertEquals(Number(fila.qtotalrespuestas), 1, "la subconsulta usa {#tabla}, no el nombre quemado");
+  assertEquals((await m.raices("n", "1")).filas[0].respuestas, 1);
+  await db.destroy();
+});

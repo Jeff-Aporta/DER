@@ -29,12 +29,12 @@ import { type Adjunto, type AdjuntoInput, type EditarMensajeInput, type Mensaje,
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/mensajes/index.ts";
 
-/** Métrica: cuántas respuestas anidadas tiene un mensaje (las que cuelgan de su índice). */
+/** Métrica: cuántas respuestas anidadas tiene un mensaje (las que cuelgan de su índice). `{#tabla}`: su tabla real. */
 const SQL_RESPUESTAS = {
-  sqlite: "(select count(*) from mensajes_mensajes m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like {imensaje} || '.%')",
-  pg: "(select count(*) from mensajes_mensajes m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like {imensaje} || '.%')",
-  mysql: "(select count(*) from mensajes_mensajes m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like concat({imensaje}, '.%'))",
-  mssql: "(select count(*) from mensajes_mensajes m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like {imensaje} + '.%')",
+  sqlite: "(select count(*) from {#tabla} m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like {imensaje} || '.%')",
+  pg: "(select count(*) from {#tabla} m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like {imensaje} || '.%')",
+  mysql: "(select count(*) from {#tabla} m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like concat({imensaje}, '.%'))",
+  mssql: "(select count(*) from {#tabla} m where m.tdespacio = {tdespacio} and m.iref = {iref} and m.imensaje like {imensaje} + '.%')",
 };
 
 /** Valida con un Zod y lanza 400 con el detalle. */

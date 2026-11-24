@@ -37,7 +37,8 @@ export type Engine = { name: EngineName; returning: ReturningMode; ifNotExists: 
 
 /** `exec` = la conexión o la transacción en curso; `state` = bolsa del request (`session`, `permiso`, `route`, `can`...). */
 export type ServerCtx = BaseCtx & { request?: Request; exec: Kysely<any>; inTransaction?: boolean; state: Record<string, unknown> };
-export type ComputedHelpers = { col(field: string): Raw; alias: string; engine: Engine };
+/** `table`: la tabla real de la entidad (puede venir renombrada con `Obj.insert`); en los textos, `{#tabla}`. */
+export type ComputedHelpers = { col(field: string): Raw; alias: string; engine: Engine; table: string };
 /** SQL quemado para columnas virtuales: string con `{campo}`, `{ pg, sqlite, mysql, mssql }` por motor, o función con helpers. */
 export type ComputedSql = string | Partial<Record<EngineName, string>> | ((h: ComputedHelpers) => Raw | string);
 export type SseHandler<Ctl> = (this: Ctl, arg: any, send: (text: string) => void, ctx: ServerCtx) => Promise<void> | void;
