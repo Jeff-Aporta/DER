@@ -17,7 +17,7 @@
  */
 import type { ClientPlugin, PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { COLUMNAS_VOTO } from "@Jeff-Aporta/DER/src/03-plugins/common/social.ts";
-import { type ReaccionarInput, type ReaccionFila, ZReaccionar } from "@Jeff-Aporta/DER/src/03-plugins/reacciones/schemas.ts";
+import { type PaginaVotantes, type ReaccionarInput, type ReaccionFila, type ResumenReacciones, ZReaccionar } from "@Jeff-Aporta/DER/src/03-plugins/reacciones/schemas.ts";
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/reacciones/schemas.ts";
 
@@ -51,6 +51,30 @@ export const reaccionesPlugin: PluginDef = {
             /** `POST reacciones/reaccionar`: reacciona (o cambia la reacción) sobre la entidad de la sesión. */
             reaccionar(this: ClientPlugin, input: ReaccionarInput): Promise<ReaccionFila> {
               return this.call<ReaccionFila>("reaccionar", input);
+            },
+          },
+        },
+        resumen: {
+          method: "GET",
+          path: "resumen",
+          prefix: "plural",
+          returns: "json",
+          ops: {
+            /** `GET reacciones/resumen?tdespacio=&irefs=a,b`: resumen de varias entidades (la de la sesión en `mia`). */
+            resumen(this: ClientPlugin, tdespacio: string, irefs: string[]): Promise<Record<string, ResumenReacciones>> {
+              return this.call<Record<string, ResumenReacciones>>("resumen", { tdespacio, irefs: irefs.join(",") });
+            },
+          },
+        },
+        votantes: {
+          method: "GET",
+          path: "votantes",
+          prefix: "plural",
+          returns: "json",
+          ops: {
+            /** `GET reacciones/votantes?tdespacio=&iref=&reaccion=&page=&pageSize=`: quién reaccionó (no anónimo). */
+            votantes(this: ClientPlugin, tdespacio: string, iref: string, reaccion: string | null = null, page = 1, pageSize = 20): Promise<PaginaVotantes> {
+              return this.call<PaginaVotantes>("votantes", { tdespacio, iref, ...(reaccion ? { reaccion } : {}), page, pageSize });
             },
           },
         },

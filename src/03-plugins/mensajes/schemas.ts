@@ -38,3 +38,15 @@ export const ZPublicarMensaje = z.strictObject({ tdespacio: z.string().min(1).ma
 export const ZEditarMensaje = z.strictObject({ contenido: z.string().min(1).max(100000), adjuntos: z.array(z.string().max(64)).max(20).optional(), fhcre: ZFechaMensaje.nullable().optional() });
 /** Zod del registro de un adjunto. */
 export const ZAdjuntoInput = z.strictObject({ nombre: z.string().min(1).max(300), mime: z.string().max(120).nullable().optional(), bytes: z.number().int().nonnegative().nullable().optional(), clave: z.string().max(400).nullable().optional(), url: z.string().max(1000).nullable().optional(), jmeta: z.unknown().optional() });
+
+/** Comentario de una página de raíces o de respuestas: el mensaje + cuántas respuestas directas tiene (para el «Ver N respuestas»). */
+export type MensajeConRespuestas = Mensaje & { respuestas: number };
+
+/** Página de mensajes (raíces o respuestas de un padre): carga por niveles, nunca el árbol entero. */
+export type PaginaMensajes = { filas: MensajeConRespuestas[]; total: number; page: number; pageSize: number };
+
+/** Opciones de paginación de raíces y respuestas. */
+export type OpcionesPagina = { page?: number | undefined; pageSize?: number | undefined };
+
+/** Verbos de servidor de mensajes (sin HTTP): el consumidor pone su propia sesión delante. */
+export type VerbosMensajes = { publicar(input: PublicarMensajeInput): Promise<Mensaje>; raices(tdespacio: string, iref: string, opciones?: OpcionesPagina): Promise<PaginaMensajes>; respuestas(tdespacio: string, iref: string, padre: string, opciones?: OpcionesPagina): Promise<PaginaMensajes>; retirar(tdespacio: string, iref: string, imensaje: string): Promise<Mensaje | null>; mensaje(tdespacio: string, iref: string, imensaje: string): Promise<Mensaje | null> };

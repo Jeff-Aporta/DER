@@ -22,7 +22,7 @@
  */
 import type { ClientPlugin, PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { COLUMNAS_ESPACIO, COLUMNAS_MENSAJE } from "@Jeff-Aporta/DER/src/03-plugins/common/social.ts";
-import { type Adjunto, type EditarMensajeInput, type Mensaje, type MensajeNodo, type PublicarMensajeInput, ZEditarMensaje, ZPublicarMensaje } from "@Jeff-Aporta/DER/src/03-plugins/mensajes/schemas.ts";
+import { type Adjunto, type EditarMensajeInput, type Mensaje, type MensajeNodo, type PaginaMensajes, type PublicarMensajeInput, ZEditarMensaje, ZPublicarMensaje } from "@Jeff-Aporta/DER/src/03-plugins/mensajes/schemas.ts";
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/mensajes/schemas.ts";
 
@@ -71,6 +71,30 @@ export const mensajesPlugin: PluginDef = {
             /** `PUT mensaje/{tdespacio}/{iref}/{imensaje}/editar`: agrega una versión; lo anterior se conserva. `fhcre` fija la fecha de esa versión (si no, la de ahora). */
             editar(this: ClientPlugin, tdespacio: string, iref: string, imensaje: string, input: EditarMensajeInput): Promise<Mensaje> {
               return this.call<Mensaje>("editar", input, { tdespacio, iref, imensaje });
+            },
+          },
+        },
+        raices: {
+          method: "GET",
+          path: "raices",
+          prefix: "plural",
+          returns: "json",
+          ops: {
+            /** `GET mensajes/raices?tdespacio=&iref=&page=&pageSize=`: primer nivel paginado, con su conteo de respuestas. */
+            raices(this: ClientPlugin, tdespacio: string, iref: string, page = 1, pageSize = 10): Promise<PaginaMensajes> {
+              return this.call<PaginaMensajes>("raices", { tdespacio, iref, page, pageSize });
+            },
+          },
+        },
+        respuestas: {
+          method: "GET",
+          path: "respuestas",
+          prefix: "plural",
+          returns: "json",
+          ops: {
+            /** `GET mensajes/respuestas?tdespacio=&iref=&padre=&page=&pageSize=`: respuestas directas de un mensaje. */
+            respuestas(this: ClientPlugin, tdespacio: string, iref: string, padre: string, page = 1, pageSize = 10): Promise<PaginaMensajes> {
+              return this.call<PaginaMensajes>("respuestas", { tdespacio, iref, padre, page, pageSize });
             },
           },
         },

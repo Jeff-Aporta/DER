@@ -31,6 +31,15 @@ await router.seed();
 - Una reacción por usuario y entidad: cambiarla es un `PUT`.
 - A diferencia de la calificación, la reacción se puede retirar (se borra la fila).
 
+## Resumen y votantes (no anónimo)
+
+- `resumen(tdespacio, irefs[], usuario)` · `GET reacciones/resumen?tdespacio=&irefs=a,b`: de varias entidades en UNA
+  consulta: `{ [iref]: { total, porReaccion: { "👍": 3 }, mia } }`. Las que no tienen reacciones también vienen.
+- `votantes(tdespacio, iref, { reaccion, page, pageSize })` · `GET reacciones/votantes?…`: quién reaccionó y con qué
+  (para el modal de votantes; se puede filtrar por una reacción).
+- Sin router: `crearReacciones({ db, cfg: {} })` → `reaccionar(usuario, input)`, `quitar(usuario, tdespacio, iref)`,
+  `resumen`, `votantes`.
+
 ## Rutas
 
 | Ruta | Qué hace |

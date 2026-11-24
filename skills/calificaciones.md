@@ -30,6 +30,12 @@ await router.seed();
 - No hay borrado: una calificación se cambia (hasta 0, que es neutro) pero nunca se elimina (`DELETE` responde 400).
 - Fuera de rango: 400 con el detalle (`La calificación va de -10 a 10`).
 
+## Resumen y calificadores
+
+- `resumen(tdespacio, irefs[], usuario)`: `{ [iref]: { total, promedio, mia } }` de varias entidades a la vez.
+- `calificadores(tdespacio, iref, { page, pageSize })`: quién calificó y con cuánto (no es anónimo).
+- Sin router: `crearCalificaciones({ db, cfg: {} })` → `calificar(usuario, input)`, `resumen`, `calificadores`.
+
 ## Rutas
 
 | Ruta | Qué hace |

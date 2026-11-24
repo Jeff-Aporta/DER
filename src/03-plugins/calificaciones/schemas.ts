@@ -16,3 +16,12 @@ export type CalificarInput = { tdespacio: string; iref: string; valor: number };
 
 /** Zod de la calificación de una entidad. */
 export const ZCalificar = z.strictObject({ tdespacio: z.string().min(1).max(60), iref: z.string().min(1).max(120), valor: ZValorCalificacion });
+
+/** Resumen de una entidad: cuántos calificaron, el promedio y la de quien consulta (o null). */
+export type ResumenCalificaciones = { total: number; promedio: number | null; mia: number | null };
+
+/** Página de quienes calificaron (no es anónimo). */
+export type PaginaCalificadores = { filas: { iusuario: string; valor: number }[]; total: number; page: number; pageSize: number };
+
+/** Verbos de servidor de calificaciones (sin HTTP). */
+export type VerbosCalificaciones = { calificar(usuario: string, input: CalificarInput): Promise<Calificacion>; resumen(tdespacio: string, irefs: string[], usuario?: string | null): Promise<Record<string, ResumenCalificaciones>>; calificadores(tdespacio: string, iref: string, opciones?: { page?: number; pageSize?: number }): Promise<PaginaCalificadores> };

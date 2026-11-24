@@ -55,6 +55,22 @@ await router.seed();
 - Sirve para lo que viene de otro sitio (un chat, un correo, un formulario): así el mensaje conserva su hora
   original y el sistema puede ordenarlo por ella.
 
+## Por niveles (comentarios estilo red social)
+
+Para muros y comentarios, no se pide el árbol entero: cada nivel se pide aparte y paginado.
+
+| Ruta / verbo | Qué trae |
+|---|---|
+| `GET mensajes/raices?tdespacio=&iref=&page=&pageSize=` · `raices(tdespacio, iref, { page, pageSize })` | el primer nivel, lo más reciente primero, cada uno con `respuestas` (cuántas directas tiene) |
+| `GET mensajes/respuestas?tdespacio=&iref=&padre=&page=&pageSize=` · `respuestas(…, padre, …)` | solo las respuestas directas de `padre`, en orden de llegada, con su propio conteo |
+
+La consulta lee primero los índices del nivel (columna liviana), luego solo las filas de la página y el conteo de sus
+respuestas. Lo retirado (`bactivo: false`) no se lista pero queda en la base (auditable).
+
+Sin router, con verbos: `const m = crearMensajes({ db, cfg: {} }); await m.seed();` y luego `m.publicar({ …, iusuario })`,
+`m.raices`, `m.respuestas`, `m.mensaje`, `m.retirar`. El consumidor pone su propia sesión delante (el autor va en
+`iusuario`).
+
 ## Errores comunes
 
 - El `POST` del CRUD exige el `imensaje`: para que lo calcule el servidor, use `mensajes/publicar`.
