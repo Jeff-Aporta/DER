@@ -223,7 +223,7 @@ Deno.test("arch: sin private/protected con nombre (los miembros privados usan #)
 
 Deno.test("skills: cada archivo de src/ enlaza por CDN la skill general y la particular de su carpeta", async () => {
   const BASE = "https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/";
-  const particular = (f: string) => f.startsWith("src/03-plugins/identity/") ? "identity.md" : f.startsWith("src/03-plugins/permissions/") ? "permissions.md" : f.startsWith("src/03-plugins/embeddings/") ? "embeddings.md" : f.startsWith("src/03-plugins/archivos/") ? "archivos.md" : f.startsWith("src/03-plugins/errores/") ? "errores.md" : f.startsWith("src/03-plugins/penalizaciones/") ? "penalizaciones.md" : f.startsWith("src/03-plugins/tks/") ? "tks.md" : f.startsWith("src/03-plugins/mensajes/") ? "mensajes.md" : f.startsWith("src/03-plugins/calificaciones/") ? "calificaciones.md" : f.startsWith("src/03-plugins/reacciones/") ? "reacciones.md" : f.startsWith("src/03-plugins/canal/") || f.startsWith("src/03-plugins/canal-vps/") ? "canal.md" : f.startsWith("src/03-plugins/notificaciones/") ? "notificaciones.md" : f.startsWith("src/03-plugins/") ? "plugins.md" : f.startsWith("src/02-controllers/server/") ? "servidor.md" : f.startsWith("src/02-controllers/") ? "controllers.md" : "objetos.md";
+  const particular = (f: string) => f.startsWith("src/03-plugins/identity/") ? "identity.md" : f.startsWith("src/03-plugins/permissions/") ? "permissions.md" : f.startsWith("src/03-plugins/embeddings/") ? "embeddings.md" : f.startsWith("src/03-plugins/archivos/") ? "archivos.md" : f.startsWith("src/03-plugins/errores/") ? "errores.md" : f.startsWith("src/03-plugins/penalizaciones/") ? "penalizaciones.md" : f.startsWith("src/03-plugins/tks/") ? "tks.md" : f.startsWith("src/03-plugins/mensajes/") ? "mensajes.md" : f.startsWith("src/03-plugins/calificaciones/") ? "calificaciones.md" : f.startsWith("src/03-plugins/reacciones/") ? "reacciones.md" : f.startsWith("src/03-plugins/canal/") || f.startsWith("src/03-plugins/canal-vps/") ? "canal.md" : f.startsWith("src/03-plugins/notificaciones/") ? "notificaciones.md" : f.startsWith("src/03-plugins/whatsapp/") ? "whatsapp.md" : f.startsWith("src/03-plugins/") ? "plugins.md" : f.startsWith("src/02-controllers/server/") ? "servidor.md" : f.startsWith("src/02-controllers/") ? "controllers.md" : "objetos.md";
   const bad: string[] = [];
   for (const f of SRC) {
     const head = (await read(f)).split("\nimport ")[0] ?? "";
@@ -232,7 +232,7 @@ Deno.test("skills: cada archivo de src/ enlaza por CDN la skill general y la par
   }
   assertEquals(bad, []);
   const index = await read("skills/README.md");
-  for (const s of ["consumo-cdn", "objetos", "controllers", "servidor", "plugins", "identity", "permissions", "embeddings", "archivos", "errores", "penalizaciones", "tks", "mensajes", "calificaciones", "reacciones", "notificaciones", "canal", "estilo"]) {
+  for (const s of ["consumo-cdn", "objetos", "controllers", "servidor", "plugins", "identity", "permissions", "embeddings", "archivos", "errores", "penalizaciones", "tks", "mensajes", "calificaciones", "reacciones", "notificaciones", "whatsapp", "canal", "estilo"]) {
     assert(index.includes(`${BASE}${s}.md`), `skills/README.md no enlaza ${s}.md por CDN`);
     await Deno.stat(new URL(`skills/${s}.md`, ROOT));
   }

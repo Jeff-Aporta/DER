@@ -37,6 +37,7 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/mensajes/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/calificaciones/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/reacciones/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/notificaciones/server.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/whatsapp/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/identity/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/penalizaciones/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/server.ts";

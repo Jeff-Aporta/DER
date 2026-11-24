@@ -39,6 +39,8 @@
     "./plugins/reacciones/client": "./src/03-plugins/reacciones/index.ts",
     "./plugins/notificaciones": "./src/03-plugins/notificaciones/server.ts",
     "./plugins/notificaciones/client": "./src/03-plugins/notificaciones/index.ts",
+    "./plugins/whatsapp": "./src/03-plugins/whatsapp/server.ts",
+    "./plugins/whatsapp/client": "./src/03-plugins/whatsapp/index.ts",
     "./plugins/canal": "./src/03-plugins/canal/server.ts",
     "./plugins/canal/client": "./src/03-plugins/canal/index.ts",
     "./plugins/canal-vps": "./src/03-plugins/canal-vps/server.ts",

@@ -94,6 +94,15 @@
 - **[W-PLG-88]** Reacciones: entidad `reacciones` (tabla `reacciones_reacciones`) con la PK (`tdespacio`, `iref`, `iusuario`) y `reaccion` (emoji o clave corta); una por usuario y entidad, cambiable y retirable.
 - **[W-PLG-89]** Las referencias (espacio, id de la entidad, usuario) son definiciones abiertas: sin FK. La coherencia la mantiene el sistema, no el motor.
 
+### WhatsApp (gateway multi-número)
+
+- **[W-PLG-90]** Entidades `apps`, `numeros`, `contactos`, `conversaciones`, `mensajes` y `eventos` (tablas `whatsapp_*`), ninguna publicada por CRUD. Un número (`phone_number_id`) se vincula a una sola app y solo a una app que existe; moverlo de app es cambiar esa fila.
+- **[W-PLG-91]** Un entrante se guarda una sola vez por `wamid`: el reintento devuelve `nuevo: false` y no crea contacto, conversación ni mensaje. Un número sin vincular no pierde el mensaje (queda con app nula).
+- **[W-PLG-92]** Cada contacto tiene una conversación por número. Un entrante reusa la conversación abierta si su ventana sigue vigente (o aún no tenía) y la extiende `ventanaHoras` (24 por defecto) desde su hora; vencida, la cierra y abre otra. Un saliente nunca abre ni extiende la ventana.
+- **[W-PLG-93]** Los estados de Meta se traducen (`sent`→enviado, `delivered`→entregado, `read`→leido, `failed` o desconocido→fallido) y nunca retroceden; un `wamid` ajeno se ignora.
+- **[W-PLG-94]** El historial para el modelo son los últimos N mensajes con texto en orden de llegada, entrante = `user` y saliente = `assistant`. El saliente sin `wamid` queda `pendiente` (o `fallido` con su error) y es idempotente por `wamid`.
+- **[W-PLG-95]** El seed crea las tablas en cualquier motor soportado y deja creadas las apps y números de la configuración; repetirlo no duplica nada. El webhook HTTP (firma sobre el cuerpo crudo) no es ruta del plugin.
+
 ## 2. HOW débil
 
 - **[HW-PLG-01]** Las operaciones en proceso (`login`, `verify`, `logout`, `can`, `profile`, `load`…) son las mismas funciones que usan los handlers HTTP: una sola implementación.
@@ -120,6 +129,7 @@
 - Clientes: token en otros controllers, validación local sin salir, logout revoca; perfil, carga, catálogo, DER con `include` del usuario (sin hash).
 - ES256: firma/verificación, kid, manipulación, JWK, login + JWKS; utilidades de IP y dispositivo.
 - Embeddings sobre D1 simulado con el límite de parámetros y sobre PGlite: hit sin llamar al modelo, referencias, texto editado, proyección entre isolates, obsoletas, estadísticas, regla combinada del pedido, operadores, huérfanos, general con exclusiones, simulación igual a la corrida real, presión por filas y por bytes, tandas con pendiente, prioridad de búsqueda, filtros por inquilino, adaptadores, alimentación, HTTP sin vector, y el JSON del README válido.
+- WhatsApp en dos motores con el mismo seed: números vinculados e idempotencia del seed, reintento por wamid, número → app y desconocido, ventana que se extiende y vence, estados sin retroceso, historial cronológico, vincular a una app inexistente, rutas `protected`.
 
 ## 7. Notas
 
