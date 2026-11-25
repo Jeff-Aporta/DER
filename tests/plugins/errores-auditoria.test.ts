@@ -8,7 +8,7 @@ import { createClient, erroresPlugin, identity } from "@Jeff-Aporta/DER/src/03-p
 import { createRouter, createServer } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlite.ts";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
-import { cronCoincide, declararTareas, type ErrorReporte, erroresServer, identityServer, onErrorRegistrando, purgarAtendidos, reportarFallosCon, servicios, validarCron } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
+import { cronCoincide, declararTareas, nombreCron, type ErrorReporte, erroresServer, identityServer, onErrorRegistrando, purgarAtendidos, reportarFallosCon, servicios, validarCron } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { HttpError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { exigirAnonimo } from "@Jeff-Aporta/DER/src/03-plugins/errores/anonimos.ts";
 import { call, identityCfg, SECRET } from "@Jeff-Aporta/DER/tests/_util.ts";
@@ -162,4 +162,9 @@ Deno.test("tareas: cron de 5 campos en UTC y una declaración sirve para Cloudfl
   } finally {
     await cerrar();
   }
+});
+
+Deno.test("tareas: el nombre que recibe Deno.cron no lleva «:» (Deno solo admite letras, números, espacios, guiones y guion bajo)", () => {
+  assertEquals(nombreCron("errores:purgar-atendidos"), "errores-purgar-atendidos");
+  assertEquals(/^[A-Za-z0-9 _-]+$/.test(nombreCron("a:b/c.d")), true);
 });

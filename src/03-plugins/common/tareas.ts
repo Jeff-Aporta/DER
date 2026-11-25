@@ -65,7 +65,7 @@ export function declararTareas(host: HostTareas, tareas: TareaProgramada[]): Tar
   if (host === "deno") {
     const cron = (globalThis as unknown as { Deno?: { cron?: (nombre: string, cron: string, h: () => unknown) => void } }).Deno?.cron;
     if (!cron) throw new Error("Este runtime no tiene Deno.cron");
-    for (const t of tareas) cron(t.nombre, t.cron, () => t.handler());
+    for (const t of tareas) cron(nombreCron(t.nombre), t.cron, () => t.handler());
     return base;
   }
   if (host === "cloudflare") {
@@ -82,4 +82,9 @@ export function declararTareas(host: HostTareas, tareas: TareaProgramada[]): Tar
     return { ...base, detener: () => clearInterval(reloj) };
   }
   return base;
+}
+
+/** Nombre apto para `Deno.cron` (solo letras, números, espacios, guiones y guiones bajos): «errores:purgar-atendidos» → «errores-purgar-atendidos». */
+export function nombreCron(nombre: string): string {
+  return nombre.replace(/[^A-Za-z0-9 _-]+/g, "-");
 }
