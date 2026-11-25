@@ -103,7 +103,31 @@
 - **[W-PLG-94]** El historial para el modelo son los últimos N mensajes con texto en orden de llegada, entrante = `user` y saliente = `assistant`. El saliente sin `wamid` queda `pendiente` (o `fallido` con su error) y es idempotente por `wamid`.
 - **[W-PLG-95]** El seed crea las tablas en cualquier motor soportado y deja creadas las apps y números de la configuración; repetirlo no duplica nada. El webhook HTTP (firma sobre el cuerpo crudo) no es ruta del plugin.
 
-## 2. HOW débil
+### CRM (multi-tenant)
+
+- **[W-PLG-96]** Entidades `empresas`, `miembros`, `contactos`, `conversaciones`, `participantes`, `mensajes` y `adjuntos` (tablas `crm_*`), ninguna publicada por CRUD: todo va por rutas `protected` que filtran por la empresa activa. `miembros` es la relación N:M usuario↔empresa con un rol por empresa (lector, auditor, agente, admin, propietario).
+- **[W-PLG-97]** Login por `empresa` (código o id) + `usuario` + `password`: la contraseña la verifica el servicio `login` (identidad) SIEMPRE; empresa inexistente, usuario ajeno a la empresa o contraseña mala dan el mismo 401. La empresa no viaja en el token.
+- **[W-PLG-98]** La empresa activa de cada petición sale de `X-Empresa` y se revalida contra `crm_miembros` (403 si no pertenece o está de baja; con una sola empresa se deduce; con varias y sin cabecera, 400). Contactos, conversaciones y adjuntos de otra empresa responden 404.
+- **[W-PLG-99]** Roles: el lector lee, el agente escribe contactos y chats de grupo, el admin administra miembros y da de baja contactos; nadie asigna ni toca un rol mayor al suyo, la empresa conserva un propietario activo y solo `cfg.superadmins` crea empresas por HTTP.
+- **[W-PLG-100]** Chat como el de peon: hilo por `clave` creado al escribir, texto guardado = cita + texto + transcripción, vacío rechazado, adjuntos máx. 4 × 8 MB al almacén, historial paginado con `antes`/`q` y `hayMas`, lista de chats con no leídas y respuesta del bot por canal con token; sin canal el bot avisa y el mensaje queda guardado.
+- **[W-PLG-101]** Conversaciones `directa` (reusada entre los dos) y `grupo` (agregar/quitar por creador o admin; uno sale solo); solo los participantes leen o escriben, solo miembros activos de la empresa participan.
+- **[W-PLG-102]** El seed crea las tablas en cualquier motor soportado y deja creadas las empresas, miembros y contactos de la configuración; repetirlo no duplica nada.
+
+### Atención omnicanal
+
+- **[W-PLG-103]** Entidades `canales`, `clientes`, `chats`, `mensajes`, `borradores`, `entrenamientos` y `calificaciones` (tablas `atencion_*`), ninguna publicada por CRUD. Una cuenta de canal (`canal` + `icuenta`) pertenece a una sola empresa y decide a cuál cae cada entrante.
+- **[W-PLG-104]** El entrante es idempotente por id externo y arma cliente, chat (con código de 4 dígitos) y la ventana de 24 h de WhatsApp; una cuenta sin vincular no guarda nada.
+- **[W-PLG-105]** Cada canal solo admite los tipos de su matriz de capacidades; en WhatsApp, fuera de la ventana de 24 h solo se envía plantilla. Cada mensaje guarda su origen (cliente, usuario interno o bot) y su cita.
+- **[W-PLG-106]** Modo `auto` envía lo que propone el bot; `entrenamiento` lo deja como borrador que el humano envía, corrige (queda el ejemplo), reporta como error de redacción con el contexto o descarta. El modo del chat hereda el del canal si es null.
+- **[W-PLG-107]** Calificación del cliente final por id de chat + código de 4 dígitos (comparación en tiempo constante, bloqueo tras los intentos configurados), 1 a 5 con motivos, dentro del plazo configurable (10 días por defecto); recalificar reemplaza.
+- **[W-PLG-108]** Aislamiento por empresa en todo verbo y ruta: chats, mensajes, borradores y ejemplos de otra empresa responden 404; la sesión la resuelve el consumidor con `services.contexto`.
+
+### Reportes (observaciones y auditoría)
+
+- **[W-PLG-109]** Entidad `reportes` (tabla `reportes_reportes`, no publicada por CRUD): un reporte apunta a CUALQUIER cosa con `origin` + `idorigin` (sin FK), con `ambito` (bot, canal, módulo), `tipo`, motivo, corrección sugerida, autor y contexto; nace `pendiente`.
+- **[W-PLG-110]** Ciclo como el de `errores`: `tomar` es un UPDATE condicional (un solo agente gana, 409 al otro; la toma vencida se retoma), `avance` es bitácora y latido, `soltar` vuelve a pendiente con nota y `cerrar` deja `aplicada` o `descartada` conservando la fila con quién la cerró y la nota.
+- **[W-PLG-111]** Cualquier miembro reporta y ve lo suyo; solo los roles de `cfg.rolesAuditor` (auditor, admin y propietario por defecto) ven la cola completa y atienden. Todo se filtra por `iempresa`: un reporte de otra empresa es 404 y la cola no cruza empresas ni ámbitos.
+
 
 - **[HW-PLG-01]** Las operaciones en proceso (`login`, `verify`, `logout`, `can`, `profile`, `load`…) son las mismas funciones que usan los handlers HTTP: una sola implementación.
 - **[HW-PLG-02]** La IP real: con `trustProxy: N`, el salto N desde el final de `X-Forwarded-For`; con 0, el primero; luego `X-Real-IP`. El dispositivo se deduce del user-agent sin dependencias y la huella es un hash estable del user-agent.
@@ -129,6 +153,9 @@
 - Clientes: token en otros controllers, validación local sin salir, logout revoca; perfil, carga, catálogo, DER con `include` del usuario (sin hash).
 - ES256: firma/verificación, kid, manipulación, JWK, login + JWKS; utilidades de IP y dispositivo.
 - Embeddings sobre D1 simulado con el límite de parámetros y sobre PGlite: hit sin llamar al modelo, referencias, texto editado, proyección entre isolates, obsoletas, estadísticas, regla combinada del pedido, operadores, huérfanos, general con exclusiones, simulación igual a la corrida real, presión por filas y por bytes, tandas con pendiente, prioridad de búsqueda, filtros por inquilino, adaptadores, alimentación, HTTP sin vector, y el JSON del README válido.
+- CRM en dos motores (SQLite y PGlite) con identidad real: seed idempotente, login por empresa, empresa activa por cabecera y aislamiento, roles, chat de peon (hilos, paginado, búsqueda, no leídas, bot por canal), adjuntos, directas y grupos, superadmin.
+- Atención en dos motores: canales por seed y cuenta única por empresa, entrante idempotente, matriz de capacidades y ventana de 24 h, modo auto y entrenamiento (enviar, corregir, reportar, descartar, herencia del modo), calificación con plazo y bloqueo, rutas con la sesión del CRM.
+- Reportes en dos motores: reportar sobre cualquier origen, toma atómica con carrera, bitácora, soltar, cerrar, roles auditor, aislamiento por empresa y filtros por ámbito.
 - WhatsApp en dos motores con el mismo seed: números vinculados e idempotencia del seed, reintento por wamid, número → app y desconocido, ventana que se extiende y vence, estados sin retroceso, historial cronológico, vincular a una app inexistente, rutas `protected`.
 
 ## 7. Notas
