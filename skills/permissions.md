@@ -20,6 +20,18 @@
 | `load(der)` | `PUT permisos` | sí + permisos | upsert de `{ grupos, roles, rolesusuario, acciones }` en una transacción |
 | server: `can(info, accion, verbo)` | — | — | decisión en proceso |
 
+## Catálogo de roles homogéneo
+
+Todos los plugins y APIs piden roles POR NOMBRE de este catálogo (nadie inventa sinónimos). Un rol es el nombre que se guarda en `permisos_roles` (o, en el CRM, en `crm_miembros.rol` por empresa).
+
+| Rol | Quién es | Alcance |
+|---|---|---|
+| `root` | desarrollo (la plataforma) | acceso total a todo y a todas las empresas; en el CRM son los `cfg.superadmins` |
+| `admin` | administra la empresa o la app | usuarios, roles, configuración, baja de datos de SU ámbito |
+| `auditor` | revisa y manda a solucionar | lee todo su ámbito, reporta, crea reportes/observaciones y SOLICITA solución (errores, reportes); no escribe datos de negocio |
+
+Roles específicos que declaran los plugins (siempre además de los tres anteriores): CRM `propietario` (dueño de la empresa; nunca queda una sin uno), `agente` (atiende contactos y chats) y `lector` (solo lee); el resto de plugins declara los suyos en su skill. Reglas: un rol nunca asigna ni toca uno mayor al suyo; `root` > `admin` > resto; `auditor` es transversal (no sube ni baja en la escala). Las constantes están en `ROLES_DER` (`permissions/schemas.ts`) y `cfg.rolesAuditor` de `reportes` usa `["root", "auditor", "admin", "propietario"]` por defecto.
+
 ## Reglas del vector de acciones
 
 1. **Rol base** (default `USR`, configurable con `rolBase`): define los valores por defecto de TODOS. Un rol particular solo escribe diferencias: cargar en un rol un valor igual al del base es un error 400 («Acciones que repiten el valor del rol base …»).

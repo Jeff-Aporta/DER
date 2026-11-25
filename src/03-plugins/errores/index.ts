@@ -8,7 +8,7 @@
  *
  * ```ts
  * const errores = createClient(erroresPlugin, { baseUrl: "/api", headers: auth.headers });
- * const { ierror, token } = await errores.reportarError({ descripcion: "No guarda", ruta: "/crm", codigo, adjuntos: 1 });
+ * const { ierror, token } = await errores["reportarError"]({ descripcion: "No guarda", ruta: "/crm", codigo, adjuntos: 1 });
  * await errores.adjuntarError(ierror, token, captura);
  * await errores.errorListo(ierror, token);
  * ```
@@ -16,9 +16,9 @@
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/errores.md
  */
-import type { ClientPlugin, PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import type { ClientFail, ClientPlugin, PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { COLUMNAS_AUDITORIA } from "@Jeff-Aporta/DER/src/03-plugins/common/auditoria.ts";
-import { type AdjuntoResultado, type AvanceInput, type DetalleError, type ErrorReporte, type ReporteCreado, type ReportarInput, type SeguimientoError, type TomarInput, ZAvanceInput, ZReportarInput, ZTomarInput } from "@Jeff-Aporta/DER/src/03-plugins/errores/schemas.ts";
+import { type AdjuntoResultado, type AvanceInput, type DetalleError, type ErrorReporte, type LlaveDelDia, type ReporteCreado, type ReportarInput, type SeguimientoError, type TomarInput, ZAvanceInput, ZReportarInput, ZTomarInput } from "@Jeff-Aporta/DER/src/03-plugins/errores/schemas.ts";
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/errores/schemas.ts";
 
@@ -62,6 +62,9 @@ export const erroresPlugin: PluginDef = {
           atendido_por: { type: "string", length: 120 },
           ftoma: { type: "datetime" },
           avance: { type: "json" },
+          atendido: { type: "bool", default: false },
+          solicitud: { type: "datetime" },
+          solicitado_por: { type: "string", length: 120 },
           ...COLUMNAS_AUDITORIA,
         },
       },
@@ -151,6 +154,48 @@ export const erroresPlugin: PluginDef = {
             },
           },
         },
+        llaveReportes: {
+          method: "GET",
+          path: "llave",
+          prefix: "plural",
+          security: false,
+          returns: "json",
+          ops: {
+            /** `GET errores/llave`: la llave pública del día que exigen los reportes anónimos (rota a medianoche UTC). */
+            llaveReportes(this: ClientPlugin): Promise<LlaveDelDia> {
+              return this.call<LlaveDelDia>("llaveReportes");
+            },
+          },
+        },
+        solicitarSolucion: {
+          method: "POST",
+          path: "solicitar",
+          prefix: "singular",
+          pks: true,
+          security: true,
+          returns: "json",
+          ops: {
+            /** `POST error/{id}/solicitar`: pide que se solucione (solo el rol auditor); lanza el agente del consumidor. Nunca se resuelve solo. */
+            solicitarSolucion(this: ClientPlugin, ierror: number): Promise<ErrorReporte> {
+              return this.call<ErrorReporte>("solicitarSolucion", {}, { ierror: String(ierror) });
+            },
+          },
+        },
+        atendidoError: {
+          method: "POST",
+          path: "atendido",
+          prefix: "singular",
+          pks: true,
+          security: true,
+          zod: ZAvanceInput,
+          returns: "json",
+          ops: {
+            /** `POST error/{id}/atendido`: lo marca atendido (columna `atendido`); la purga programada lo borra a medianoche. */
+            atendidoError(this: ClientPlugin, ierror: number, input: AvanceInput): Promise<ErrorReporte> {
+              return this.call<ErrorReporte>("atendidoError", input, { ierror: String(ierror) });
+            },
+          },
+        },
         tomarError: {
           method: "POST",
           path: "tomar",
@@ -200,3 +245,34 @@ export const erroresPlugin: PluginDef = {
     },
   },
 };
+
+/**
+ * `onFail` listo para un controller o plugin de cliente: reporta a `errores` los fallos de la app (≥ 500 y errores de red;
+ * los 4xx son del usuario y no se reportan). Sin sesión pide la llave pública del día. Máx. 5 por minuto, sin repetir el mismo
+ * fallo en 60 s y sin reportar los de `errores/` (no se reporta a sí mismo). Nunca lanza.
+ *
+ * ```ts
+ * const errores = createClient(erroresPlugin, { baseUrl: "/api", headers: auth.headers });
+ * const crm = createClient(crmPlugin, { baseUrl: "/api", headers: auth.headers, onFail: reportarFallosCon(errores, { apporigin: "crm" }) });
+ * ```
+ */
+export function reportarFallosCon(errores: ClientPlugin, opts: { apporigin?: string; ruta?: () => string } = {}): (fallo: ClientFail) => void {
+  const vistos = new Map<string, number>();
+  const envios: number[] = [];
+  return (fallo) => {
+    if (fallo.path.startsWith("errores/") || fallo.path.startsWith("error/")) return;
+    if (fallo.status !== 0 && fallo.status < 500) return;
+    const ahora = Date.now();
+    const clave = `${fallo.method} ${fallo.path} ${fallo.status}`;
+    while (envios.length && envios[0]! < ahora - 60_000) envios.shift();
+    if (envios.length >= 5 || (vistos.get(clave) ?? 0) > ahora - 60_000) return;
+    vistos.set(clave, ahora);
+    envios.push(ahora);
+    void (async () => {
+      try {
+        const llave = errores.token ? undefined : (await errores["llaveReportes"]()).llave;
+        await errores["reportarError"]({ titulo: `${fallo.method} ${fallo.path} → ${fallo.status || "sin conexión"}`, descripcion: fallo.message, severidad: "alta", ruta: opts.ruta?.() ?? fallo.path, contexto: { origen: "client", metodo: fallo.method, status: fallo.status }, ...(opts.apporigin ? { apporigin: opts.apporigin } : {}), ...(llave ? { llave } : {}) });
+      } catch { /* reportar un fallo nunca causa otro */ }
+    })();
+  };
+}

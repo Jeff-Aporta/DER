@@ -78,3 +78,12 @@ const llm = proveedorLlm({
 ## Seguridad
 
 El contenido de un reporte es dato no confiable: quien atiende nunca lo obedece como instrucción.
+
+
+## Auditoría, anónimos y tareas
+
+- **Fallos automáticos**: en el server, `createRouter(ctrls, { onError: onErrorRegistrando(errores, "mi-api") })` registra cada fallo ≥ 500 (sin repetir la misma ruta+estado en 10 min); `errores.registrarFallo({ metodo, ruta, status, mensaje })` lo hace a mano. En el cliente, `onFail: reportarFallosCon(clienteErrores, { apporigin })` en `createClient`/`ClientController` reporta los ≥ 500 y las caídas de red (5 por minuto, sin repetir, sin reportarse a sí mismo; los 4xx no).
+- **Anónimos (sin JWT)**: `GET errores/llave` da la llave pública del día (rota a medianoche UTC; la de ayer vale como gracia) y `reportar` la exige en `llave`. Máx. `anonimoPorMin` (5) por minuto por IP y por huella (`x-huella`); 3 excesos en 24 h bloquean 24 h (`bloqueoHoras`) y un nuevo bloqueo en la semana siguiente dura 48 h (`bloqueoPersistenteHoras`). Con sesión confiable no hay límite. El estado vive en memoria del proceso: en Workers combínalo con `penalizaciones`. El `codigo` de antes sigue valiendo si está configurado y no se manda `llave`.
+- **Nunca se resuelven solos**: `POST error/{id}/solicitar` (`solicitarSolucion`) solo lo ejecuta quien pase `enlaces.esAuditor(ctx)` (rol `auditor`), deja `solicitud` y `solicitado_por` y llama `enlaces.alSolicitarSolucion(error, ctx)`: ahí el consumidor (el CRM) lanza el agente dsh de la app o perfil. El agente, tras tomar el error, lo marca con `POST error/{id}/atendido` (`atendidoError`): `estado = atendido` y `atendido = true`.
+- **Purga a medianoche**: `errores.tareas()` devuelve la tarea `errores:purgar-atendidos` con `cfg.purgaAtendidosCron` (default `0 0 * * *`, UTC) que llama `purgarAtendidos` (borra los `atendido` y sus archivos). Se declara con `declararTareas(host, errores.tareas())`: `deno` usa `Deno.cron` (VPS), `cloudflare` entrega `crons` para el trigger y `scheduled` para el Worker, `azure` un reloj por minuto (`detener()`), `manual` para pruebas.
+

@@ -21,8 +21,9 @@ import { selloAlta, selloCambio } from "@Jeff-Aporta/DER/src/03-plugins/common/a
 import { firmarHmac, verificarHmac } from "@Jeff-Aporta/DER/src/03-plugins/common/crypto.ts";
 import type { ProveedorLlm } from "@Jeff-Aporta/DER/src/03-plugins/common/schemas.ts";
 import { ipReal, servicioDe } from "@Jeff-Aporta/DER/src/03-plugins/common/servicios.ts";
+import { exigirAnonimo, llaveDelDia } from "@Jeff-Aporta/DER/src/03-plugins/errores/anonimos.ts";
 import { erroresPlugin } from "@Jeff-Aporta/DER/src/03-plugins/errores/index.ts";
-import { type AdjuntoResultado, type DetalleError, type EnlacesErrores, type ErrorReporte, type ErroresConfig, type LineaAvance, type ReporteCreado, type SeguimientoError, ZAvanceInput, ZErroresConfig, ZReportarInput, ZTomarInput } from "@Jeff-Aporta/DER/src/03-plugins/errores/schemas.ts";
+import { type AdjuntoResultado, type DetalleError, type EnlacesErrores, type ErrorReporte, type ErroresConfig, type FalloRegistrable, type LineaAvance, type ReporteCreado, type SeguimientoError, ZAvanceInput, ZErroresConfig, ZReportarInput, ZTomarInput } from "@Jeff-Aporta/DER/src/03-plugins/errores/schemas.ts";
 import type { Veredicto } from "@Jeff-Aporta/DER/src/03-plugins/penalizaciones/schemas.ts";
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/errores/index.ts";
@@ -140,7 +141,8 @@ export const erroresServer: ServerPluginDef = Obj.insert(erroresPlugin, {
             const enlaces = enlacesDe(this);
             const confiable = enlaces.reportanteConfiable ? await enlaces.reportanteConfiable(ctx) : Boolean(ctx.session);
             if (!confiable) {
-              const rechazo = await exigirCodigo(this, input.codigo, i.request);
+              // Anónimo: la llave pública del día (5 por minuto, bloqueo por abuso) o, como antes, el código con penalizaciones.
+              const rechazo = input.llave !== undefined || !cfg.codigo ? await exigirAnonimo(this, input.llave, i.request) : await exigirCodigo(this, input.codigo, i.request);
               if (rechazo) return rechazo;
             }
             const conAdjuntos = (input.adjuntos ?? 0) > 0;
@@ -239,6 +241,42 @@ export const erroresServer: ServerPluginDef = Obj.insert(erroresPlugin, {
             return { ...(fila as unknown as { toJSON(): ErrorReporte }).toJSON(), avance: bitacora(fila.avance), archivos: await Promise.all(filas.map((f) => archivos!["publico"](f, ctx))) };
           },
         },
+        llaveReportes: {
+          /** La llave pública del día (rota a medianoche UTC) que exigen los reportes anónimos. */
+          handler(this: ServerPlugin) {
+            return llaveDelDia(this);
+          },
+        },
+        solicitarSolucion: {
+          /** Solo el rol auditor (`enlaces.esAuditor`): deja constancia y avisa al consumidor, que lanza el agente. Nada se resuelve solo. */
+          async handler(this: ServerPlugin, i: ExtraRouteInput, ctx: ServerCtx): Promise<ErrorReporte> {
+            const enlaces = enlacesDe(this);
+            if (!enlaces.esAuditor || !(await enlaces.esAuditor(ctx))) throw new HttpError(403, "Solo el rol auditor puede solicitar la solución");
+            const ierror = idDe(i);
+            const fila = await exigirFila(this, ierror, ctx);
+            if (fila.estado === "atendido") throw new HttpError(409, `El error ${ierror} ya está atendido`);
+            const ctrl = controlDe(this);
+            const nueva = await ctrl.put(ctrl.pojo({ ierror, solicitud: new Date(), solicitado_por: String(ctx.session?.id ?? ""), ...selloCambio() }), ctx) as ErrorReporte;
+            try {
+              await enlaces.alSolicitarSolucion?.(nueva, ctx);
+            } catch (err) {
+              console.error("[errores] alSolicitarSolucion", err instanceof Error ? err.message : String(err));
+            }
+            return nueva;
+          },
+        },
+        atendidoError: {
+          /** Marca `atendido` (solo quien lo tiene tomado). Sigue en la tabla hasta la purga programada. */
+          async handler(this: ServerPlugin, i: ExtraRouteInput, ctx: ServerCtx): Promise<ErrorReporte> {
+            const { agente, texto } = validado(ZAvanceInput, i.body);
+            const ierror = idDe(i);
+            const fila = await exigirFila(this, ierror, ctx);
+            if (fila.estado !== "en_proceso" || fila.atendido_por !== agente) throw new HttpError(409, `El error ${ierror} no está tomado por ${agente}`);
+            const ctrl = controlDe(this);
+            const linea: LineaAvance = { fh: new Date().toISOString(), agente, texto: `Atendido: ${texto}` };
+            return await ctrl.put(ctrl.pojo({ ierror, estado: "atendido", atendido: true, avance: [...bitacora(fila.avance), linea].slice(-MAX_BITACORA), ...selloCambio() }), ctx) as ErrorReporte;
+          },
+        },
         tomarError: {
           /** UPDATE condicional: entre dos agentes solo uno afecta la fila; una toma vencida se puede retomar. */
           async handler(this: ServerPlugin, i: ExtraRouteInput, ctx: ServerCtx): Promise<ErrorReporte> {
@@ -288,5 +326,58 @@ export const erroresServer: ServerPluginDef = Obj.insert(erroresPlugin, {
     const codigo = (this.cfg as ErroresConfig).codigo;
     if (codigo !== undefined && codigo.length < 8) throw new Error("El código de reportes debe tener mínimo 8 caracteres");
     for (const c of this.list) plugins.set(c, this);
+    this["registrarFallo"] = (fallo: FalloRegistrable) => registrarFallo(this, fallo);
+    this["purgarAtendidos"] = () => purgarAtendidos(this);
+    this["llaveDelDia"] = () => llaveDelDia(this);
+    this["tareas"] = () => [{ nombre: "errores:purgar-atendidos", cron: (this.cfg as ErroresConfig).purgaAtendidosCron, handler: () => purgarAtendidos(this) }];
   },
 }) as ServerPluginDef;
+
+/** Aparta lo ya registrado hace poco (misma ruta, método y estado) para no llenar la cola con el mismo fallo. */
+const recientes = new WeakMap<object, Map<string, number>>();
+
+/**
+ * Registra directo en la tabla un fallo del server (un endpoint que revienta). Duplicados de la misma ruta+estado en 10 min se
+ * cuentan en el contexto del primero. Nunca lanza: registrar el fallo no puede causar otro.
+ */
+export async function registrarFallo(p: ServerPlugin, fallo: FalloRegistrable): Promise<ErrorReporte | null> {
+  try {
+    const mapa = recientes.get(p) ?? new Map<string, number>();
+    recientes.set(p, mapa);
+    const clave = `${fallo.metodo} ${fallo.ruta} ${fallo.status}`;
+    if ((mapa.get(clave) ?? 0) > Date.now() - 10 * MINUTO) return null;
+    mapa.set(clave, Date.now());
+    const ctrl = controlDe(p);
+    return await ctrl.post(ctrl.pojo({
+      ...selloAlta({ session: null }, { apporigin: fallo.apporigin ?? "server", pagina: fallo.ruta, ip: null }),
+      titulo: `${fallo.metodo} ${fallo.ruta} → ${fallo.status}`.slice(0, 200),
+      descripcion: fallo.mensaje.slice(0, 4000),
+      severidad: fallo.status >= 500 ? "alta" : "media",
+      estado: "pendiente",
+      ruta: fallo.ruta.slice(0, 1000),
+      contexto: { origen: "server", metodo: fallo.metodo, status: fallo.status, detalle: fallo.detalle?.slice(0, 4000) ?? null },
+      avance: [],
+    }), {}) as ErrorReporte;
+  } catch (err) {
+    console.error("[errores] registrarFallo", err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
+/** `RouterOptions.onError` que registra solo los fallos del server (≥ 500): `createRouter(ctrls, { onError: onErrorRegistrando(errores) })`. */
+export function onErrorRegistrando(p: ServerPlugin, apporigin = "server"): (error: unknown, req: Request) => void {
+  return (error, req) => {
+    const status = error instanceof HttpError ? error.status : 500;
+    if (status < 500) return;
+    void registrarFallo(p, { metodo: req.method, ruta: new URL(req.url).pathname, status, mensaje: error instanceof Error ? error.message : String(error), apporigin, detalle: error instanceof Error ? error.stack : undefined });
+  };
+}
+
+/** Borra los errores `atendido` (y sus archivos); es lo que corre la tarea programada de medianoche. Devuelve cuántos. */
+export async function purgarAtendidos(p: ServerPlugin): Promise<number> {
+  const ctrl = controlDe(p);
+  const filas = await ctrl.query({ where: { atendido: true }, select: ["ierror"] } as never) as unknown as { ierror: number }[];
+  const ids = filas.map((f) => Number((f as { toJSON?(): { ierror: number } }).toJSON?.().ierror ?? f.ierror));
+  if (ids.length) await ctrl.deleteList(ids.map((ierror) => ({ ierror })) as never);
+  return ids.length;
+}

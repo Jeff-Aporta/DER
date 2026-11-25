@@ -11,7 +11,7 @@
  */
 import { BaseController } from "@Jeff-Aporta/DER/src/02-controllers/controller.ts";
 import type { Entity } from "@Jeff-Aporta/DER/src/01-objects/entity.ts";
-import type { Action, CfgAction, ClientConfig, ClientCtx, EndpointDef, HeadersSource } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import type { Action, CfgAction, ClientConfig, ClientFail, ClientCtx, EndpointDef, HeadersSource } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { HttpError, NotFoundError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import type { Pojo } from "@Jeff-Aporta/DER/src/01-objects/pojo.ts";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
@@ -34,7 +34,7 @@ export async function errorMessage(res: Response): Promise<string> {
  * fetch con headers y manejo de errores, común al ClientController y a los plugins: 400 → ValidationError, otros ≥400 → HttpError.
  * 404 se devuelve como respuesta para que cada acción decida (null o error).
  */
-export async function clientRequest(config: { baseUrl: string; fetch?: typeof fetch | undefined; headers?: HeadersSource | undefined }, method: string, path: string, body?: unknown, ctx?: ClientCtx, accept = "application/json"): Promise<Response> {
+export async function clientRequest(config: { baseUrl: string; fetch?: typeof fetch | undefined; headers?: HeadersSource | undefined; onFail?: ((fallo: ClientFail) => void) | undefined }, method: string, path: string, body?: unknown, ctx?: ClientCtx, accept = "application/json"): Promise<Response> {
   const headers = new Headers(typeof config.headers === "function" ? await config.headers() : config.headers);
   for (const [k, v] of new Headers(ctx?.headers)) headers.set(k, v);
   headers.set("accept", accept);
@@ -42,9 +42,21 @@ export async function clientRequest(config: { baseUrl: string; fetch?: typeof fe
   const init: RequestInit = { method, headers };
   if (body !== undefined) init.body = JSON.stringify(body);
   if (ctx?.signal) init.signal = ctx.signal;
-  const res = await (config.fetch ?? fetch)(`${config.baseUrl.replace(/\/+$/, "")}/${path}`, init);
+  const avisar = (status: number, message: string) => {
+    try {
+      config.onFail?.({ method, path, status, message });
+    } catch { /* el reporte de fallos nunca tumba la petición */ }
+  };
+  let res: Response;
+  try {
+    res = await (config.fetch ?? fetch)(`${config.baseUrl.replace(/\/+$/, "")}/${path}`, init);
+  } catch (e) {
+    avisar(0, (e as Error).message);
+    throw e;
+  }
   if (res.ok || res.status === 404) return res;
   const msg = await errorMessage(res);
+  avisar(res.status, msg);
   throw res.status === 400 ? new ValidationError(msg) : new HttpError(res.status, msg);
 }
 

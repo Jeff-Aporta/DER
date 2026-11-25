@@ -17,7 +17,7 @@ Se decidió un plugin hermano (no extender `errores`) porque `errores` reporta b
 ```ts
 const rep = crearReportes({
   db,
-  cfg: { rolesAuditor: ["auditor", "admin", "propietario"], tomaMin: 60 },
+  cfg: { rolesAuditor: ["root", "auditor", "admin", "propietario"], tomaMin: 60 },
   services: {
     contexto: async (req, sesion) => { const c = await crm.contexto(sesion.id, req.headers.get("x-empresa")); return { iusuario: c.iusuario, iempresa: c.iempresa, rol: c.rol }; },
     alReportar: (reporte) => avisarAlAgente(reporte),   // opcional; si falla, el reporte igual queda

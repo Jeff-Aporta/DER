@@ -25,6 +25,7 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/common/jwt.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/r2.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/schemas.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/servicios.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/common/tareas.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/canal/server.ts";
 // El canal propio (el que vive en el VPS con su SQLite): se exporta con nombre para no chocar con los tipos del
 // plugin de referencia (Mensaje, Adjunto, Reaccion...) y con los demas plugins.

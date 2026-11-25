@@ -1,0 +1,13 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "megaretail-api",
+      "runtimeExecutable": "deno",
+      "runtimeArgs": ["run", "-A", "main.ts"],
+      "cwd": "labs/megaretail/api",
+      "port": 8787,
+      "env": { "DB": ":memory:" }
+    }
+  ]
+}

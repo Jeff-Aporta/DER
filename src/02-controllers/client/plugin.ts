@@ -39,7 +39,7 @@ export function createClient(def: PluginDef, config: ClientPluginConfig): Client
     },
     headers,
     request(method: string, path: string, body?: unknown, ctx?: Parameters<typeof clientRequest>[4]): Promise<Response> {
-      return clientRequest({ baseUrl: config.baseUrl, fetch: config.fetch, headers }, method, path, body, ctx);
+      return clientRequest({ baseUrl: config.baseUrl, fetch: config.fetch, headers, onFail: config.onFail }, method, path, body, ctx);
     },
     async call<R = unknown>(name: string, body?: unknown, keys: Record<string, string> | Pojo = {}): Promise<R> {
       const found = findPath(def, name, entities);

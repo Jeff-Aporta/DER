@@ -193,6 +193,18 @@
        "type": "json"
       },
       {
+       "name": "atendido",
+       "type": "bool"
+      },
+      {
+       "name": "solicitud",
+       "type": "datetime"
+      },
+      {
+       "name": "solicitado_por",
+       "type": "varchar(120)"
+      },
+      {
        "name": "propietario_tipo",
        "type": "varchar(20)"
       },

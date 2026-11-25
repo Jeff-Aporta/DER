@@ -2,7 +2,7 @@
  * Plugin de reportes (server): el transversal con las puertas, la toma atómica y el cierre.
  *
  * - Aislamiento: toda fila lleva `iempresa` y todo verbo la recibe; un reporte de otra empresa es 404. En HTTP la
- *   empresa y el rol salen de `services.contexto`; solo `cfg.rolesAuditor` (auditor, admin, propietario por defecto)
+ *   empresa y el rol salen de `services.contexto`; solo `cfg.rolesAuditor` (root, auditor, admin, propietario por defecto)
  *   ve la cola, toma, avanza, suelta y cierra; reportar lo hace cualquier miembro y cada quien ve lo suyo.
  * - Ciclo (el de `errores`): `pendiente` → `tomar` (UPDATE condicional: entre dos agentes solo uno gana, 409 al otro;
  *   una toma vencida a los `tomaMin` se retoma) → `avance` (bitácora y latido) → `cerrar` (`aplicada` | `descartada`,
@@ -37,7 +37,7 @@ const servicios = (p: ServerPlugin): ReportesServicios => (p.services ?? {}) as 
 const bitacora = (v: unknown): AvanceReporte[] => (Array.isArray(v) ? (v as AvanceReporte[]) : []);
 
 /** ¿Este rol audita (atiende reportes)? */
-const audita = (p: ServerPlugin, rol: string | undefined): boolean => (cfgDe(p).rolesAuditor ?? ["auditor", "admin", "propietario"]).includes(rol ?? "");
+const audita = (p: ServerPlugin, rol: string | undefined): boolean => (cfgDe(p).rolesAuditor ?? ["root", "auditor", "admin", "propietario"]).includes(rol ?? "");
 
 /** Un reporte de ESTA empresa (404 si no existe o es de otra: nunca se distingue). */
 async function propio(p: ServerPlugin, iempresa: string, id: string): Promise<Reporte> {

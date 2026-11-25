@@ -111,3 +111,10 @@ export type R2Descriptor = { clave: string; bytes: number; mime: string; expira:
 export type R2PurgeResult = { escaneados: number; borrados: number };
 /** Almacén R2 compatible con el contrato de archivos de DER. */
 export type R2Almacen = { subir(clave: string, bytes: Uint8Array, meta: { mime: string; nombre: string }): Promise<void>; subirConCaducidad(clave: string, bytes: Uint8Array, meta: { mime: string; nombre: string; ttlSeg?: number }): Promise<R2Descriptor>; bajar(clave: string): Promise<{ cuerpo: BodyInit | null; mime?: string; bytes?: number } | null>; borrar(clave: string): Promise<void>; purgarVencidos(): Promise<R2PurgeResult> };
+
+/** Host que dispara las tareas programadas: `deno` (VPS, `Deno.cron`), `cloudflare` (cron triggers), `azure` (temporizadores) o `manual` (pruebas). */
+export type HostTareas = "deno" | "cloudflare" | "azure" | "manual";
+/** Tarea programada declarada por un plugin: nombre estable, cron de 5 campos en UTC y qué hacer. */
+export type TareaProgramada = { nombre: string; cron: string; handler(): Promise<unknown> | unknown };
+/** Lo que devuelve `declararTareas`: los crons (para `wrangler.toml`), el `scheduled` de Cloudflare, `detener` (Azure) y `ejecutar` por nombre. */
+export type TareasDeclaradas = { host: HostTareas; crons: string[]; scheduled(evento: { cron?: string; scheduledTime?: number }): Promise<void>; detener(): void; ejecutar(nombre: string): Promise<unknown> };

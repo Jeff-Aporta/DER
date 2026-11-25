@@ -5,6 +5,9 @@
  */
 import { z } from "zod";
 
+/** Catálogo homogéneo de roles de DER: `root` (desarrollo, acceso total), `admin` (administra su ámbito) y `auditor` (revisa y solicita soluciones); los plugins piden roles por estos nombres y declaran los suyos aparte. */
+export const ROLES_DER = ["root", "admin", "auditor"] as const;
+
 /**
  * Configuración del plugin de permisos (`createServer(permissionsServer, { db, cfg })`): `grupo` cuyos roles aplican a este API
  * (default `"API"`); `rolBase` valores por defecto de todos (default `"USR"`); `rolAdmin` rol `"*": true` que crea `seed()`

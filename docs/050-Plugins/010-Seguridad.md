@@ -81,6 +81,18 @@ Las acciones de sesión son **paths de la entidad `usuarios`**: las que aún no 
 - **`extract`:** `Authorization: Bearer <token>` → `{ id: sub, claims }`; sin cabecera → `null` (anónimo).
 - **`seed`:** crea `admin` si está configurado y no existe. La secret key debe tener al menos 32 caracteres y nunca se versiona: va por `env:`.
 
+## Catálogo de roles homogéneo
+
+Todos los plugins y APIs piden roles POR NOMBRE de este catálogo (nadie inventa sinónimos). Un rol es el nombre que se guarda en `permisos_roles` (o, en el CRM, en `crm_miembros.rol` por empresa).
+
+| Rol | Quién es | Alcance |
+|---|---|---|
+| `root` | desarrollo (la plataforma) | acceso total a todo y a todas las empresas; en el CRM son los `cfg.superadmins` |
+| `admin` | administra la empresa o la app | usuarios, roles, configuración, baja de datos de SU ámbito |
+| `auditor` | revisa y manda a solucionar | lee todo su ámbito, reporta, crea reportes/observaciones y SOLICITA solución (errores, reportes); no escribe datos de negocio |
+
+Roles específicos que declaran los plugins (siempre además de los tres anteriores): CRM `propietario` (dueño de la empresa; nunca queda una sin uno), `agente` (atiende contactos y chats) y `lector` (solo lee); el resto de plugins declara los suyos en su skill. Reglas: un rol nunca asigna ni toca uno mayor al suyo; `root` > `admin` > resto; `auditor` es transversal (no sube ni baja en la escala). Las constantes están en `ROLES_DER` (`permissions/schemas.ts`) y `cfg.rolesAuditor` de `reportes` usa `["root", "auditor", "admin", "propietario"]` por defecto.
+
 ## Plugin de permisos
 
 ### DER

@@ -148,7 +148,9 @@ export type ControllerOptions<P extends Pojo, Ctl, Ctx> = { hooks?: Hooks<P, Ctl
 export type ClientCtx = BaseCtx & { headers?: HeadersInit };
 export type HeadersSource = HeadersInit | (() => HeadersInit | Promise<HeadersInit>);
 /** `baseUrl` incluye el basePath (`http://localhost:8000/api`); `fetch` inyectable; `headers` fijas o función (p.ej. el token). */
-export type ClientConfig<P extends Pojo, Ctl = any> = ControllerOptions<P, Ctl, ClientCtx> & { baseUrl: string; fetch?: typeof fetch; headers?: HeadersSource };
+/** Fallo de una petición del cliente (≥ 400 salvo 404, o error de red): lo que recibe `onFail`. */
+export type ClientFail = { method: string; path: string; status: number; message: string };
+export type ClientConfig<P extends Pojo, Ctl = any> = ControllerOptions<P, Ctl, ClientCtx> & { baseUrl: string; fetch?: typeof fetch; headers?: HeadersSource; onFail?: ((fallo: ClientFail) => void) | undefined };
 
 // ===================================================================================== plugins (JSON transversal)
 
@@ -171,7 +173,7 @@ export type PluginEntity = Omit<EntityDef<any>, "pojo" | "schema" | "exposed" | 
  */
 export type PluginDef = { name: string; entities?: Record<string, PluginEntity> | undefined; irregularPaths?: Record<string, IrregularPath> | undefined };
 /** Config de `createClient`: `baseUrl` del API, `fetch` inyectable, `headers` fijas o función, `token` inicial y `onToken` para persistirlo. */
-export type ClientPluginConfig = { baseUrl: string; fetch?: typeof fetch | undefined; headers?: HeadersSource | undefined; token?: string | null | undefined; onToken?: ((token: string | null) => void) | undefined };
+export type ClientPluginConfig = { baseUrl: string; fetch?: typeof fetch | undefined; headers?: HeadersSource | undefined; token?: string | null | undefined; onToken?: ((token: string | null) => void) | undefined; onFail?: ((fallo: ClientFail) => void) | undefined };
 /** Plugin armado en el cliente: un `ClientController` por entidad (clave del JSON), `call(path, body?, pks?)` para cualquier path irregular (del plugin o de una entidad), token de sesión y las `ops` de los paths como métodos. */
 export type ClientPlugin = { name: string; def: PluginDef; config: ClientPluginConfig; controllers: Record<string, ClientController<any>>; state: Record<string, unknown>; token: string | null; setToken(token: string | null): void; headers(): HeadersInit | Promise<HeadersInit>; request(method: string, path: string, body?: unknown, ctx?: ClientCtx): Promise<Response>; call<R = unknown>(path: string, body?: unknown, keys?: Record<string, string> | Pojo): Promise<R> } & Record<string, any>;
 

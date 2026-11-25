@@ -9,16 +9,16 @@ import type { ArchivoPublico } from "@Jeff-Aporta/DER/src/03-plugins/archivos/sc
 import type { SelloAuditoria } from "@Jeff-Aporta/DER/src/03-plugins/common/schemas.ts";
 
 /** Estados de un error: `recibiendo` (faltan adjuntos), `pendiente` y `en_proceso`. Atendido = fila borrada. */
-export const ESTADOS_ERROR = ["recibiendo", "pendiente", "en_proceso"] as const;
+export const ESTADOS_ERROR = ["recibiendo", "pendiente", "en_proceso", "atendido"] as const;
 /** Estado de un error. */
 export type EstadoError = (typeof ESTADOS_ERROR)[number];
 
 /** Configuración: secreto de los tokens, código de los reportes sin sesión (mínimo 8, se comprueba ya resuelto el `env:`), vida de una toma y límites. */
-export const ZErroresConfig = z.strictObject({ secret: z.string().min(1), codigo: z.string().min(1).optional(), tomaMin: z.number().positive().default(60), recibiendoMin: z.number().positive().default(10), maxHtmlKb: z.number().positive().default(512), maxAdjuntoMb: z.number().positive().default(20), maxAdjuntos: z.number().int().positive().default(10), tokenSeg: z.number().int().positive().default(3600) });
+export const ZErroresConfig = z.strictObject({ secret: z.string().min(1), codigo: z.string().min(1).optional(), tomaMin: z.number().positive().default(60), recibiendoMin: z.number().positive().default(10), maxHtmlKb: z.number().positive().default(512), maxAdjuntoMb: z.number().positive().default(20), maxAdjuntos: z.number().int().positive().default(10), tokenSeg: z.number().int().positive().default(3600), anonimoPorMin: z.number().int().positive().default(5), infraccionesParaBloqueo: z.number().int().positive().default(3), bloqueoHoras: z.number().positive().default(24), bloqueoPersistenteHoras: z.number().positive().default(48), purgaAtendidosCron: z.string().min(9).default("0 0 * * *") });
 /** Configuración ya validada. */
 export type ErroresConfig = z.infer<typeof ZErroresConfig>;
 /** Cuerpo de `POST errores/reportar`. */
-export const ZReportarInput = z.strictObject({ titulo: z.string().trim().min(1).max(200).optional(), descripcion: z.string().max(20000).default(""), severidad: z.enum(["baja", "media", "alta"]).optional(), ruta: z.string().max(1000).optional(), url: z.string().max(2000).optional(), html: z.string().optional(), contexto: z.record(z.string(), z.unknown()).optional(), apporigin: z.string().max(120).optional(), adjuntos: z.number().int().nonnegative().optional(), codigo: z.string().max(200).optional() });
+export const ZReportarInput = z.strictObject({ titulo: z.string().trim().min(1).max(200).optional(), descripcion: z.string().max(20000).default(""), severidad: z.enum(["baja", "media", "alta"]).optional(), ruta: z.string().max(1000).optional(), url: z.string().max(2000).optional(), html: z.string().optional(), contexto: z.record(z.string(), z.unknown()).optional(), apporigin: z.string().max(120).optional(), adjuntos: z.number().int().nonnegative().optional(), codigo: z.string().max(200).optional(), llave: z.string().max(200).optional() });
 /** Datos de un reporte. */
 export type ReportarInput = z.input<typeof ZReportarInput>;
 /** Cuerpo de `POST error/{id}/tomar`. */
@@ -43,4 +43,9 @@ export type DetalleError = ErrorReporte & { archivos: ArchivoPublico[] };
 /** Lo que ve quien reportó: estado y bitácora (`atendido` cuando la fila ya no existe). */
 export type SeguimientoError = { estado: EstadoError | "atendido"; avance: LineaAvance[] };
 /** Enlaces del consumidor: quién reporta sin código y qué hacer al recibir un reporte. Todo opcional. */
-export type EnlacesErrores = { reportanteConfiable?(ctx: BaseCtx): Promise<boolean> | boolean; alReportar?(error: ErrorReporte, ctx: BaseCtx): Promise<void> | void };
+export type EnlacesErrores = { reportanteConfiable?(ctx: BaseCtx): Promise<boolean> | boolean; alReportar?(error: ErrorReporte, ctx: BaseCtx): Promise<void> | void ; esAuditor?(ctx: BaseCtx): Promise<boolean> | boolean; alSolicitarSolucion?(error: ErrorReporte, ctx: BaseCtx): Promise<void> | void };
+
+/** Fallo del server a registrar solo: método, ruta, estado HTTP y mensaje (más el origen de la app). */
+export type FalloRegistrable = { metodo: string; ruta: string; status: number; mensaje: string; apporigin?: string | undefined; detalle?: string | undefined };
+/** Llave pública del día: la que exigen los reportes anónimos (seguridad débil, rota cada día UTC). */
+export type LlaveDelDia = { llave: string; dia: string; expira: string };
