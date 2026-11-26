@@ -1,7 +1,8 @@
 /**
  * Motor de reglas de purga: valida cada regla contra la definición de las entidades y la compila a un predicado parametrizado
- * sobre la caché (alias `c`) y, si cruza, sobre la entidad referida (alias `e`). Los identificadores salen siempre del metadata de
- * los controllers (`sql.ref`, `sql.table`) y los valores van como parámetros: nada de la regla llega crudo al SQL.
+ * sobre la caché (alias `c`). La caché vive en OTRA base que las entidades, así que el cruce con `donde`/`huerfanos` no es un
+ * join: `cruce.ts` resuelve los ids contra la base principal y los materializa en una tabla temporal que este módulo referencia.
+ * Los identificadores salen del metadata de los controllers (`sql.ref`, `sql.table`) y los valores van como parámetros.
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/embeddings.md
@@ -16,12 +17,10 @@ import type { Alcance, Condicion, Proyeccion, ReglaPurga } from "@Jeff-Aporta/DE
 
 const DIA_MS = 86_400_000;
 const COMPARA: Record<string, string> = { eq: "=", ne: "<>", lt: "<", lte: "<=", gt: ">", gte: ">=" };
-/** Tipo de `cast` del id (texto en la caché) a una pk numérica, por motor. */
-const CAST_NUMERICO: Record<string, string> = { sqlite: "integer", pg: "bigint", mysql: "signed", mssql: "bigint" };
 const NUMERICOS: readonly string[] = ["int", "bigint", "float", "decimal"];
 const FECHAS: readonly string[] = ["date", "datetime", "time"];
 
-/** Controller de la entidad `plural` en ESTA base (el cruce es un `exists`: no atraviesa bases), o null. */
+/** Controller de la entidad `plural` en ESTA base (la principal), o null. */
 export function controllerEn(db: Database, plural: string): ServerController<any> | null {
   return db.controllers.find((c) => c.entity.pluralPath.join("/") === plural) ?? null;
 }
@@ -78,8 +77,8 @@ function partesDeAlcance(a: Alcance | undefined, cache: ServerController<any>): 
   return out;
 }
 
-/** Una condición sobre `e`. */
-function condicion(ctrl: ServerController<any>, c: Condicion, ahora: Date): Raw {
+/** Condición sobre la entidad referida (alias `e`), con sus valores ya convertidos al motor de la base principal. */
+export function condicionDe(ctrl: ServerController<any>, c: Condicion, ahora: Date): Raw {
   const ref = ctrl.col("e", c.columna);
   if (c.op === "nulo") return sql`${ref} is null`;
   if (c.op === "noNulo") return sql`${ref} is not null`;
@@ -88,42 +87,18 @@ function condicion(ctrl: ServerController<any>, c: Condicion, ahora: Date): Raw 
   return sql`${ref} ${sql.raw(COMPARA[c.op]!)} ${ctrl.toDb(c.columna, c.valor)}`;
 }
 
-/** Igualdad entre la referencia de la caché (texto) y la pk de la entidad, sin perder el índice de la pk cuando es numérica. `nullif`: el id vacío de una consulta no rompe el cast en PostgreSQL. */
-function igualaReferencia(cache: ServerController<any>, ctrl: ServerController<any>): Raw {
-  const pk = ctrl.entity.meta.pks[0]!;
-  const tipo = ctrl.entity.meta.columns[pk]!.type;
-  const id = cache.col("c", "id");
-  const ref = ctrl.col("e", pk);
-  if (tipo === "uuid") return sql`${id} = cast(${ref} as varchar(36))`;
-  if (tipo !== "int" && tipo !== "bigint") return sql`${id} = ${ref}`;
-  const cast = CAST_NUMERICO[ctrl.engine.name];
-  if (!cast) throw new Error(`Motor sin cast numérico: ${ctrl.engine.name}`);
-  return sql`cast(nullif(${id}, '') as ${sql.raw(cast)}) = ${ref}`;
-}
-
-/** Cruce con la entidad referida: `exists` con `donde` y/o `not exists` para `huerfanos`. */
-function cruce(r: ReglaPurga, cache: ServerController<any>, db: Database, ahora: Date): Raw {
-  const ctrl = controllerEn(db, r.alcance!.entidad!)!;
-  const tabla = sql.table(ctrl.table);
-  const iguala = igualaReferencia(cache, ctrl);
-  const opciones: Raw[] = [];
-  if (r.donde) opciones.push(sql`exists (select 1 from ${tabla} as e where ${sql.join([iguala, ...r.donde.map((c) => condicion(ctrl, c, ahora))], sql` and `)})`);
-  if (r.huerfanos) opciones.push(sql`not exists (select 1 from ${tabla} as e where ${iguala})`);
-  return sql`(${sql.join(opciones, sql` or `)})`;
-}
-
 /** Último uso de una fila: su último hit o, si nunca tuvo, su creación. */
 function ultimoUso(cache: ServerController<any>): Raw {
   return sql`coalesce(${cache.col("c", "fultimohit")}, ${cache.col("c", "fcreado")})`;
 }
 
-/** Predicado de una regla ya validada. */
-export function predicadoRegla(r: ReglaPurga, cache: ServerController<any>, db: Database, ahora: Date): Raw {
+/** Predicado de una regla ya validada. `cruce`: el que armó `cruce.ts` con los ids resueltos contra la base principal. */
+export function predicadoRegla(r: ReglaPurga, cache: ServerController<any>, ahora: Date, cruce?: Raw): Raw {
   const partes = partesDeAlcance(r.alcance, cache);
   if (r.sinHitsDias !== undefined) partes.push(sql`${ultimoUso(cache)} < ${cache.toDb("fcreado", hace(ahora, r.sinHitsDias))}`);
   if (r.edadDias !== undefined) partes.push(sql`${cache.col("c", "fcreado")} < ${cache.toDb("fcreado", hace(ahora, r.edadDias))}`);
   if (r.hitsMenorQue !== undefined) partes.push(sql`${cache.col("c", "hits")} < ${r.hitsMenorQue}`);
-  if (r.donde || r.huerfanos) partes.push(sql`${cache.col("c", "tipo")} = ${"documento"}`, cruce(r, cache, db, ahora));
+  if (cruce) partes.push(cruce);
   if (!partes.length) return sql`1 = 1`;
   return sql`(${sql.join(partes, sql` and `)})`;
 }

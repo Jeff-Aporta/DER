@@ -1,12 +1,16 @@
 /**
- * Plugin de embeddings (server): la caché con huella, la búsqueda con prioridad, las estadísticas y la purga declarativa. El proveedor
- * y el índice se inyectan en `services`; todo lo demás es el JSON de `cfg`, validado con Zod al armar y contra las entidades en `seed()`.
+ * Plugin de embeddings (server): la caché con huella, la búsqueda con prioridad, las estadísticas, la purga declarativa y los
+ * perfiles de usuario. La caché, proyecciones, contadores y cursores viven en una SQLite PROPIA (`cfg.db` o `cfg.ruta`; sin
+ * ruta, memoria); `embeddings_usuarios` vive en la base principal. El proveedor y el índice se inyectan en `services`; todo lo
+ * demás es el JSON de `cfg`, validado con Zod al armar y contra las entidades en `seed()`.
  *
  * ```ts
- * const emb = createServer(embeddingsServer, { db, cfg, services: { ai: workersAi(env.AI) } });
+ * const emb = createServer(embeddingsServer, { db, cfg: { ruta: "datos/embeddings.sqlite", modelos: { bge: { id: "@cf/baai/bge-m3", dims: 1024, proveedor: "ai" } } }, services: { ai: workersAi(env.AI) } });
  * const router = createRouter(ctrls, { basePath: "/api", plugins: [auth, permisos, emb] });
  * await router.seed();
  * await emb.embeber({ items: [{ texto: "café", entidad: "productos", id: 7 }] });
+ * await emb.perfil({ iusuario: "beto", textos: ["café molido"], preferencias: { categoria: "café" } });
+ * await emb.similares({ iusuario: "beto", limite: 5 });
  * await emb.purgar({ simular: true });   // en cron: await emb.purgar();
  * ```
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
@@ -18,10 +22,13 @@ import { Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 import type { ExtraRouteInput, ServerPlugin, ServerPluginDef } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { alimentarEntidad, buscarConPrioridad, cfgDe, embeberConCache, estadisticas, indexarDocumentos, olvidarDocumentos, proyeccionesVigentes } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/cache.ts";
+import { montarDbEmbeddings } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/conexion.ts";
 import { embeddings } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/index.ts";
-import { exigirReglasValidas, explicarReglas, purgar } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/purga.ts";
-import { type AlimentarResultado, type BusquedaResultado, type EmbeberResultado, type Estadisticas, type ExplicacionReglas, type InformePurga, type ItemEmbeber, ZAlimentarInput, ZBuscarInput, ZEmbeberInput, ZEmbeddingsConfig } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/schemas.ts";
+import { exigirReglasValidas, explicarReglas, purgaEfectiva, purgar } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/purga.ts";
+import { type ActualizarPerfilInput, type AlimentarResultado, type BusquedaResultado, type EmbeberResultado, type Estadisticas, type ExplicacionReglas, type InformePurga, type ItemEmbeber, type PerfilResultado, type SimilaresResultado, type SimilaresUsuariosInput, ZActualizarPerfilInput, ZAlimentarInput, ZBuscarInput, ZEmbeberInput, ZEmbeddingsConfig, ZSimilaresUsuariosInput } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/schemas.ts";
+import { actualizarPerfil, similaresDeUsuario } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/usuarios.ts";
 
+export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/conexion.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/proveedores.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/vectores.ts";
@@ -33,13 +40,17 @@ function validado<T>(zod: z.ZodType<T>, v: unknown): T {
   return r.data;
 }
 
-/** JSON del server de embeddings: `embeddings` + particularidades. */
+/** JSON del server de embeddings: `embeddings` + particularidades (base aparte, perfiles de usuario y rutas nuevas). */
 export const embeddingsServer: ServerPluginDef = Obj.insert(embeddings, {
   cfg: ZEmbeddingsConfig,
   entities: {
     cache: {
       hidden: ["vector"],
       indexes: [{ columns: ["huella", "modelo", "dims", "iproyeccion", "tipo", "entidad", "id"], unique: true, name: "ux_embeddings_cache_ref" }, { columns: ["entidad", "tipo", "id"], name: "ix_embeddings_cache_ref" }, { columns: ["fultimohit"], name: "ix_embeddings_cache_hit" }],
+    },
+    usuarios: {
+      hidden: ["vector"],
+      indexes: [{ columns: ["modelo", "dims"], name: "ix_embeddings_usuarios_espacio" }, { columns: ["fhinteraccion"], name: "ix_embeddings_usuarios_interaccion" }],
     },
   },
   irregularPaths: {
@@ -90,7 +101,7 @@ export const embeddingsServer: ServerPluginDef = Obj.insert(embeddings, {
         return this["purgar"](body);
       },
       ops: {
-        /** Purga por cron o bajo demanda; `{ simular: true }` informa qué borraría. */
+        /** Purga por cron o bajo demanda; `{ simular: true }` informa qué borraría (caché y perfiles). */
         purgar(this: ServerPlugin, input?: unknown): Promise<InformePurga> {
           return purgar(this, input);
         },
@@ -122,10 +133,36 @@ export const embeddingsServer: ServerPluginDef = Obj.insert(embeddings, {
         },
       },
     },
+    perfil: {
+      handler(this: ServerPlugin, { body }: ExtraRouteInput) {
+        return this["perfil"](body);
+      },
+      ops: {
+        /** Guarda el perfil embebido del usuario (textos o vector) en `embeddings_usuarios`, con sus preferencias. */
+        perfil(this: ServerPlugin, input: unknown): Promise<PerfilResultado> {
+          return actualizarPerfil(this, validado(ZActualizarPerfilInput, input) as ActualizarPerfilInput);
+        },
+      },
+    },
+    similares: {
+      handler(this: ServerPlugin, { body }: ExtraRouteInput) {
+        return this["similares"](body);
+      },
+      ops: {
+        /** Los N usuarios más parecidos por coseno al perfil pedido, con sus preferencias. */
+        similares(this: ServerPlugin, input: unknown): Promise<SimilaresResultado> {
+          return similaresDeUsuario(this, validado(ZSimilaresUsuariosInput, input) as SimilaresUsuariosInput);
+        },
+      },
+    },
   },
-  /** Valida las reglas contra las entidades y guarda las proyecciones vigentes. */
+  /** Abre la base de embeddings y monta allí los controllers de la caché antes de que el router siembre las tablas. */
+  setup(this: ServerPlugin) {
+    montarDbEmbeddings(this);
+  },
+  /** Valida las reglas efectivas contra las entidades y guarda las proyecciones vigentes. */
   async seed(this: ServerPlugin) {
-    exigirReglasValidas(this, cfgDe(this).purga?.reglas ?? []);
+    exigirReglasValidas(this, purgaEfectiva(cfgDe(this)).reglas ?? []);
     await proyeccionesVigentes(this);
   },
 }) as ServerPluginDef;

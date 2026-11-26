@@ -1,27 +1,33 @@
 /**
- * Plugin de embeddings: el JSON TRANSVERSAL. Caché simple que optimiza todo el sistema: una fila por referencia y huella del texto,
- * con modelo y dimensiones como columnas, que se depura con los mismos JSON de DER (`query` sobre `embeddings/entradas`):
+ * Plugin de embeddings: el JSON TRANSVERSAL. La caché vive en su PROPIA SQLite (`cfg.db`/`cfg.ruta`), no en la base principal;
+ * el perfil embebido de cada usuario vive en la base principal. Una fila de caché por referencia y huella del texto, con modelo
+ * y dimensiones como columnas, que se depura con los mismos JSON de DER (`query` sobre `embeddings/entradas`):
  *
  *   embeddings_cache (icache, huella, modelo, dims, iproyeccion, tipo, entidad, id, vector, bytes, hits, fultimohit, fcreado)
  *   embeddings_proyecciones (iproyeccion, modelo, dimsorigen, dims, decimales, metodo, semilla, version, fcreado)
  *   embeddings_contadores (modelo, dims, tipo, entidad, hits, misses, purgadas, factualizado)
  *   embeddings_cursores (entidad, cursor, factualizado)
+ *   embeddings_usuarios (iusuario, vector, dims, modelo, preferencias, fhactualizado, fhinteraccion)   // base principal
  *
- * Todas son de solo lectura por API (el vector nunca sale por CRUD) y no guardan el texto. Paths irregulares: `POST embeddings/embeber`,
- * `POST embeddings/buscar`, `GET embeddings/estadisticas`, `POST embeddings/purgar`, `GET embeddings/reglas`, `POST embeddings/alimentar`.
+ * Las de la caché son de solo lectura por API (el vector nunca sale por CRUD) y no guardan el texto. Caducidad: embeddings a 180
+ * días, caché sin hit a 15 días; el perfil de usuario no caduca, pero a los 720 días sin interacción pierde su vector. Paths
+ * irregulares: `POST embeddings/embeber`, `POST embeddings/buscar`, `GET embeddings/estadisticas`, `POST embeddings/purgar`,
+ * `GET embeddings/reglas`, `POST embeddings/alimentar`, `POST embeddings/usuarios/perfil`, `POST embeddings/usuarios/similares`.
  *
  * ```ts
  * const emb = createClient(embeddings, { baseUrl: "/api", headers: auth.headers });
  * await emb.buscar({ q: "café molido", entidades: ["productos"] });
  * await emb.purgar({ simular: true });
  * await emb.controllers.cache.query({ where: { entidad: "mensajes", hits: { gt: 3 } }, orderBy: "-hits" });
+ * await emb.perfil({ iusuario: "beto", textos: ["compro café"] });
+ * await emb.similares({ iusuario: "beto", limite: 5 });
  * ```
  * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/embeddings.md
  */
 import type { ClientPlugin, PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
-import { type AlimentarInput, type AlimentarResultado, type BuscarInput, type BusquedaResultado, type EmbeberInput, type EmbeberResultado, type Estadisticas, type ExplicacionReglas, type InformePurga, type PurgarInput, ZAlimentarInput, ZBuscarInput, ZEmbeberInput, ZPurgarInput } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/schemas.ts";
+import { type ActualizarPerfilInput, type AlimentarInput, type AlimentarResultado, type BuscarInput, type BusquedaResultado, type EmbeberInput, type EmbeberResultado, type Estadisticas, type ExplicacionReglas, type InformePurga, type PerfilResultado, type PurgarInput, type SimilaresResultado, type SimilaresUsuariosInput, ZActualizarPerfilInput, ZAlimentarInput, ZBuscarInput, ZEmbeberInput, ZPurgarInput, ZSimilaresUsuariosInput } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/schemas.ts";
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/schemas.ts";
 
@@ -108,6 +114,16 @@ export const embeddings: PluginDef = {
       schema: { columns: { entidad: { type: "string", pk: true, length: 120 }, cursor: { type: "string", length: 200 }, factualizado: { type: "datetime", nullable: false } } },
       security: true,
     },
+    usuarios: {
+      name: "embeddings.usuario",
+      singular: "embeddings/usuario",
+      plural: "embeddings/usuarios",
+      table: "embeddings_usuarios",
+      exposed: true,
+      administrable: false,
+      schema: { columns: { iusuario: { type: "string", pk: true, length: 120 }, vector: { type: "text" }, dims: { type: "int", nullable: false, default: 0 }, modelo: { type: "string", length: 120 }, preferencias: { type: "json" }, fhactualizado: { type: "datetime" }, fhinteraccion: { type: "datetime" } } },
+      security: true,
+    },
   },
   irregularPaths: {
     embeber: {
@@ -177,6 +193,30 @@ export const embeddings: PluginDef = {
         /** `POST embeddings/alimentar`: una tanda por entidad desde su cursor. */
         alimentar(this: ClientPlugin, input: AlimentarInput = {}): Promise<AlimentarResultado> {
           return this.call<AlimentarResultado>("alimentar", input);
+        },
+      },
+    },
+    perfil: {
+      method: "POST",
+      path: "embeddings/usuarios/perfil",
+      security: true,
+      zod: ZActualizarPerfilInput,
+      ops: {
+        /** `POST embeddings/usuarios/perfil`: guarda el perfil embebido del usuario (textos o vector) y sus preferencias. */
+        perfil(this: ClientPlugin, input: ActualizarPerfilInput): Promise<PerfilResultado> {
+          return this.call<PerfilResultado>("perfil", input);
+        },
+      },
+    },
+    similares: {
+      method: "POST",
+      path: "embeddings/usuarios/similares",
+      security: true,
+      zod: ZSimilaresUsuariosInput,
+      ops: {
+        /** `POST embeddings/usuarios/similares`: los N usuarios más parecidos por coseno, con sus preferencias. */
+        similares(this: ClientPlugin, input: SimilaresUsuariosInput): Promise<SimilaresResultado> {
+          return this.call<SimilaresResultado>("similares", input);
         },
       },
     },

@@ -1,6 +1,6 @@
 /**
  * Operaciones de la caché: proyección guardada, embeber con caché por huella, búsqueda (exacta primero, luego embeddings),
- * estadísticas y alimentación por cursor. Todas las escrituras van troceadas: D1 admite 100 parámetros por sentencia, no tiene
+ * estadísticas y alimentación por cursor. Todo corre contra la base PROPIA de embeddings (`conexion.ts`), no contra la principal. Todas las escrituras van troceadas: D1 admite 100 parámetros por sentencia, no tiene
  * transacciones y una escritura perdida de un contador no invalida el vector servido.
  * Una fila por referencia: dos registros con el mismo texto comparten huella y el modelo solo se llama una vez, pero cada uno tiene
  * su fila, así una regla por entidad borra exactamente lo suyo.
@@ -12,6 +12,7 @@ import { sql } from "kysely";
 import { HttpError, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import type { ServerController } from "@Jeff-Aporta/DER/src/02-controllers/server/controller.ts";
 import type { Raw, ServerPlugin } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import { kyselyDe } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/conexion.ts";
 import { controllerEn } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/rules.ts";
 import type { AlimentacionCfg, AvanceAlimentar, BuscarInput, BusquedaCfg, BusquedaResultado, ClaveContador, DeltaContador, DocumentoIndice, EmbeberResultado, EmbeddingsConfig, EstadisticaGrupo, Estadisticas, IndiceEmbeddings, ItemEmbeber, ItemResuelto, ModeloCfg, ProveedorEmbeddings, Proyeccion, ResultadoBusqueda, TipoReferencia } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/schemas.ts";
 import { coseno, codificar, decodificar, huellaDe, normalizarTexto, proyectar, VERSION_PROYECCION } from "@Jeff-Aporta/DER/src/03-plugins/embeddings/vectores.ts";
@@ -43,7 +44,7 @@ export function trozos<T>(lista: T[], n: number = TROZO): T[][] {
 }
 
 /** Clave del modelo pedido (por clave de cfg o por id del proveedor), o el defecto. */
-function claveModelo(p: ServerPlugin, pedido?: string): string {
+export function claveModelo(p: ServerPlugin, pedido?: string): string {
   const c = cfgDe(p);
   const defecto = c.modeloDefecto ?? Object.keys(c.modelos)[0]!;
   if (!pedido) return defecto;
@@ -93,7 +94,7 @@ export async function sumarContador(p: ServerPlugin, clave: ClaveContador, d: De
   const ahora = ctrl.toDb("factualizado", new Date());
   const col = (f: string) => ctrl.col(null, f);
   const donde = sql`${col("modelo")} = ${clave.modelo} and ${col("dims")} = ${clave.dims} and ${col("tipo")} = ${clave.tipo} and ${col("entidad")} = ${clave.entidad}`;
-  const r = await sql`update ${sql.table(ctrl.table)} set ${col("hits")} = ${col("hits")} + ${d.hits}, ${col("misses")} = ${col("misses")} + ${d.misses}, ${col("purgadas")} = ${col("purgadas")} + ${d.purgadas}, ${col("factualizado")} = ${ahora} where ${donde}`.execute(p.db.kysely);
+  const r = await sql`update ${sql.table(ctrl.table)} set ${col("hits")} = ${col("hits")} + ${d.hits}, ${col("misses")} = ${col("misses")} + ${d.misses}, ${col("purgadas")} = ${col("purgadas")} + ${d.purgadas}, ${col("factualizado")} = ${ahora} where ${donde}`.execute(kyselyDe(p));
   if (Number(r.numAffectedRows ?? 0) > 0) return;
   await ctrl.post(ctrl.pojo({ ...clave, ...d, factualizado: new Date() })).catch(() => null);
 }
@@ -137,12 +138,12 @@ async function leerPorHuella(p: ServerPlugin, pr: Proyeccion, huellas: string[])
   const col = (f: string) => cache.col("c", f);
   const ids: number[] = [];
   for (const t of trozos(huellas)) {
-    const r = await sql<{ icache: number }>`select min(${col("icache")}) as ${sql.id("icache")} from ${tabla} as c where ${col("huella")} in (${sql.join(t)}) and ${deProyeccion(cache, pr)} group by ${col("huella")}`.execute(p.db.kysely);
+    const r = await sql<{ icache: number }>`select min(${col("icache")}) as ${sql.id("icache")} from ${tabla} as c where ${col("huella")} in (${sql.join(t)}) and ${deProyeccion(cache, pr)} group by ${col("huella")}`.execute(kyselyDe(p));
     ids.push(...r.rows.map((f) => Number(f.icache)));
   }
   const out = new Map<string, string>();
   for (const t of trozos(ids)) {
-    const r = await sql<{ huella: string; vector: string }>`select ${col("huella")} as ${sql.id("huella")}, ${col("vector")} as ${sql.id("vector")} from ${tabla} as c where ${col("icache")} in (${sql.join(t)})`.execute(p.db.kysely);
+    const r = await sql<{ huella: string; vector: string }>`select ${col("huella")} as ${sql.id("huella")}, ${col("vector")} as ${sql.id("vector")} from ${tabla} as c where ${col("icache")} in (${sql.join(t)})`.execute(kyselyDe(p));
     for (const f of r.rows) out.set(f.huella, f.vector);
   }
   return out;
@@ -156,7 +157,7 @@ async function leerReferencias(p: ServerPlugin, pr: Proyeccion, items: ItemResue
   const grupos = Map.groupBy(items, (i) => `${i.tipo}|${i.entidad}`);
   for (const grupo of grupos.values()) {
     for (const t of trozos(grupo, 40)) {
-      const r = await sql<{ icache: number; huella: string; id: string }>`select ${col("icache")} as ${sql.id("icache")}, ${col("huella")} as ${sql.id("huella")}, ${col("id")} as ${sql.id("id")} from ${sql.table(cache.table)} as c where ${col("tipo")} = ${t[0]!.tipo} and ${col("entidad")} = ${t[0]!.entidad} and ${col("huella")} in (${sql.join(t.map((i) => i.huella))}) and ${col("id")} in (${sql.join(t.map((i) => i.id))}) and ${deProyeccion(cache, pr)}`.execute(p.db.kysely);
+      const r = await sql<{ icache: number; huella: string; id: string }>`select ${col("icache")} as ${sql.id("icache")}, ${col("huella")} as ${sql.id("huella")}, ${col("id")} as ${sql.id("id")} from ${sql.table(cache.table)} as c where ${col("tipo")} = ${t[0]!.tipo} and ${col("entidad")} = ${t[0]!.entidad} and ${col("huella")} in (${sql.join(t.map((i) => i.huella))}) and ${col("id")} in (${sql.join(t.map((i) => i.id))}) and ${deProyeccion(cache, pr)}`.execute(kyselyDe(p));
       for (const f of r.rows) out.set(llaveRef({ huella: f.huella, tipo: t[0]!.tipo, entidad: t[0]!.entidad, id: f.id }), Number(f.icache));
     }
   }
@@ -188,6 +189,24 @@ async function llamarModelo(p: ServerPlugin, m: ModeloCfg, pr: Proyeccion, texto
     });
   }
   return out;
+}
+
+/** Vectores proyectados de unos textos SIN pasar por la caché (perfil de usuario): llama al proveedor y los proyecta igual. */
+export async function embeberDirecto(p: ServerPlugin, textos: string[], modelo?: string): Promise<{ modelo: string; dims: number; iproyeccion: string; vectores: number[][] }> {
+  const clave = claveModelo(p, modelo);
+  const m = cfgDe(p).modelos[clave]!;
+  const pr = await proyeccionVigente(p, clave);
+  const proveedor = proveedorDe(p, m);
+  const vectores: number[][] = [];
+  for (const lote of trozos(textos, m.lote ?? 32)) {
+    const crudos = await proveedor.embeber(lote, m.id);
+    if (crudos.length !== lote.length) throw new HttpError(502, "El proveedor devolvió otro número de vectores");
+    for (const crudo of crudos) {
+      if (crudo.length !== m.dims) throw new HttpError(502, `El proveedor devolvió ${crudo.length} dimensiones (se esperaban ${m.dims})`);
+      vectores.push(proyectar(crudo, pr));
+    }
+  }
+  return { modelo: pr.modelo, dims: pr.dims, iproyeccion: pr.iproyeccion, vectores };
 }
 
 /**
@@ -222,9 +241,9 @@ export async function embeberConCache(p: ServerPlugin, entradas: (string | ItemE
     else filas.push([i.huella, pr.modelo, pr.dims, pr.iproyeccion, i.tipo, i.entidad, i.id, vector, vector.length, esMiss ? 0 : 1, esMiss ? null : cache.toDb("fultimohit", ahora), cache.toDb("fcreado", ahora)]);
   }
   await retirarTextoAnterior(p, unicos.filter((i) => i.tipo === "documento" && !existentes.has(llaveRef(i))), pr);
-  for (const t of trozos(filas, FILAS_INSERT)) await insertarFilas(cache, t).execute(p.db.kysely);
+  for (const t of trozos(filas, FILAS_INSERT)) await insertarFilas(cache, t).execute(kyselyDe(p));
   const col = (f: string) => cache.col(null, f);
-  for (const t of trozos([...repetir])) await sql`update ${sql.table(cache.table)} set ${col("hits")} = ${col("hits")} + 1, ${col("fultimohit")} = ${cache.toDb("fultimohit", ahora)} where ${col("icache")} in (${sql.join(t)})`.execute(p.db.kysely);
+  for (const t of trozos([...repetir])) await sql`update ${sql.table(cache.table)} set ${col("hits")} = ${col("hits")} + 1, ${col("fultimohit")} = ${cache.toDb("fultimohit", ahora)} where ${col("icache")} in (${sql.join(t)})`.execute(kyselyDe(p));
   for (const d of deltas.values()) await sumarContador(p, { modelo: d.modelo, dims: d.dims, tipo: d.tipo, entidad: d.entidad }, { hits: d.hits, misses: d.misses, purgadas: 0 });
   const vectores = items.map((i) => decodificar(guardados.get(i.huella) ?? nuevos.get(i.huella)!, pr.decimales));
   const hits = [...deltas.values()].reduce((n, d) => n + d.hits, 0);
@@ -237,7 +256,7 @@ async function retirarTextoAnterior(p: ServerPlugin, items: ItemResuelto[], pr: 
   const cache = cacheDe(p);
   const col = (f: string) => cache.col(null, f);
   for (const grupo of Map.groupBy(items, (i) => i.entidad).values()) {
-    for (const t of trozos(grupo)) await sql`delete from ${sql.table(cache.table)} where ${col("tipo")} = ${"documento"} and ${col("entidad")} = ${t[0]!.entidad} and ${col("modelo")} = ${pr.modelo} and ${col("id")} in (${sql.join(t.map((i) => i.id))})`.execute(p.db.kysely);
+    for (const t of trozos(grupo)) await sql`delete from ${sql.table(cache.table)} where ${col("tipo")} = ${"documento"} and ${col("entidad")} = ${t[0]!.entidad} and ${col("modelo")} = ${pr.modelo} and ${col("id")} in (${sql.join(t.map((i) => i.id))})`.execute(kyselyDe(p));
   }
 }
 
@@ -255,7 +274,7 @@ export async function olvidarDocumentos(p: ServerPlugin, entidad: string, ids: (
   const col = (f: string) => cache.col(null, f);
   let borradas = 0;
   for (const t of trozos(ids.map(String))) {
-    const r = await sql`delete from ${sql.table(cache.table)} where ${col("tipo")} = ${"documento"} and ${col("entidad")} = ${entidad} and ${col("id")} in (${sql.join(t)})`.execute(p.db.kysely);
+    const r = await sql`delete from ${sql.table(cache.table)} where ${col("tipo")} = ${"documento"} and ${col("entidad")} = ${entidad} and ${col("id")} in (${sql.join(t)})`.execute(kyselyDe(p));
     borradas += Number(r.numAffectedRows ?? 0);
   }
   const indice = indiceDe(p);
@@ -275,7 +294,7 @@ async function buscarLocal(p: ServerPlugin, pr: Proyeccion, vector: number[], en
   const col = (f: string) => cache.col("c", f);
   const filtro = entidades ? sql`and ${col("entidad")} in (${sql.join(entidades)})` : sql``;
   const pagina = cache.engine.page(b.maxCandidatos ?? 2000, undefined) ?? sql``;
-  const r = await sql<{ entidad: string; id: string; vector: string }>`select ${col("entidad")} as ${sql.id("entidad")}, ${col("id")} as ${sql.id("id")}, ${col("vector")} as ${sql.id("vector")} from ${sql.table(cache.table)} as c where ${col("tipo")} = ${"documento"} and ${deProyeccion(cache, pr)} ${filtro} order by ${col("icache")} desc ${pagina}`.execute(p.db.kysely);
+  const r = await sql<{ entidad: string; id: string; vector: string }>`select ${col("entidad")} as ${sql.id("entidad")}, ${col("id")} as ${sql.id("id")}, ${col("vector")} as ${sql.id("vector")} from ${sql.table(cache.table)} as c where ${col("tipo")} = ${"documento"} and ${deProyeccion(cache, pr)} ${filtro} order by ${col("icache")} desc ${pagina}`.execute(kyselyDe(p));
   return r.rows.map((f) => ({ entidad: f.entidad, id: f.id, score: coseno(vector, decodificar(f.vector, pr.decimales)), origen: "embedding" as const }));
 }
 
@@ -318,7 +337,7 @@ async function coincidenciasHuella(p: ServerPlugin, huella: string, pr: Proyecci
   const cache = cacheDe(p);
   const col = (f: string) => cache.col("c", f);
   const filtro = entidades ? sql`and ${col("entidad")} in (${sql.join(entidades)})` : sql``;
-  const r = await sql<{ entidad: string; id: string }>`select ${col("entidad")} as ${sql.id("entidad")}, ${col("id")} as ${sql.id("id")} from ${sql.table(cache.table)} as c where ${col("tipo")} = ${"documento"} and ${col("huella")} = ${huella} and ${deProyeccion(cache, pr)} ${filtro}`.execute(p.db.kysely);
+  const r = await sql<{ entidad: string; id: string }>`select ${col("entidad")} as ${sql.id("entidad")}, ${col("id")} as ${sql.id("id")} from ${sql.table(cache.table)} as c where ${col("tipo")} = ${"documento"} and ${col("huella")} = ${huella} and ${deProyeccion(cache, pr)} ${filtro}`.execute(kyselyDe(p));
   return r.rows.map((f) => ({ entidad: f.entidad, id: f.id, score: 1, origen: "exacta" as const }));
 }
 
@@ -388,8 +407,8 @@ export async function estadisticas(p: ServerPlugin): Promise<Estadisticas> {
   const cont = p.controllers["contadores"]!;
   const c = (f: string) => cache.col("c", f);
   const n = (f: string) => cont.col("n", f);
-  const tam = await sql<{ modelo: string; dims: number; tipo: string; entidad: string; filas: number; bytes: number }>`select ${c("modelo")} as ${sql.id("modelo")}, ${c("dims")} as ${sql.id("dims")}, ${c("tipo")} as ${sql.id("tipo")}, ${c("entidad")} as ${sql.id("entidad")}, count(*) as ${sql.id("filas")}, sum(${c("bytes")}) as ${sql.id("bytes")} from ${sql.table(cache.table)} as c group by ${c("modelo")}, ${c("dims")}, ${c("tipo")}, ${c("entidad")}`.execute(p.db.kysely);
-  const acu = await sql<{ modelo: string; dims: number; tipo: string; entidad: string; hits: number; misses: number; purgadas: number }>`select ${n("modelo")} as ${sql.id("modelo")}, ${n("dims")} as ${sql.id("dims")}, ${n("tipo")} as ${sql.id("tipo")}, ${n("entidad")} as ${sql.id("entidad")}, ${n("hits")} as ${sql.id("hits")}, ${n("misses")} as ${sql.id("misses")}, ${n("purgadas")} as ${sql.id("purgadas")} from ${sql.table(cont.table)} as n`.execute(p.db.kysely);
+  const tam = await sql<{ modelo: string; dims: number; tipo: string; entidad: string; filas: number; bytes: number }>`select ${c("modelo")} as ${sql.id("modelo")}, ${c("dims")} as ${sql.id("dims")}, ${c("tipo")} as ${sql.id("tipo")}, ${c("entidad")} as ${sql.id("entidad")}, count(*) as ${sql.id("filas")}, sum(${c("bytes")}) as ${sql.id("bytes")} from ${sql.table(cache.table)} as c group by ${c("modelo")}, ${c("dims")}, ${c("tipo")}, ${c("entidad")}`.execute(kyselyDe(p));
+  const acu = await sql<{ modelo: string; dims: number; tipo: string; entidad: string; hits: number; misses: number; purgadas: number }>`select ${n("modelo")} as ${sql.id("modelo")}, ${n("dims")} as ${sql.id("dims")}, ${n("tipo")} as ${sql.id("tipo")}, ${n("entidad")} as ${sql.id("entidad")}, ${n("hits")} as ${sql.id("hits")}, ${n("misses")} as ${sql.id("misses")}, ${n("purgadas")} as ${sql.id("purgadas")} from ${sql.table(cont.table)} as n`.execute(kyselyDe(p));
   const modelos = new Map<string, [string, number, number[]]>();
   const refs = new Map<string, [string, string, number[]]>();
   const sumar = (m: string, dims: number, tipo: string, entidad: string, v: number[]) => {

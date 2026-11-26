@@ -173,6 +173,41 @@
        "type": "datetime"
       }
      ]
+    },
+    {
+     "id": "embeddings.usuario",
+     "name": "embeddings/usuario",
+     "attributes": [
+      {
+       "name": "iusuario",
+       "type": "varchar(120)",
+       "key": "PK"
+      },
+      {
+       "name": "vector",
+       "type": "text"
+      },
+      {
+       "name": "dims",
+       "type": "int"
+      },
+      {
+       "name": "modelo",
+       "type": "varchar(120)"
+      },
+      {
+       "name": "preferencias",
+       "type": "json"
+      },
+      {
+       "name": "fhactualizado",
+       "type": "datetime"
+      },
+      {
+       "name": "fhinteraccion",
+       "type": "datetime"
+      }
+     ]
     }
    ],
    "relations": []

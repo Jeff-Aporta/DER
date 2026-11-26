@@ -10,7 +10,7 @@ import { createClient } from "@Jeff-Aporta/DER/src/02-controllers/client/plugin.
 import { createRouter, createServer, type Database, ServerController, sql } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { d1Database } from "@Jeff-Aporta/DER/src/02-controllers/server/d1.ts";
 import { pgliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/pglite.ts";
-import { embeddings, embeddingsServer, type EmbeddingsConfig, proveedorFalso, vectorizeIndice, workersAi } from "@Jeff-Aporta/DER/tests/plugins/_embeddings.ts";
+import { dbEmbeddingsDe, embeddings, embeddingsServer, type EmbeddingsConfig, proveedorFalso, vectorizeIndice, workersAi } from "@Jeff-Aporta/DER/tests/plugins/_embeddings.ts";
 import { d1Simulado } from "@Jeff-Aporta/DER/tests/_util.ts";
 
 const MensajeEntity = defineEntity({ name: "pruebas.mensaje", singular: "mensaje", plural: "mensajes", schema: { columns: { imensaje: { type: "int", pk: true, autoincrement: true }, contenido: { type: "text" }, bactivo: { type: "bool", default: true }, iempresa: { type: "int" }, editado: { type: "datetime" } } } });
@@ -21,7 +21,7 @@ const AHORA = new Date("2026-10-31T12:00:00.000Z");
 const hace = (d: number) => new Date(AHORA.getTime() - d * DIAS).toISOString();
 const MODELO = { id: "@cf/baai/bge-m3", dims: 64, proveedor: "ai", lote: 3 };
 
-type Montaje = { db: Database; emb: any; prov: ReturnType<typeof proveedorFalso>; mensajes: ServerController<any>; articulos: ServerController<any>; log: string[]; cerrar(): Promise<void> };
+type Montaje = { db: Database; embDb: Database; emb: any; prov: ReturnType<typeof proveedorFalso>; mensajes: ServerController<any>; articulos: ServerController<any>; log: string[]; cerrar(): Promise<void> };
 
 async function montar(cfg: Partial<EmbeddingsConfig> = {}, modelo: Record<string, unknown> = MODELO, conProveedor = true): Promise<Montaje> {
   const log: string[] = [];
@@ -30,23 +30,27 @@ async function montar(cfg: Partial<EmbeddingsConfig> = {}, modelo: Record<string
   const articulos = new ServerController(ArticuloEntity, { db, table: "avatar_articulos" });
   const prov = proveedorFalso(Number(modelo["dims"]));
   const emb = createServer(embeddingsServer, { db, cfg: { modelos: { bge: modelo }, ...cfg }, services: conProveedor ? { ai: prov } : {} });
+  const embDb = dbEmbeddingsDe(emb);
   const router = createRouter([mensajes, articulos], { plugins: [emb] });
   await router.seed();
-  return { db, emb, prov, mensajes, articulos, log, cerrar: () => db.destroy() };
+  return { db, embDb, emb, prov, mensajes, articulos, log, cerrar: () => db.destroy() };
 }
 
 /** Fila directa con fechas controladas. */
 async function fila(m: Montaje, o: { entidad: string; id?: string; tipo?: string; hits?: number; ultimo?: string | null; creado?: string; bytes?: number; huella?: string; modelo?: string; iproyeccion?: string }): Promise<void> {
   const huella = o.huella ?? crypto.randomUUID().replaceAll("-", "");
   const vigente = o.iproyeccion ?? (await m.emb.reglas()).proyecciones[0].iproyeccion;
-  await sql`insert into embeddings_cache (huella, modelo, dims, iproyeccion, tipo, entidad, id, vector, bytes, hits, fultimohit, fcreado) values (${huella}, ${o.modelo ?? MODELO.id}, ${64}, ${vigente}, ${o.tipo ?? "documento"}, ${o.entidad}, ${o.id ?? ""}, ${"AA"}, ${o.bytes ?? 100}, ${o.hits ?? 0}, ${o.ultimo ?? null}, ${o.creado ?? hace(100)})`.execute(m.db.kysely);
+  await sql`insert into embeddings_cache (huella, modelo, dims, iproyeccion, tipo, entidad, id, vector, bytes, hits, fultimohit, fcreado) values (${huella}, ${o.modelo ?? MODELO.id}, ${64}, ${vigente}, ${o.tipo ?? "documento"}, ${o.entidad}, ${o.id ?? ""}, ${"AA"}, ${o.bytes ?? 100}, ${o.hits ?? 0}, ${o.ultimo ?? null}, ${o.creado ?? hace(100)})`.execute(m.embDb.kysely);
 }
 
 async function filas(m: Montaje): Promise<{ entidad: string; id: string; hits: number; bytes: number; fultimohit: string | null; huella: string; dims: number }[]> {
-  return (await sql<any>`select * from embeddings_cache order by icache`.execute(m.db.kysely)).rows;
+  return (await sql<any>`select * from embeddings_cache order by icache`.execute(m.embDb.kysely)).rows;
 }
 
 const ids = async (m: Montaje) => (await filas(m)).map((f) => `${f.entidad}:${f.id}`).sort();
+
+/** Apaga las caducidades que el plugin trae puestas (mismo nombre y `activa: false`): el test aísla su propio criterio. */
+const SIN_TTL = [{ nombre: "cache-sin-hit", activa: false, sinHitsDias: 15 }, { nombre: "caducidad", activa: false, edadDias: 180 }];
 
 Deno.test("cache: un hit incrementa y devuelve sin llamar al modelo; hit y miss devuelven lo mismo", async () => {
   const m = await montar();
@@ -107,14 +111,14 @@ Deno.test("reducción: la proyección se guarda, consultas y documentos caen en 
   const doc = await m.emb.embeber({ items: [{ texto: "cafe molido de origen", entidad: "mensajes", id: 1 }] });
   assertEquals(doc.dims, 16);
   assertEquals(doc.vectores[0].length, 16);
-  const [p] = (await sql<any>`select * from embeddings_proyecciones`.execute(m.db.kysely)).rows;
+  const [p] = (await sql<any>`select * from embeddings_proyecciones`.execute(m.embDb.kysely)).rows;
   assertEquals([p.dimsorigen, p.dims, p.decimales, p.metodo, p.semilla, p.iproyeccion], [64, 16, 3, "aleatoria", 11, doc.iproyeccion]);
   const consulta = await m.emb.embeber({ items: ["cafe molido de origen"] });
   assertEquals(consulta.vectores[0], doc.vectores[0], "misma proyección para la consulta");
   const [f] = await filas(m);
   assertEquals([f!.dims, f!.bytes], [16, 43], "16 × int16 en base64url");
   // otro isolate: lee la proyección de la tabla y obtiene el mismo vector sin llamar al modelo de nuevo
-  const emb2 = createServer(embeddingsServer, { db: m.db, cfg: { modelos: { bge: cfg } }, services: { ai: m.prov } });
+  const emb2 = createServer(embeddingsServer, { db: m.db, cfg: { modelos: { bge: cfg } }, services: { ai: m.prov, embeddingsDb: m.embDb } });
   const otra = await emb2["embeber"]({ items: ["cafe molido de origen"] });
   assertEquals([otra.vectores[0], otra.misses], [doc.vectores[0], 0]);
   await m.cerrar();
@@ -124,7 +128,7 @@ Deno.test("reducción: cambiar la proyección deja obsoletas las filas viejas y 
   const m = await montar();
   await m.emb.embeber({ items: [{ texto: "a b", entidad: "mensajes", id: 1 }] });
   const nuevo = { ...MODELO, reduccion: { dims: 16 } };
-  const emb2 = createServer(embeddingsServer, { db: m.db, cfg: { modelos: { bge: nuevo } }, services: { ai: m.prov } });
+  const emb2 = createServer(embeddingsServer, { db: m.db, cfg: { modelos: { bge: nuevo } }, services: { ai: m.prov, embeddingsDb: m.embDb } });
   await emb2["embeber"]({ items: [{ texto: "a b", entidad: "mensajes", id: 2 }] });
   assertEquals(m.prov.llamadas.length, 2, "otro espacio: es miss");
   assertEquals((await filas(m)).length, 2);
@@ -215,7 +219,7 @@ Deno.test("purga: huérfanos solos y combinados con donde (O)", async () => {
 });
 
 Deno.test("purga: tiempo general personalizable, con alcances que se excluyen", async () => {
-  const m = await montar({ purga: { general: { sinHitsDias: 30 }, reglas: [{ nombre: "usuarios-largo", alcance: { entidad: "usuarios" }, sinHitsDias: 365, excluirDeGeneral: true }, { nombre: "productos-protegidos", alcance: { entidad: "productos" }, excluirDeGeneral: true, soloPresion: true }] } });
+  const m = await montar({ purga: { general: { sinHitsDias: 30 }, reglas: [...SIN_TTL, { nombre: "usuarios-largo", alcance: { entidad: "usuarios" }, sinHitsDias: 365, excluirDeGeneral: true }, { nombre: "productos-protegidos", alcance: { entidad: "productos" }, excluirDeGeneral: true, soloPresion: true }] } });
   await fila(m, { entidad: "usuarios", id: "ana", ultimo: hace(40) });
   await fila(m, { entidad: "usuarios", id: "beto", ultimo: hace(400) });
   await fila(m, { entidad: "productos", id: "1", ultimo: hace(40) });
@@ -228,7 +232,7 @@ Deno.test("purga: tiempo general personalizable, con alcances que se excluyen", 
 });
 
 Deno.test("purga: la simulación informa exactamente lo que la corrida real borra, aunque las reglas se solapen", async () => {
-  const m = await montar({ purga: { general: { sinHitsDias: 5 }, reglas: [{ nombre: "a", prioridad: 1, alcance: { entidad: "mensajes" }, sinHitsDias: 2 }, { nombre: "b", prioridad: 2, alcance: { tipo: "documento" }, sinHitsDias: 2 }] } });
+  const m = await montar({ purga: { general: { sinHitsDias: 5 }, reglas: [...SIN_TTL, { nombre: "a", prioridad: 1, alcance: { entidad: "mensajes" }, sinHitsDias: 2 }, { nombre: "b", prioridad: 2, alcance: { tipo: "documento" }, sinHitsDias: 2 }] } });
   for (let i = 0; i < 6; i++) await fila(m, { entidad: i % 2 ? "mensajes" : "usuarios", id: String(i), ultimo: hace(3 + i) });
   await fila(m, { entidad: "usuarios", tipo: "consulta", ultimo: hace(9) });
   await fila(m, { entidad: "usuarios", id: "fresco", ultimo: hace(1) });
@@ -244,37 +248,39 @@ Deno.test("purga: la simulación informa exactamente lo que la corrida real borr
 
 Deno.test("presión: bajo umbral no actúa; sobre él sigue el orden de prioridad hasta el objetivo y al final LRU", async () => {
   const presion = { maxFilas: 10, objetivoPct: 50, orden: ["consultas", "mensajes-frios"], ultimoRecurso: "lru" as const };
-  const m = await montar({ purga: { obsoletas: false, reglas: [{ nombre: "mensajes-frios", soloPresion: true, alcance: { entidad: "mensajes" }, hitsMenorQue: 2 }, { nombre: "consultas", soloPresion: true, alcance: { tipo: "consulta" } }], presion } });
+  const m = await montar({ purga: { obsoletas: false, reglas: [...SIN_TTL, { nombre: "mensajes-frios", soloPresion: true, alcance: { entidad: "mensajes" }, hitsMenorQue: 2 }, { nombre: "consultas", soloPresion: true, alcance: { tipo: "consulta" } }], presion } });
   for (let i = 0; i < 3; i++) await fila(m, { entidad: "articulos", tipo: "consulta", ultimo: hace(i + 1) });
   for (let i = 0; i < 3; i++) await fila(m, { entidad: "mensajes", id: String(i), hits: 0, ultimo: hace(i + 1) });
   for (let i = 0; i < 6; i++) await fila(m, { entidad: "usuarios", id: String(i), hits: 5, ultimo: hace(i + 1) });
   const sim = await m.emb.purgar({ simular: true });
   assertEquals(sim.presion, { activada: true, maxFilas: 10, maxBytes: null, objetivoFilas: 5, objetivoBytes: null });
-  assertEquals(sim.pasos.map((p: any) => [p.paso, p.fase, p.filas]), [["consultas", "presion", 3], ["mensajes-frios", "presion", 3], ["lru", "presion", 1]]);
+  assertEquals(sim.pasos.filter((p: any) => p.fase === "presion").map((p: any) => [p.paso, p.fase, p.filas]), [["consultas", "presion", 3], ["mensajes-frios", "presion", 3], ["lru", "presion", 1]]);
   assertEquals(sim.final.filas, 5);
   const r = await m.emb.purgar();
-  assertEquals(r.pasos.map((p: any) => [p.paso, p.filas]), [["consultas", 3], ["mensajes-frios", 3], ["lru", 1]]);
+  assertEquals(r.pasos.filter((p: any) => p.fase === "presion").map((p: any) => [p.paso, p.filas]), [["consultas", 3], ["mensajes-frios", 3], ["lru", 1]]);
   assertEquals((await filas(m)).length, 5);
   assert(!(await ids(m)).includes("usuarios:5"), "LRU saca el de uso más viejo");
   const otra = await m.emb.purgar();
-  assertEquals([otra.presion.activada, otra.pasos.length], [false, 0]);
+  assertEquals([otra.presion.activada, otra.pasos.filter((p: any) => p.fase === "presion").length], [false, 0]);
   await m.cerrar();
 });
 
 Deno.test("presión: por bytes y deteniéndose dentro de una regla sin tocar lo demás; simulación estima la parte", async () => {
-  const m = await montar({ purga: { obsoletas: false, reglas: [{ nombre: "consultas", soloPresion: true, alcance: { tipo: "consulta" } }], presion: { maxBytes: 500, objetivoPct: 80, ultimoRecurso: "ninguno" } } });
+  const m = await montar({ purga: { obsoletas: false, reglas: [...SIN_TTL, { nombre: "consultas", soloPresion: true, alcance: { tipo: "consulta" } }], presion: { maxBytes: 500, objetivoPct: 80, ultimoRecurso: "ninguno" } } });
   for (let i = 0; i < 6; i++) await fila(m, { entidad: "x", tipo: "consulta", huella: `h${i}`, ultimo: hace(i + 1), bytes: 100 });
   const sim = await m.emb.purgar({ simular: true });
-  assertEquals([sim.pasos[0].filas, sim.pasos[0].estimado, sim.final.bytes], [2, true, 400]);
+  const pasoSim = sim.pasos.find((p: any) => p.fase === "presion");
+  assertEquals([pasoSim.filas, pasoSim.estimado, sim.final.bytes], [2, true, 400]);
   const r = await m.emb.purgar();
-  assertEquals([r.pasos[0].filas, r.final.bytes], [2, 400]);
+  const pasoReal = r.pasos.find((p: any) => p.fase === "presion");
+  assertEquals([pasoReal.filas, r.final.bytes], [2, 400]);
   assertEquals((await filas(m)).map((f) => f.huella).sort(), ["h0", "h1", "h2", "h3"], "desaloja los menos usados");
   await m.cerrar();
 });
 
 Deno.test("purga: tandas acotadas por corrida; pendiente avisa y la siguiente corrida termina; caben en D1", async () => {
-  const m = await montar({ purga: { obsoletas: false, lote: 120, maxLotes: 1, reglas: [{ nombre: "todo", alcance: { entidad: "x" }, todo: true }] } });
-  for (let i = 0; i < 150; i++) await fila(m, { entidad: "x", id: String(i) });
+  const m = await montar({ purga: { obsoletas: false, lote: 120, maxLotes: 1, reglas: [...SIN_TTL, { nombre: "todo", alcance: { entidad: "x" }, todo: true }] } });
+  for (let i = 0; i < 150; i++) await fila(m, { entidad: "x", id: String(i), ultimo: hace(1) });
   const r = await m.emb.purgar();
   assertEquals([r.pasos[0].filas, r.pendiente, (await filas(m)).length], [120, true, 30]);
   const s = await m.emb.purgar();
@@ -333,7 +339,7 @@ Deno.test("adaptadores: Workers AI y Vectorize; índice externo con dims incompa
   assertEquals((subidos[0] as any).id, "mensajes:7");
   assertEquals((subidos[0] as any).metadata.iempresa, 3);
   assertEquals((await m["buscar"]({ q: "algo" })).resultados, [{ entidad: "mensajes", id: "7", score: 0.9, origen: "embedding" }]);
-  const mal = createServer(embeddingsServer, { db, cfg: { modelos: { bge: MODELO }, busqueda: { indice: "v" } }, services: { ai: prov, v: vectorizeIndice(binding, { dims: 1024 }) } });
+  const mal = createServer(embeddingsServer, { db, cfg: { modelos: { bge: MODELO }, busqueda: { indice: "v" } }, services: { ai: prov, v: vectorizeIndice(binding, { dims: 1024 }), embeddingsDb: dbEmbeddingsDe(m) } });
   await assertRejects(() => mal["buscar"]({ q: "algo" }), Error, "1024 dimensiones");
   await db.destroy();
 });
@@ -367,7 +373,7 @@ Deno.test("HTTP y JSON de DER: paths de operación, entradas de solo lectura sin
   const e = await emb["estadisticas"]();
   assertEquals(e.total.hits, 1);
   const x = await emb["reglas"]();
-  assertEquals([x.orden, x.errores, x.proyecciones[0].modelo], [["obsoletas", "viejas"], [], MODELO.id]);
+  assertEquals([x.orden, x.errores, x.proyecciones[0].modelo], [["obsoletas", "cache-sin-hit", "caducidad", "viejas", "general", "usuarios"], [], MODELO.id]);
   const s = await emb["purgar"]({ simular: true });
   assertEquals(s.simulacion, true);
   const mala = await router.fetch(new Request("http://t/api/embeddings/purgar", { method: "POST", body: JSON.stringify({ reglas: [{ nombre: "x", sql: "1=1" }] }) }));
@@ -388,9 +394,9 @@ Deno.test("PGlite: la caché, los contadores y el cruce con pk numérica y bool 
   assertEquals((await emb["estadisticas"]()).total.hits, 1);
   const ahora = new Date(Date.now() + 10 * DIAS).toISOString();
   const sim = await emb["purgar"]({ simular: true, ahora });
-  assertEquals(sim.pasos.map((p: any) => [p.paso, p.filas]), [["obsoletas", 0], ["inactivos", 1], ["general", 1]]);
+  assertEquals(sim.pasos.map((p: any) => [p.paso, p.filas]), [["obsoletas", 0], ["cache-sin-hit", 0], ["caducidad", 0], ["inactivos", 1], ["general", 1]]);
   const r = await emb["purgar"]({ ahora });
-  assertEquals([r.pasos[1].filas, r.pasos[2].filas], [1, 1]);
+  assertEquals([r.pasos.find((p: any) => p.paso === "inactivos").filas, r.pasos.find((p: any) => p.paso === "general").filas], [1, 1]);
   assertEquals((await emb["estadisticas"]()).total.filas, 0);
   const b = await emb["buscar"]({ q: "x" });
   assertEquals(b.semantica, true);

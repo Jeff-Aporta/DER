@@ -6,6 +6,13 @@
  */
 import { z } from "zod";
 
+/** Caducidad de los embeddings: una fila de la caché con más de estos días se purga (regla `caducidad`). */
+export const TTL_EMBEDDINGS_DIAS = 180;
+/** Una entrada de caché sin ningún hit en esta ventana se purga; un hit refresca la ventana (regla `cache-sin-hit`). */
+export const TTL_CACHE_SIN_HIT_DIAS = 15;
+/** Un perfil de usuario sin interacción en esta ventana pierde su vector; la fila se conserva con sus preferencias. */
+export const TTL_USUARIO_DIAS = 720;
+
 // ===================================================================================== configuración
 
 /** Método de reducción: `ninguna` (solo decimales), `truncar` (primeras N dimensiones) o `aleatoria` (proyección dispersa con semilla, sirve a modelos no entrenados para truncarse como bge-m3). */
@@ -41,14 +48,19 @@ export type AlimentacionCfg = { columnas: string[]; etiquetas?: Record<string, s
 export type BusquedaCfg = { indice?: string | undefined; exactas?: Record<string, string[]> | undefined; limite?: number | undefined; minScore?: number | undefined; maxCandidatos?: number | undefined };
 /** Normalización del texto antes de la huella y del modelo: `minusculas` (default true); espacios y Unicode siempre. */
 export type NormalizacionCfg = { minusculas?: boolean | undefined };
-/** Configuración del plugin (`createServer(embeddingsServer, { db, cfg, services })`). */
-export type EmbeddingsConfig = { modeloDefecto?: string | undefined; modelos: Record<string, ModeloCfg>; normalizacion?: NormalizacionCfg | undefined; alimentacion?: Record<string, AlimentacionCfg> | undefined; busqueda?: BusquedaCfg | undefined; purga?: PurgaCfg | undefined };
+/** Perfiles de usuario embebidos: `diasSinInteraccion` para retirar el vector (720) y `limiteSimilares` por defecto. */
+export type UsuariosCfg = { diasSinInteraccion?: number | undefined; limiteSimilares?: number | undefined };
+/**
+ * Configuración del plugin (`createServer(embeddingsServer, { db, cfg, services })`). `db` o `ruta` es el archivo SQLite
+ * PROPIO de la caché (sin él, memoria); `usuarios` ajusta los perfiles de usuario, que viven en la base principal.
+ */
+export type EmbeddingsConfig = { modeloDefecto?: string | undefined; modelos: Record<string, ModeloCfg>; normalizacion?: NormalizacionCfg | undefined; alimentacion?: Record<string, AlimentacionCfg> | undefined; busqueda?: BusquedaCfg | undefined; purga?: PurgaCfg | undefined; db?: string | undefined; ruta?: string | undefined; usuarios?: UsuariosCfg | undefined };
 
 const IDENT = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const PLURAL = /^(\*|[A-Za-z_][A-Za-z0-9_-]*(\/[A-Za-z_][A-Za-z0-9_-]*)*)$/;
 const NOMBRE = /^[a-z0-9][a-z0-9_-]{0,59}$/;
 /** Nombres de pasos de la corrida: una regla no puede llamarse así. */
-export const PASOS_RESERVADOS: readonly string[] = ["general", "obsoletas", "presion", "lru"];
+export const PASOS_RESERVADOS: readonly string[] = ["general", "obsoletas", "presion", "lru", "usuarios"];
 /** Máximo de parámetros que suman las reglas: D1 admite 100 por sentencia y la simulación encadena todas. */
 export const MAX_PARAMETROS_REGLAS = 90;
 
@@ -86,6 +98,7 @@ const ZModelo: z.ZodType<ModeloCfg> = z.object({ id: z.string().min(1).max(120),
 });
 const ZAlimentacion: z.ZodType<AlimentacionCfg> = z.object({ columnas: z.array(ZIdent).min(1), etiquetas: z.record(ZIdent, z.string()).optional(), donde: z.record(z.string(), z.unknown()).optional(), lote: z.number().int().min(1).max(500).optional() }).strict();
 const ZBusqueda: z.ZodType<BusquedaCfg> = z.object({ indice: z.string().min(1).optional(), exactas: z.record(ZPlural, z.array(ZIdent).min(1)).optional(), limite: z.number().int().min(1).max(100).optional(), minScore: z.number().min(-1).max(1).optional(), maxCandidatos: z.number().int().min(1).max(50000).optional() }).strict();
+const ZUsuarios: z.ZodType<UsuariosCfg> = z.object({ diasSinInteraccion: ZDias.optional(), limiteSimilares: z.number().int().min(1).max(100).optional() }).strict();
 
 /** Parámetros SQL que aporta una regla en el peor caso (límite de D1). */
 function parametrosDe(r: ReglaPurga): number {
@@ -110,11 +123,12 @@ const ZPurga: z.ZodType<PurgaCfg> = z.object({ general: z.object({ sinHitsDias: 
   if (p.presion && p.presion.maxFilas === undefined && p.presion.maxBytes === undefined) ctx.addIssue({ code: "custom", message: "presion requiere maxFilas o maxBytes" });
 });
 /** Zod estricto de la configuración completa. */
-export const ZEmbeddingsConfig: z.ZodType<EmbeddingsConfig> = z.object({ modeloDefecto: z.string().min(1).optional(), modelos: z.record(z.string().min(1), ZModelo), normalizacion: z.object({ minusculas: z.boolean().optional() }).strict().optional(), alimentacion: z.record(ZPlural, ZAlimentacion).optional(), busqueda: ZBusqueda.optional(), purga: ZPurga.optional() }).strict().superRefine((c, ctx) => {
+export const ZEmbeddingsConfig: z.ZodType<EmbeddingsConfig> = z.object({ modeloDefecto: z.string().min(1).optional(), modelos: z.record(z.string().min(1), ZModelo), normalizacion: z.object({ minusculas: z.boolean().optional() }).strict().optional(), alimentacion: z.record(ZPlural, ZAlimentacion).optional(), busqueda: ZBusqueda.optional(), purga: ZPurga.optional(), db: z.string().min(1).max(500).optional(), ruta: z.string().min(1).max(500).optional(), usuarios: ZUsuarios.optional() }).strict().superRefine((c, ctx) => {
   const claves = Object.keys(c.modelos);
   if (!claves.length) ctx.addIssue({ code: "custom", message: "Falta al menos un modelo" });
   if (c.modeloDefecto && !c.modelos[c.modeloDefecto]) ctx.addIssue({ code: "custom", message: `modeloDefecto "${c.modeloDefecto}" no existe` });
   if (!c.modeloDefecto && claves.length > 1) ctx.addIssue({ code: "custom", message: "Con varios modelos, modeloDefecto es obligatorio" });
+  if (c.db && c.ruta) ctx.addIssue({ code: "custom", message: "Use db o ruta para la base de embeddings, no ambos" });
 });
 
 // ===================================================================================== operaciones
@@ -141,8 +155,8 @@ export type PasoPurga = { paso: string; fase: "regla" | "presion"; filas: number
 export type TamanoCache = { filas: number; bytes: number };
 /** Estado de la presión en una corrida. */
 export type InformePresion = { activada: boolean; maxFilas: number | null; maxBytes: number | null; objetivoFilas: number | null; objetivoBytes: number | null };
-/** Informe de `purgar`. `pendiente`: se agotó el presupuesto de la corrida (`lote` × `maxLotes`); falta otra corrida. */
-export type InformePurga = { simulacion: boolean; ahora: string; inicial: TamanoCache; final: TamanoCache; pasos: PasoPurga[]; presion: InformePresion; pendiente: boolean };
+/** Informe de `purgar`. `pendiente`: se agotó el presupuesto de la corrida (`lote` × `maxLotes`); falta otra corrida. `usuarios`: paso de perfiles en la base principal. */
+export type InformePurga = { simulacion: boolean; ahora: string; inicial: TamanoCache; final: TamanoCache; pasos: PasoPurga[]; presion: InformePresion; pendiente: boolean; usuarios: InformeUsuarios };
 /** Fila de estadísticas: `filas`/`bytes` actuales; `hits`/`misses`/`purgadas` acumulados (sobreviven a la purga). */
 export type EstadisticaGrupo = { filas: number; bytes: number; hits: number; misses: number; purgadas: number; tasa: number };
 /** Estadística por modelo. */
@@ -157,6 +171,24 @@ export type AlimentarInput = { entidad?: string | undefined; lote?: number | und
 export type AvanceAlimentar = { entidad: string; procesados: number; hits: number; misses: number; cursor: string | null; terminado: boolean };
 /** Respuesta de `alimentar`. */
 export type AlimentarResultado = { avances: AvanceAlimentar[] };
+/** Fila de `embeddings_usuarios` (base PRINCIPAL): el perfil embebido de un usuario; `vector` es base64url y nunca sale por CRUD. */
+export type PerfilUsuario = { iusuario: string; vector: string | null; dims: number; modelo: string | null; preferencias: Record<string, unknown> | null; fhactualizado: string | null; fhinteraccion: string | null };
+/** Fila cruda del perfil leída de la base principal (preferencias sin tipar; la fecha ya como texto). */
+export type FilaPerfil = { iusuario: string; vector: string | null; dims: number; modelo: string | null; preferencias: unknown; fhactualizado: string | null; fhinteraccion: string | null };
+/** Entrada de `POST embeddings/usuarios/perfil`: `textos` o `vector` crudo del modelo (al menos uno) y `preferencias`. */
+export type ActualizarPerfilInput = { iusuario: string; textos?: string[] | undefined; vector?: number[] | undefined; preferencias?: Record<string, unknown> | undefined; modelo?: string | undefined; interaccion?: boolean | undefined };
+/** Resultado de `POST embeddings/usuarios/perfil`. */
+export type PerfilResultado = { iusuario: string; modelo: string | null; dims: number; iproyeccion: string | null; actualizado: boolean; fhactualizado: string | null; fhinteraccion: string | null };
+/** Entrada de `POST embeddings/usuarios/similares`. */
+export type SimilaresUsuariosInput = { iusuario: string; limite?: number | undefined; minimo?: number | undefined; modelo?: string | undefined };
+/** Un usuario parecido por coseno, con sus preferencias para recomendar. */
+export type SimilarUsuario = { iusuario: string; score: number; preferencias: Record<string, unknown> | null };
+/** Resultado de `POST embeddings/usuarios/similares`. */
+export type SimilaresResultado = { iusuario: string; modelo: string | null; dims: number; resultados: SimilarUsuario[] };
+/** Muestra del paso `usuarios` de la purga (el vector retirado; `fhinteraccion` es la última interacción). */
+export type MuestraUsuario = { iusuario: string; fhinteraccion: string | null };
+/** Paso `usuarios` del informe de purga: `expirados` perdieron el vector; la fila y sus preferencias se conservan. */
+export type InformeUsuarios = { dias: number; expirados: number; muestra: MuestraUsuario[] };
 /** Depuración de `GET embeddings/reglas`: orden efectivo, errores contra las entidades y proyecciones vigentes. */
 export type ExplicacionReglas = { orden: string[]; presion: string[]; errores: string[]; reglas: ReglaPurga[]; proyecciones: Proyeccion[] };
 
@@ -168,6 +200,13 @@ export const ZBuscarInput: z.ZodType<BuscarInput> = z.object({ q: z.string().tri
 export const ZPurgarInput: z.ZodType<PurgarInput> = z.object({ simular: z.boolean().optional(), reglas: z.array(ZReglaPurga).max(20).optional(), solo: z.array(z.string().min(1)).min(1).optional(), ahora: z.iso.datetime().optional() }).strict();
 /** Zod de `POST embeddings/alimentar`. */
 export const ZAlimentarInput: z.ZodType<AlimentarInput> = z.object({ entidad: ZPlural.optional(), lote: z.number().int().min(1).max(500).optional(), reiniciar: z.boolean().optional() }).strict();
+/** Zod de `POST embeddings/usuarios/perfil`: exige textos, vector o preferencias. */
+export const ZActualizarPerfilInput: z.ZodType<ActualizarPerfilInput> = z.object({ iusuario: z.string().min(1).max(120), textos: z.array(z.string().trim().min(1).max(8000)).min(1).max(200).optional(), vector: z.array(z.number().finite()).min(1).max(8192).optional(), preferencias: z.record(z.string(), z.unknown()).optional(), modelo: z.string().min(1).max(120).optional(), interaccion: z.boolean().optional() }).strict().superRefine((v, ctx) => {
+  if (v.textos === undefined && v.vector === undefined && v.preferencias === undefined) ctx.addIssue({ code: "custom", message: "perfil requiere textos, vector o preferencias" });
+  if (v.textos !== undefined && v.vector !== undefined) ctx.addIssue({ code: "custom", message: "Use textos o vector, no ambos" });
+});
+/** Zod de `POST embeddings/usuarios/similares`. */
+export const ZSimilaresUsuariosInput: z.ZodType<SimilaresUsuariosInput> = z.object({ iusuario: z.string().min(1).max(120), limite: z.number().int().min(1).max(100).optional(), minimo: z.number().min(-1).max(1).optional(), modelo: z.string().min(1).max(120).optional() }).strict();
 
 // ===================================================================================== proveedores y estado
 
