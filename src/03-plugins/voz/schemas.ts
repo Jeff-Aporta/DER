@@ -59,6 +59,20 @@ export const ZVozConfig = z.strictObject({
 /** Configuracion ya validada. */
 export type VozConfig = z.infer<typeof ZVozConfig>;
 
+/** Zod de lo que se puede cambiar de la voz de una app. */
+export const ZGuardarVoz = z.strictObject({
+  iapp: z.string().min(1).max(60),
+  motor: z.enum(MOTORES_VOZ).optional(),
+  voz: z.string().min(1).max(60).optional(),
+  perfil: z.enum(["rapido", "video"]).optional(),
+  idioma: z.string().min(2).max(10).optional(),
+  tono: z.string().max(40).nullish(),
+  activa: z.boolean().optional(),
+});
+
+/** Lo que se puede cambiar de la voz de una app. */
+export type GuardarVoz = z.infer<typeof ZGuardarVoz>;
+
 /** Peticion de sintesis. */
 export const ZSintetizar = z.strictObject({
   /** Que dice. */

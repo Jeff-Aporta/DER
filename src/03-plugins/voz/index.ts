@@ -1,4 +1,5 @@
-import type { PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import type { ClientPlugin, PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
+import { type GuardarVoz, type Sintetizar, type VozApp, ZGuardarVoz, ZSintetizar } from "@Jeff-Aporta/DER/src/03-plugins/voz/schemas.ts";
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/voz/schemas.ts";
 
@@ -42,6 +43,57 @@ export const vozPlugin: PluginDef = {
           idioma: { type: "string", nullable: false, length: 10 },
           tono: { type: "string", nullable: true, length: 40 },
           activa: { type: "bool", nullable: false },
+        },
+      },
+    },
+  },
+  irregularPaths: {
+    config: {
+      method: "GET",
+      path: "voz/config",
+      security: "protected",
+      returns: "json",
+      ops: {
+        /** §GET voz/config?iapp=§: la voz de esa app (o la de por defecto). */
+        config(this: ClientPlugin, query: { iapp: string }): Promise<{ iapp: string; config: VozApp }> {
+          return this.call<{ iapp: string; config: VozApp }>("config", query);
+        },
+      },
+    },
+    guardarConfig: {
+      method: "POST",
+      path: "voz/config",
+      security: "protected",
+      zod: ZGuardarVoz,
+      returns: "json",
+      ops: {
+        /** §POST voz/config§: cambia la voz de una app (motor, voz, perfil, idioma, tono, activa). */
+        guardarConfig(this: ClientPlugin, input: GuardarVoz): Promise<{ iapp: string; config: VozApp }> {
+          return this.call<{ iapp: string; config: VozApp }>("guardarConfig", input);
+        },
+      },
+    },
+    sintetizar: {
+      method: "POST",
+      path: "voz/sintetizar",
+      security: "protected",
+      zod: ZSintetizar,
+      ops: {
+        /** §POST voz/sintetizar§: sintetiza el texto; devuelve el audio binario (OGG/Opus). */
+        sintetizar(this: ClientPlugin, input: Sintetizar): Promise<Uint8Array> {
+          return this.call<Uint8Array>("sintetizar", input);
+        },
+      },
+    },
+    voces: {
+      method: "GET",
+      path: "voz/voces",
+      security: "protected",
+      returns: "json",
+      ops: {
+        /** §GET voz/voces§: las voces que el motor tiene (para el selector del panel). */
+        voces(this: ClientPlugin): Promise<{ clave: string; nombre: string; genero?: string | undefined }[]> {
+          return this.call<{ clave: string; nombre: string; genero?: string | undefined }[]>("voces");
         },
       },
     },

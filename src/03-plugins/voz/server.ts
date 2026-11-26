@@ -18,14 +18,16 @@
 import { HttpError, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
 import { zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 import type { z } from "zod";
-import type { ServerPlugin, ServerPluginDef } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
+import type { ExtraRouteInput, ServerPlugin, ServerPluginDef } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { vozPlugin } from "@Jeff-Aporta/DER/src/03-plugins/voz/index.ts";
 import {
   type AudioSintetizado,
+  type GuardarVoz,
   type MotorVoz,
   type Sintetizar,
   type VozApp,
   type VozConfig,
+  ZGuardarVoz,
   ZSintetizar,
   ZVozConfig,
 } from "@Jeff-Aporta/DER/src/03-plugins/voz/schemas.ts";
@@ -160,6 +162,40 @@ export const vozServer: ServerPluginDef = Obj.insert(vozPlugin, {
       const motor = motorDe(this);
       return (await motor.voces?.()) ?? [];
     };
+  },
+  irregularPaths: {
+    config: {
+      async handler(this: ServerPlugin, i: ExtraRouteInput) {
+        const iapp = i.query.get("iapp") ?? "";
+        if (!iapp) throw new ValidationError("Falta iapp");
+        return { iapp, config: await this["configDe"]!(iapp) };
+      },
+    },
+    guardarConfig: {
+      async handler(this: ServerPlugin, i: ExtraRouteInput) {
+        const d = validado<GuardarVoz>(ZGuardarVoz, i.body);
+        const { iapp, ...cambios } = d;
+        return { iapp, config: await this["configurar"]!(iapp, cambios) };
+      },
+    },
+    voces: {
+      async handler(this: ServerPlugin) {
+        return { voces: await this["voces"]!() };
+      },
+    },
+    sintetizar: {
+      async handler(this: ServerPlugin, i: ExtraRouteInput) {
+        const a = await this["sintetizar"]!(i.body);
+        const headers = new Headers({
+          "content-type": a.mime,
+          "x-voz": a.voz,
+          "x-perfil": a.perfil,
+          "x-content-type-options": "nosniff",
+        });
+        if (a.guardado?.url) headers.set("x-archivo-url", a.guardado.url);
+        return new Response(a.bytes as unknown as BodyInit, { status: 200, headers });
+      },
+    },
   },
   /** Crea sus tablas (y les suma columnas nuevas) en cualquier motor. */
   async seed(this: ServerPlugin) {
