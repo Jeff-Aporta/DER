@@ -33,6 +33,7 @@
 | Atención omnicanal (WhatsApp/Telegram) | [atencion.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/atencion.md) | canales del negocio, clientes, chats con código, todos los tipos de mensaje, modo auto/entrenamiento con borradores y calificación del cliente final |
 | Reportes (observaciones y auditoría) | [reportes.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/reportes.md) | marcar error sobre CUALQUIER entidad (`origin`+`idorigin`) y atenderlo como auditor/agente: toma, bitácora, cierre; por empresa y ámbito |
 | Canal de bots | [canal.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/canal.md) | publicar, listar, editar y reaccionar mensajes de bots sobre D1/R2 |
+| Voz (notas de voz) | [voz.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/voz.md) | la voz de cada app como parte de su configuracion, y la sintesis de notas de voz |
 | Estilo y reglas para modificar DER | [estilo.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/estilo.md) | vas a editar `src/`, `tests/`, `docs/` o `specs/` |
 
 ## Mapa archivo → skill particular
@@ -57,6 +58,7 @@
 | `03-plugins/whatsapp/` | whatsapp.md |
 | `03-plugins/crm/` | crm.md |
 | `03-plugins/atencion/` | atencion.md |
+| `03-plugins/voz/` | voz.md |
 | `03-plugins/reportes/` | reportes.md |
 | `03-plugins/canal/` | canal.md |
 

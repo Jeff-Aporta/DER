@@ -44,4 +44,6 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/atencion/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/reportes/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/identity/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/penalizaciones/server.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/voz/server.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/voz/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/server.ts";
