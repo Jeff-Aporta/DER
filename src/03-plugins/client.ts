@@ -10,6 +10,7 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/common/auditoria.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/errores/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/tks/index.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/tiquetes/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/mensajes/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/calificaciones/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/reacciones/index.ts";

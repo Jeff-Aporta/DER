@@ -45,6 +45,8 @@
     "./plugins/crm/client": "./src/03-plugins/crm/index.ts",
     "./plugins/atencion": "./src/03-plugins/atencion/server.ts",
     "./plugins/atencion/client": "./src/03-plugins/atencion/index.ts",
+    "./plugins/tiquetes": "./src/03-plugins/tiquetes/server.ts",
+    "./plugins/tiquetes/client": "./src/03-plugins/tiquetes/index.ts",
     "./plugins/reportes": "./src/03-plugins/reportes/server.ts",
     "./plugins/reportes/client": "./src/03-plugins/reportes/index.ts",
     "./plugins/canal": "./src/03-plugins/canal/server.ts",

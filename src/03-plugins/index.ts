@@ -35,6 +35,7 @@ export { canalVpsServer, purgar as purgarCanalVps } from "@Jeff-Aporta/DER/src/0
 export * from "@Jeff-Aporta/DER/src/03-plugins/embeddings/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/errores/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/tks/server.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/tiquetes/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/mensajes/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/calificaciones/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/reacciones/server.ts";
