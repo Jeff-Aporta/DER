@@ -62,7 +62,7 @@ export type MensajeAtencion = { id: string; iempresa: string; ichat: string; dir
  * Un mensaje SALIENTE que el canal ya envió (el bot respondió, o el CRM lo mandó): se registra con su
  * identificador externo (el wamid) para que después su estado (entregado, visto) se pegue a él.
  */
-export type SalienteInput = { canal: CanalAtencion; icuenta: string; cliente: { iexterno: string; nombre?: string | null | undefined; username?: string | null | undefined; idioma?: string | null | undefined }; mensaje: { iexterno: string; tipo?: TipoMensaje | undefined; texto?: string | null | undefined; contenido?: unknown; origen?: OrigenMensaje | undefined } };
+export type SalienteInput = { canal: CanalAtencion; icuenta: string; cliente: { iexterno: string; nombre?: string | null | undefined; username?: string | null | undefined; idioma?: string | null | undefined }; mensaje: { iexterno: string; tipo?: TipoMensaje | undefined; texto?: string | null | undefined; contenido?: unknown; origen?: OrigenMensaje | undefined; fh?: string | undefined } };
 
 /** Propuesta del bot en modo entrenamiento. */
 export type Borrador = { id: string; iempresa: string; ichat: string; tipo: TipoMensaje; texto: string | null; jcontenido: unknown; estado: "pendiente" | "enviado" | "corregido" | "reportado" | "descartado"; iusuario: string | null; fhcre: string; fhresuelto: string | null };
@@ -124,7 +124,7 @@ export const ZAtencionConfig = z.strictObject({ plazoCalificacionDias: z.number(
 export const ZEntrante = z.strictObject({ canal: z.enum(CANALES_ATENCION), icuenta: z.string().min(1).max(120), cliente: z.strictObject({ iexterno: z.string().min(1).max(120), nombre: z.string().max(160).nullish(), username: z.string().max(120).nullish(), idioma: z.string().max(20).nullish() }), mensaje: z.strictObject({ iexterno: z.string().min(1).max(200), tipo: z.enum(TIPOS_MENSAJE).optional(), texto: z.string().max(8000).nullish(), contenido: z.unknown().optional(), ireply: z.string().max(40).nullish(), fh: z.string().max(40).optional() }) });
 
 /** Zod del saliente (un mensaje que el canal ya envió). */
-export const ZSaliente = z.strictObject({ canal: z.enum(CANALES_ATENCION), icuenta: z.string().min(1).max(120), cliente: z.strictObject({ iexterno: z.string().min(1).max(120), nombre: z.string().max(160).nullish(), username: z.string().max(120).nullish(), idioma: z.string().max(20).nullish() }), mensaje: z.strictObject({ iexterno: z.string().min(1).max(200), tipo: z.enum(TIPOS_MENSAJE).optional(), texto: z.string().max(8000).nullish(), contenido: z.unknown().optional(), origen: z.enum(ORIGENES).optional() }) });
+export const ZSaliente = z.strictObject({ canal: z.enum(CANALES_ATENCION), icuenta: z.string().min(1).max(120), cliente: z.strictObject({ iexterno: z.string().min(1).max(120), nombre: z.string().max(160).nullish(), username: z.string().max(120).nullish(), idioma: z.string().max(20).nullish() }), mensaje: z.strictObject({ iexterno: z.string().min(1).max(200), tipo: z.enum(TIPOS_MENSAJE).optional(), texto: z.string().max(8000).nullish(), contenido: z.unknown().optional(), origen: z.enum(ORIGENES).optional(), fh: z.string().max(40).optional() }) });
 
 /** Zod del envío. */
 export const ZEnviarAtencion = z.strictObject({ ichat: id, tipo: z.enum(TIPOS_MENSAJE).optional(), texto: z.string().max(8000).nullish(), contenido: z.unknown().optional(), ireply: z.string().max(40).nullish(), origen: z.enum(["usuario", "bot"]).optional(), iusuario: z.string().max(120).nullish() });

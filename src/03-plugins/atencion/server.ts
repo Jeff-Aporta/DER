@@ -104,7 +104,7 @@ async function registrarSaliente(p: ServerPlugin, input: SalienteInput): Promise
   const cliente = await guardar<ClienteAtencion>(p, "clientes", { id: c0?.id ?? idNuevo() }, { iempresa: canal.iempresa, icanal: canal.id, iexterno: d.cliente.iexterno, nombre: d.cliente.nombre ?? c0?.nombre ?? null, username: d.cliente.username ?? c0?.username ?? null, idioma: d.cliente.idioma ?? c0?.idioma ?? null, fhprimero: c0?.fhprimero ?? fh, fhultimo: fh });
   const h0 = (await filas<ChatAtencion>(p, "chats", { where: { icliente: cliente.id } }))[0];
   const chat = await guardar<ChatAtencion>(p, "chats", { id: h0?.id ?? idNuevo() }, { iempresa: canal.iempresa, icanal: canal.id, icliente: cliente.id, modo: h0?.modo ?? null, codigo: h0?.codigo ?? codigoNuevo(), estado: "abierto", fhventana: h0?.fhventana ?? null, fhultimo: fh, fhcre: h0?.fhcre ?? fh });
-  const mensaje = await guardar<MensajeAtencion>(p, "mensajes", { id: idNuevo() }, { iempresa: canal.iempresa, ichat: chat.id, direccion: "saliente", origen: d.mensaje.origen ?? "bot", iusuario: null, tipo: d.mensaje.tipo ?? "texto", texto: d.mensaje.texto ?? null, jcontenido: d.mensaje.contenido ?? null, ireply: null, iexterno: d.mensaje.iexterno, estado: "enviado", error: null, fhcre: fh });
+  const mensaje = await guardar<MensajeAtencion>(p, "mensajes", { id: idNuevo() }, { iempresa: canal.iempresa, ichat: chat.id, direccion: "saliente", origen: d.mensaje.origen ?? "bot", iusuario: null, tipo: d.mensaje.tipo ?? "texto", texto: d.mensaje.texto ?? null, jcontenido: d.mensaje.contenido ?? null, ireply: null, iexterno: d.mensaje.iexterno, estado: "enviado", error: null, fhcre: d.mensaje.fh ?? fh });
   await servicios(p).alMensaje?.(mensaje, chat);
   return { nuevo: true, mensaje };
 }
