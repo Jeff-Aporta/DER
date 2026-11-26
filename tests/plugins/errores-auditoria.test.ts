@@ -10,7 +10,7 @@ import { sqliteDatabase } from "@Jeff-Aporta/DER/src/02-controllers/server/sqlit
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
 import { cronCoincide, declararTareas, nombreCron, type ErrorReporte, erroresServer, identityServer, onErrorRegistrando, purgarAtendidos, reportarFallosCon, servicios, validarCron } from "@Jeff-Aporta/DER/src/03-plugins/index.ts";
 import { HttpError } from "@Jeff-Aporta/DER/src/00-common/base.ts";
-import { exigirAnonimo } from "@Jeff-Aporta/DER/src/03-plugins/errores/anonimos.ts";
+import { exigirAnonimo, llaveDe as llaveDelPlugin } from "@Jeff-Aporta/DER/src/03-plugins/errores/anonimos.ts";
 import { call, identityCfg, SECRET } from "@Jeff-Aporta/DER/tests/_util.ts";
 
 async function montar() {
@@ -73,11 +73,14 @@ Deno.test("errores: el abuso anónimo bloquea 24 h y, si persiste, 48 h (por IP 
     assertEquals((await pega(req("7.7.7.7", "huella-x"), t0 + 2 * H + 1)) === null || true, true);
     // Vencido el bloqueo vuelve a pasar; si persiste, el siguiente dura 48 h.
     const t1 = t0 + 25 * H;
-    for (let i = 0; i < 5; i++) assertEquals(await pega(req("9.9.9.9"), t1 + i), null);
-    for (let i = 0; i < 3; i++) await pega(req("9.9.9.9"), t1 + 10 + i);
-    const seg = await pega(req("9.9.9.9"), t1 + 20);
+    // La llave es DIARIA: para la hora simulada hay que pedir la de ESE dia (no la de hoy real).
+    const llaveT1 = await llaveDelPlugin(errores, new Date(t1).toISOString().slice(0, 10));
+    const pega1 = (r: Request, t: number) => exigirAnonimo(errores, llaveT1, r, t);
+    for (let i = 0; i < 5; i++) assertEquals(await pega1(req("9.9.9.9"), t1 + i), null);
+    for (let i = 0; i < 3; i++) await pega1(req("9.9.9.9"), t1 + 10 + i);
+    const seg = await pega1(req("9.9.9.9"), t1 + 20);
     assertEquals(Math.round(Number(seg?.headers.get("retry-after")) / 3600), 48, "reincidencia: 48 h");
-    const huella = await pega(req("6.6.6.6", "huella-x"), t1 + 30);
+    const huella = await pega1(req("6.6.6.6", "huella-x"), t1 + 30);
     assertEquals(huella, null, "la huella nueva no hereda el bloqueo de la IP");
   } finally {
     await cerrar();

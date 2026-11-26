@@ -13,7 +13,9 @@
  * const ws = crearClienteWebSocket({ url: "wss://api.peon.app/api/ws", token });
  * ```
  *
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md
  */
 export * from "@Jeff-Aporta/DER/src/03-plugins/websocket/protocolo.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/websocket/schemas.ts";

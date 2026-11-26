@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 // Excepciones explícitas (ruta o prefijo de carpeta), cada una con su motivo.
-const IGNORAR = [];
+const IGNORAR = [
+  'tests/almacen-disco_test.ts', // prueba justamente que el helper rechaza rutas que salen del proyecto
+];
 
 // Raíces de trabajo locales: un proyecto nunca debe nombrarlas.
 const ABSOLUTA = /(?<![\w.])(?:[A-Za-z]:(?:\\\\|\\|\/\/?)(?:VPS|Dev|ContaPyme[\w-]*|PatyIA|Users)(?![\w-])|\/(?:mnt\/)?[cdCD]\/(?:VPS|Dev|ContaPyme[\w-]*|PatyIA|Users)(?![\w-]))/g;

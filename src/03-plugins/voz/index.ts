@@ -1,3 +1,9 @@
+/**
+ * Plugin de voz: el JSON TRANSVERSAL con la voz de cada app y la sintesis de notas de voz.
+ * Docs (punto de entrada para agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/docs/README.md
+ * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/voz.md
+ */
 import type { ClientPlugin, PluginDef } from "@Jeff-Aporta/DER/src/00-common/schemas.ts";
 import { type GuardarVoz, type Sintetizar, type VozApp, ZGuardarVoz, ZSintetizar } from "@Jeff-Aporta/DER/src/03-plugins/voz/schemas.ts";
 

@@ -10,34 +10,11 @@
  * ```
  *
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md
  */
 import { ZAviso } from "@Jeff-Aporta/DER/src/03-plugins/websocket/schemas.ts";
 import { MAX_BYTES } from "@Jeff-Aporta/DER/src/03-plugins/websocket/protocolo.ts";
-import type { Aviso } from "@Jeff-Aporta/DER/src/03-plugins/websocket/schemas.ts";
-
-/** Lo que el cliente necesita para conectar. */
-export type OpcionesCliente = {
-  /** La URL del socket (`ws://` o `wss://`). */
-  url: string;
-  /** Token de sesion: va en la query porque el navegador no puede mandar cabeceras en un WebSocket. */
-  token: string;
-  /** Se llama cuando el socket se abre (para reenviar lo que hacia falta). */
-  alAbrir?: (() => void) | undefined;
-  /** Se llama cuando se pierde la conexion (para avisar en la interfaz). */
-  alCerrar?: (() => void) | undefined;
-};
-
-/** El cliente: los sockets que oyen un tipo de aviso. */
-export type ClienteWebSocket = {
-  /** Escucha un tipo de aviso. Devuelve la funcion para soltarlo. */
-  alRecibir(tipo: string, fn: (datos: Record<string, unknown>) => void): () => void;
-  /** Envia una peticion por el socket (mismo contrato que el servidor). */
-  pedir(datos: Record<string, unknown>): void;
-  /** Cierra el socket. */
-  cerrar(): void;
-  /** Si esta conectado. */
-  readonly conectado: boolean;
-};
+import type { Aviso, ClienteWebSocket, OpcionesCliente } from "@Jeff-Aporta/DER/src/03-plugins/websocket/schemas.ts";
 
 /** Conecta (y reconecta) al socket del servidor. */
 export function crearClienteWebSocket(opciones: OpcionesCliente): ClienteWebSocket {

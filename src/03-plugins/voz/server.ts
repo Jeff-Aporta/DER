@@ -20,17 +20,7 @@ import { zodMessage } from "@Jeff-Aporta/DER/src/01-objects/zod.ts";
 import type { z } from "zod";
 import type { ExtraRouteInput, ServerPlugin, ServerPluginDef } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { vozPlugin } from "@Jeff-Aporta/DER/src/03-plugins/voz/index.ts";
-import {
-  type AudioSintetizado,
-  type GuardarVoz,
-  type MotorVoz,
-  type Sintetizar,
-  type VozApp,
-  type VozConfig,
-  ZGuardarVoz,
-  ZSintetizar,
-  ZVozConfig,
-} from "@Jeff-Aporta/DER/src/03-plugins/voz/schemas.ts";
+import { type AudioSintetizado, type FilaVoz, type GuardarVoz, type MotorVoz, type Sintetizar, type VozApp, type VozConfig, ZGuardarVoz, ZSintetizar, ZVozConfig } from "@Jeff-Aporta/DER/src/03-plugins/voz/schemas.ts";
 
 export * from "@Jeff-Aporta/DER/src/03-plugins/voz/index.ts";
 
@@ -47,17 +37,6 @@ function motorDe(p: ServerPlugin): MotorVoz {
   if (!m) throw new HttpError(503, "El motor de voz no esta disponible");
   return m;
 }
-
-/** La fila de configuracion de voz de una app, como la guarda la tabla. */
-type FilaVoz = {
-  iapp: string;
-  motor: string;
-  voz: string;
-  perfil: string;
-  idioma: string;
-  tono: string | null;
-  activa: boolean;
-};
 
 /** De la fila a la config tipada (con lo de por defecto si no se reconoce). */
 function aConfig(fila: FilaVoz | undefined, porDefecto: VozApp): VozApp {

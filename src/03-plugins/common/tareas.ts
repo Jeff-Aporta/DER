@@ -2,7 +2,7 @@
  * Tareas programadas declaradas UNA vez y servidas por el host que toque: `Deno.cron` en el VPS (Deno), cron triggers en
  * Cloudflare Workers (`scheduled`) y temporizadores en Azure (un reloj por minuto). El plugin solo declara
  * `{ nombre, cron, handler }`; el host decide cómo dispararlo. Cron de 5 campos en UTC (`*`, número, lista `a,b`, rango
- * `a-b`, paso `*​/n` o `a-b/n`; día de la semana 0–6, domingo = 0).
+ * `a-b`, paso `a-b/n`; día de la semana 0–6, domingo = 0).
  *
  * ```ts
  * const tareas = declararTareas("cloudflare", errores.tareas());          // o "deno" | "azure"

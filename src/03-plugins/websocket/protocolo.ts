@@ -11,6 +11,7 @@
  * - Todo mensaje pasa por Zod en los dos lados: lo que no encaja en el contrato se rechaza.
  *
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md
  */
 
 /** Version del contrato (cambia cuando cambia la forma de los mensajes). */
@@ -30,7 +31,6 @@ export const INTERVALO_LATIDO_MS = 25_000;
 
 /** Como se filtra lo que le llega a cada socket (LISTA CERRADA). */
 export const FILTROS = ["todos", "para", "mencion"] as const;
-export type Filtro = (typeof FILTROS)[number];
 
 /** Los tipos de aviso que el servidor puede mandar (LISTA CERRADA: el autor la fija). */
 export const TIPOS_AVISO = [
@@ -43,8 +43,6 @@ export const TIPOS_AVISO = [
   "error",
   "cerrado",
 ] as const;
-export type TipoAviso = (typeof TIPOS_AVISO)[number];
 
 /** Los tipos de peticion que el cliente puede hacer (LISTA CERRADA: el autor la fija). */
 export const TIPOS_PETICION = ["suscribir", "consultar"] as const;
-export type TipoPeticion = (typeof TIPOS_PETICION)[number];

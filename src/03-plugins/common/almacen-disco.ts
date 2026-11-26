@@ -13,19 +13,13 @@
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
  * Skill particular (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/archivos.md
  */
-import type { AlmacenArchivos, ObjetoAlmacen } from "@Jeff-Aporta/DER/src/03-plugins/archivos/schemas.ts";
+import type { AlmacenArchivos, MetaDisco, ObjetoAlmacen, OpcionesDisco } from "@Jeff-Aporta/DER/src/03-plugins/archivos/schemas.ts";
 
 /** Vida por defecto de un fichero en disco: 30 dias. */
 export const TTL_DISCO_30D = 30 * 24 * 60 * 60;
 
 /** Extension del fichero de metadatos que va al lado del objeto (caducidad, mime, nombre). */
 export const META_DISCO = ".meta.json";
-
-/** Metadatos que se guardan al lado del objeto. */
-export type MetaDisco = { expira: number; mime: string; nombre: string; bytes: number };
-
-/** Opciones del almacen en disco. */
-export type OpcionesDisco = { ttlSeg?: number | undefined; ahora?: (() => number) | undefined };
 
 /** La clave del objeto es una ruta relativa dentro de la carpeta: se limpian los `..` y las barras. */
 export function claveSegura(clave: string): string {

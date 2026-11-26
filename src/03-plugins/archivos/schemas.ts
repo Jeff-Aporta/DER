@@ -43,3 +43,7 @@ export type AlmacenArchivos = { subir(clave: string, bytes: Uint8Array, meta: { 
 export type DatosGuardar = { bytes: Uint8Array; nombre: string; mime: string; icarpeta?: number | null | undefined; origin?: string | null | undefined; idorigin?: string | null | undefined; ancho?: number | null | undefined; alto?: number | null | undefined; duracion?: number | null | undefined; prefijo?: string | undefined; extras?: Record<string, unknown> | undefined; apporigin?: string | null | undefined; pagina?: string | null | undefined; ip?: string | null | undefined; maxBytes?: number | undefined };
 /** Política del consumidor: quién sube y ve qué, y columnas propias. Todo opcional: sin ella hace falta sesión y se ve lo propio o lo sin dueño. */
 export type PoliticaArchivos = { limiteBytes?(ctx: BaseCtx): Promise<number> | number; alSubir?(q: SubirQuery, ctx: BaseCtx): Promise<{ prefijo?: string; extras?: Record<string, unknown> } | void> | { prefijo?: string; extras?: Record<string, unknown> } | void; puedeVer?(a: Archivo, ctx: BaseCtx): Promise<boolean> | boolean };
+/** Metadatos que se guardan al lado del objeto en el almacen en disco. */
+export type MetaDisco = { expira: number; mime: string; nombre: string; bytes: number };
+/** Opciones del almacen en disco: vida de los ficheros y reloj inyectable. */
+export type OpcionesDisco = { ttlSeg?: number | undefined; ahora?: (() => number) | undefined };

@@ -97,21 +97,10 @@ export type Sintetizar = z.infer<typeof ZSintetizar>;
  * Contrato del motor de voz: lo implementa el consumidor (el que tiene el motor
  * TTS). DER no conoce ningun motor: solo llama a este contrato.
  */
-export type MotorVoz = {
-  /**
-   * Sintetiza y devuelve los bytes del audio (OGG/Opus, que es lo que WhatsApp
-   * quiere para las notas de voz).
-   */
-  sintetizar(peticion: { texto: string; voz: string; perfil: "rapido" | "video"; idioma: string; tono?: string | undefined }): Promise<Uint8Array>;
-  /** Las voces que el motor tiene (para el panel de administracion). */
-  voces?(): Promise<{ clave: string; nombre: string; genero?: string | undefined }[]>;
-};
+export type MotorVoz = { sintetizar(peticion: { texto: string; voz: string; perfil: "rapido" | "video"; idioma: string; tono?: string | undefined }): Promise<Uint8Array>; voces?(): Promise<{ clave: string; nombre: string; genero?: string | undefined }[]> };
 
 /** Un audio ya sintetizado. */
-export type AudioSintetizado = {
-  bytes: Uint8Array;
-  mime: string;
-  duracionSeg: number | null;
-  voz: string;
-  perfil: "rapido" | "video";
-};
+export type AudioSintetizado = { bytes: Uint8Array; mime: string; duracionSeg: number | null; voz: string; perfil: "rapido" | "video" };
+
+/** La fila de configuracion de voz de una app, como la guarda la tabla. */
+export type FilaVoz = { iapp: string; motor: string; voz: string; perfil: string; idioma: string; tono: string | null; activa: boolean };

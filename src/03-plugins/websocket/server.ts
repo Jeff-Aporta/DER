@@ -11,38 +11,12 @@
  * no sabe de Deno ni de Workers, solo de sockets.
  *
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md
+ * Skill particular: https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md
  */
-import {
-  INTERVALO_LATIDO_MS,
-  MAX_BYTES,
-  MAX_POR_MINUTO,
-  TIMEOUT_SILENCIO_MS,
-  VERSION_PROTOCOLO,
-} from "@Jeff-Aporta/DER/src/03-plugins/websocket/protocolo.ts";
+import { INTERVALO_LATIDO_MS, MAX_BYTES, MAX_POR_MINUTO, TIMEOUT_SILENCIO_MS, VERSION_PROTOCOLO } from "@Jeff-Aporta/DER/src/03-plugins/websocket/protocolo.ts";
 import { ZAviso, ZPeticion } from "@Jeff-Aporta/DER/src/03-plugins/websocket/schemas.ts";
 import { verifyJwtHs256 } from "@Jeff-Aporta/DER/src/03-plugins/common/jwt.ts";
-import type {
-  AdjuntoSocket,
-  Difusion,
-  Identidad,
-  Peticion,
-  Socket,
-} from "@Jeff-Aporta/DER/src/03-plugins/websocket/schemas.ts";
-import type { Filtro } from "@Jeff-Aporta/DER/src/03-plugins/websocket/protocolo.ts";
-
-/** Lo que el consumidor le da al servidor. */
-export type ConfigServidor = {
-  /** Secreto HS256 con el que se verifica el token de sesion (el mismo de la API). */
-  secreto: string;
-  /** Emisor esperado en el token (`iss`). Si no se pone, se acepta el que venga. */
-  emisor?: string | undefined;
-  /** Verifica la sesion del token (la app mira si el `jti` sigue abierto). Si devuelve `false`, no entra. */
-  sesionValida?: ((claims: Record<string, unknown>) => boolean | Promise<boolean>) | undefined;
-  /** Convierte los claims en la identidad del socket. Por defecto: `sub` = cedula, `rol` = claim `rol`. */
-  identidad?: ((claims: Record<string, unknown>) => Identidad) | undefined;
-  /** Responde a una peticion «consultar» (solo lectura). Si no se define, se rechaza. */
-  consultar?: ((p: Peticion, identidad: Identidad) => Promise<Record<string, unknown>>) | undefined;
-};
+import type { AdjuntoSocket, ConfigServidor, Difusion, Filtro, Socket } from "@Jeff-Aporta/DER/src/03-plugins/websocket/schemas.ts";
 
 /** La sala: los sockets conectados, con su identidad y su filtro. */
 export class SalaWebSocket {
