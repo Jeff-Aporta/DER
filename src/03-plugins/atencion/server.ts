@@ -27,7 +27,7 @@ import { HttpError, Obj, ValidationError } from "@Jeff-Aporta/DER/src/00-common/
 import { createServer } from "@Jeff-Aporta/DER/src/02-controllers/server/plugin.ts";
 import type { ExtraRouteInput, ServerCtx, ServerPlugin, ServerPluginDef, ServerPluginRuntime } from "@Jeff-Aporta/DER/src/02-controllers/server/schemas.ts";
 import { atencionPlugin } from "@Jeff-Aporta/DER/src/03-plugins/atencion/index.ts";
-import { type AtencionConfig, type AtencionServicios, type Borrador, type CalificacionAtencion, type CalificarAtencionInput, CAPACIDADES, type Canal, type CanalAtencion, type CanalInput, type ChatAtencion, type ClienteAtencion, type ContextoAtencion, type Entrenamiento, type EntranteInput, type EntranteResultado, type EnviarAtencionInput, type MensajeAtencion, type ModoInput, PLAZO_CALIFICACION_DIAS, type ProponerInput, type ResolverBorradorInput, VENTANA_WA_HORAS, type VerbosAtencion, type VistaCalificacion, ZAtencionConfig, ZCalificarAtencion, ZCanalAtencion, ZEntrante, ZEnviarAtencion, ZModo, ZProponer, ZResolverBorrador } from "@Jeff-Aporta/DER/src/03-plugins/atencion/schemas.ts";
+import { type AtencionConfig, type AtencionServicios, type Borrador, type CalificacionAtencion, type CalificarAtencionInput, CAPACIDADES, type Canal, type CanalAtencion, type CanalInput, type ChatAtencion, type ClienteAtencion, type ContextoAtencion, type Entrenamiento, type EntranteInput, type EntranteResultado, type EnviarAtencionInput, type MensajeAtencion, type ModoInput, PLAZO_CALIFICACION_DIAS, type ProponerInput, type ResolverBorradorInput, type SalienteInput, VENTANA_WA_HORAS, type VerbosAtencion, type VistaCalificacion, ZAtencionConfig, ZCalificarAtencion, ZCanalAtencion, ZEntrante, ZEnviarAtencion, ZModo, ZProponer, ZResolverBorrador, ZSaliente } from "@Jeff-Aporta/DER/src/03-plugins/atencion/schemas.ts";
 import { timingSafeEqual } from "@Jeff-Aporta/DER/src/03-plugins/common/crypto.ts";
 import { ahora, filas, guardar, idNuevo, isoDe, ms, porPk, validado } from "@Jeff-Aporta/DER/src/03-plugins/common/tablas.ts";
 
@@ -85,6 +85,28 @@ async function registrarEntrante(p: ServerPlugin, input: EntranteInput): Promise
   const mensaje = await guardar<MensajeAtencion>(p, "mensajes", { id: idNuevo() }, { iempresa: canal.iempresa, ichat: chat.id, direccion: "entrante", origen: "cliente", iusuario: null, tipo: d.mensaje.tipo ?? "texto", texto: d.mensaje.texto ?? null, jcontenido: d.mensaje.contenido ?? null, ireply: d.mensaje.ireply ?? null, iexterno: d.mensaje.iexterno, estado: "recibido", error: null, fhcre: fh });
   await servicios(p).alMensaje?.(mensaje, chat);
   return { nuevo: true, canal, chat, mensaje, modo: chat.modo ?? canal.modo };
+}
+
+/**
+ * Registra un mensaje SALIENTE que el canal ya envió (el bot respondió): lo deja en la conversación con su
+ * identificador externo (el wamid), para que su estado (entregado, visto) se pegue a él.
+ *
+ * Es idempotente por `iexterno`: si el mismo wamid llega dos veces, no lo duplica.
+ */
+async function registrarSaliente(p: ServerPlugin, input: SalienteInput): Promise<{ nuevo: boolean; mensaje: MensajeAtencion | null }> {
+  const d = validado<SalienteInput>(ZSaliente, input);
+  const canal = await canalDe(p, d.canal, d.icuenta);
+  if (!canal || canal.bactivo === false) return { nuevo: false, mensaje: null };
+  const previo = (await filas<MensajeAtencion>(p, "mensajes", { where: { iempresa: canal.iempresa, iexterno: d.mensaje.iexterno } }))[0];
+  if (previo) return { nuevo: false, mensaje: previo };
+  const fh = ahora();
+  const c0 = (await filas<ClienteAtencion>(p, "clientes", { where: { icanal: canal.id, iexterno: d.cliente.iexterno } }))[0];
+  const cliente = await guardar<ClienteAtencion>(p, "clientes", { id: c0?.id ?? idNuevo() }, { iempresa: canal.iempresa, icanal: canal.id, iexterno: d.cliente.iexterno, nombre: d.cliente.nombre ?? c0?.nombre ?? null, username: d.cliente.username ?? c0?.username ?? null, idioma: d.cliente.idioma ?? c0?.idioma ?? null, fhprimero: c0?.fhprimero ?? fh, fhultimo: fh });
+  const h0 = (await filas<ChatAtencion>(p, "chats", { where: { icliente: cliente.id } }))[0];
+  const chat = await guardar<ChatAtencion>(p, "chats", { id: h0?.id ?? idNuevo() }, { iempresa: canal.iempresa, icanal: canal.id, icliente: cliente.id, modo: h0?.modo ?? null, codigo: h0?.codigo ?? codigoNuevo(), estado: "abierto", fhventana: h0?.fhventana ?? null, fhultimo: fh, fhcre: h0?.fhcre ?? fh });
+  const mensaje = await guardar<MensajeAtencion>(p, "mensajes", { id: idNuevo() }, { iempresa: canal.iempresa, ichat: chat.id, direccion: "saliente", origen: d.mensaje.origen ?? "bot", iusuario: null, tipo: d.mensaje.tipo ?? "texto", texto: d.mensaje.texto ?? null, jcontenido: d.mensaje.contenido ?? null, ireply: null, iexterno: d.mensaje.iexterno, estado: "enviado", error: null, fhcre: fh });
+  await servicios(p).alMensaje?.(mensaje, chat);
+  return { nuevo: true, mensaje };
 }
 
 /** Envía un mensaje a un chat de la empresa: valida capacidad del canal y ventana de WhatsApp; la entrega real es del consumidor. */
@@ -295,6 +317,7 @@ export const atencionServer: ServerPluginDef = Obj.insert(atencionPlugin, {
       registrarCanal: (input) => registrarCanal(this, input),
       canalDe: (canal, icuenta) => canalDe(this, canal, icuenta),
       registrarEntrante: (input) => registrarEntrante(this, input),
+      registrarSaliente: (input) => registrarSaliente(this, input),
       enviar: (iempresa, input) => enviar(this, iempresa, input),
       proponer: (iempresa, input) => proponer(this, iempresa, input),
       resolverBorrador: (iempresa, iusuario, input) => resolverBorrador(this, iempresa, iusuario, input),

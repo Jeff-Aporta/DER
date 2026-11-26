@@ -58,6 +58,12 @@ export type ChatAtencion = { id: string; iempresa: string; icanal: string; iclie
 /** Mensaje. `iexterno` = id del canal (wamid, message_id): idempotencia. `ireply` cita otro mensaje. `jcontenido` = lo propio del tipo (media, botones, ubicación…). */
 export type MensajeAtencion = { id: string; iempresa: string; ichat: string; direccion: "entrante" | "saliente"; origen: OrigenMensaje; iusuario: string | null; tipo: TipoMensaje; texto: string | null; jcontenido: unknown; ireply: string | null; iexterno: string | null; estado: string; error: string | null; fhcre: string };
 
+/**
+ * Un mensaje SALIENTE que el canal ya envió (el bot respondió, o el CRM lo mandó): se registra con su
+ * identificador externo (el wamid) para que después su estado (entregado, visto) se pegue a él.
+ */
+export type SalienteInput = { canal: CanalAtencion; icuenta: string; cliente: { iexterno: string; nombre?: string | null | undefined; username?: string | null | undefined; idioma?: string | null | undefined }; mensaje: { iexterno: string; tipo?: TipoMensaje | undefined; texto?: string | null | undefined; contenido?: unknown; origen?: OrigenMensaje | undefined } };
+
 /** Propuesta del bot en modo entrenamiento. */
 export type Borrador = { id: string; iempresa: string; ichat: string; tipo: TipoMensaje; texto: string | null; jcontenido: unknown; estado: "pendiente" | "enviado" | "corregido" | "reportado" | "descartado"; iusuario: string | null; fhcre: string; fhresuelto: string | null };
 
@@ -104,7 +110,7 @@ export type ContextoAtencion = { iusuario: string; iempresa: string; rol?: strin
 export type AtencionServicios = { contexto?: ((req: Request, sesion: { id?: string } | null | undefined) => Promise<ContextoAtencion> | ContextoAtencion) | undefined; entregar?: ((canal: Canal, cliente: ClienteAtencion, mensaje: MensajeAtencion) => Promise<{ iexterno?: string | undefined } | void> | { iexterno?: string | undefined } | void) | undefined; alMensaje?: ((mensaje: MensajeAtencion, chat: ChatAtencion) => Promise<void> | void) | undefined };
 
 /** Verbos de servidor del plugin armado. */
-export type VerbosAtencion = { registrarCanal(input: CanalInput): Promise<Canal>; canalDe(canal: CanalAtencion, icuenta: string): Promise<Canal | null>; registrarEntrante(input: EntranteInput): Promise<EntranteResultado>; enviar(iempresa: string, input: EnviarAtencionInput): Promise<MensajeAtencion>; proponer(iempresa: string, input: ProponerInput): Promise<{ enviado: boolean; mensaje: MensajeAtencion | null; borrador: Borrador | null }>; resolverBorrador(iempresa: string, iusuario: string, input: ResolverBorradorInput): Promise<{ borrador: Borrador; mensaje: MensajeAtencion | null; entrenamiento: Entrenamiento | null }>; setModo(iempresa: string, input: ModoInput): Promise<{ actualizados: number }>; chats(iempresa: string, limite?: number): Promise<ChatAtencion[]>; mensajes(iempresa: string, ichat: string, limite?: number, antes?: string): Promise<MensajeAtencion[]>; borradores(iempresa: string, ichat?: string): Promise<Borrador[]>; entrenamientos(iempresa: string, limite?: number): Promise<Entrenamiento[]>; vistaCalificacion(ichat: string, codigo: string): Promise<VistaCalificacion>; calificar(input: CalificarAtencionInput): Promise<CalificacionAtencion> };
+export type VerbosAtencion = { registrarCanal(input: CanalInput): Promise<Canal>; canalDe(canal: CanalAtencion, icuenta: string): Promise<Canal | null>; registrarEntrante(input: EntranteInput): Promise<EntranteResultado>; registrarSaliente(input: SalienteInput): Promise<{ nuevo: boolean; mensaje: MensajeAtencion | null }>; enviar(iempresa: string, input: EnviarAtencionInput): Promise<MensajeAtencion>; proponer(iempresa: string, input: ProponerInput): Promise<{ enviado: boolean; mensaje: MensajeAtencion | null; borrador: Borrador | null }>; resolverBorrador(iempresa: string, iusuario: string, input: ResolverBorradorInput): Promise<{ borrador: Borrador; mensaje: MensajeAtencion | null; entrenamiento: Entrenamiento | null }>; setModo(iempresa: string, input: ModoInput): Promise<{ actualizados: number }>; chats(iempresa: string, limite?: number): Promise<ChatAtencion[]>; mensajes(iempresa: string, ichat: string, limite?: number, antes?: string): Promise<MensajeAtencion[]>; borradores(iempresa: string, ichat?: string): Promise<Borrador[]>; entrenamientos(iempresa: string, limite?: number): Promise<Entrenamiento[]>; vistaCalificacion(ichat: string, codigo: string): Promise<VistaCalificacion>; calificar(input: CalificarAtencionInput): Promise<CalificacionAtencion> };
 
 const id = z.string().min(1).max(40);
 
@@ -116,6 +122,9 @@ export const ZAtencionConfig = z.strictObject({ plazoCalificacionDias: z.number(
 
 /** Zod del entrante. */
 export const ZEntrante = z.strictObject({ canal: z.enum(CANALES_ATENCION), icuenta: z.string().min(1).max(120), cliente: z.strictObject({ iexterno: z.string().min(1).max(120), nombre: z.string().max(160).nullish(), username: z.string().max(120).nullish(), idioma: z.string().max(20).nullish() }), mensaje: z.strictObject({ iexterno: z.string().min(1).max(200), tipo: z.enum(TIPOS_MENSAJE).optional(), texto: z.string().max(8000).nullish(), contenido: z.unknown().optional(), ireply: z.string().max(40).nullish(), fh: z.string().max(40).optional() }) });
+
+/** Zod del saliente (un mensaje que el canal ya envió). */
+export const ZSaliente = z.strictObject({ canal: z.enum(CANALES_ATENCION), icuenta: z.string().min(1).max(120), cliente: z.strictObject({ iexterno: z.string().min(1).max(120), nombre: z.string().max(160).nullish(), username: z.string().max(120).nullish(), idioma: z.string().max(20).nullish() }), mensaje: z.strictObject({ iexterno: z.string().min(1).max(200), tipo: z.enum(TIPOS_MENSAJE).optional(), texto: z.string().max(8000).nullish(), contenido: z.unknown().optional(), origen: z.enum(ORIGENES).optional() }) });
 
 /** Zod del envío. */
 export const ZEnviarAtencion = z.strictObject({ ichat: id, tipo: z.enum(TIPOS_MENSAJE).optional(), texto: z.string().max(8000).nullish(), contenido: z.unknown().optional(), ireply: z.string().max(40).nullish(), origen: z.enum(["usuario", "bot"]).optional(), iusuario: z.string().max(120).nullish() });
