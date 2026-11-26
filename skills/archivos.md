@@ -19,6 +19,25 @@ const archivos = createServer(archivosServer, { db, cfg: { secret: "env:JWT_SECR
 
 Columnas propias o tabla con prefijo: `Obj.insert(archivosServer, { entities: { archivos: { table: "mi_archivos", schema: { columns: { iempresa: { type: "int" } } } } } })`.
 
+## Los almacenes que ya trae DER
+
+| almacen | donde | cuando |
+|---|---|---|
+| `r2Almacen(bucket)` | Cloudflare R2 | el consumidor es un Worker (meta `der-expira` + purga con `r2PurgeExpired`) |
+| `discoAlmacen(carpeta)` | una carpeta del disco | el consumidor corre en un servidor propio (meta al lado del fichero + purga con `purgarDisco`) |
+
+Los dos cumplen el mismo contrato `AlmacenArchivos`, así que el plugin no cambia. `discoAlmacen` deja **30 días de vida por defecto** (`TTL_DISCO_30D`) y `purgarDisco` borra lo vencido:
+
+```ts
+const archivos = createServer(archivosServer, {
+  db,
+  cfg: { secret: "env:JWT_SECRET" },
+  services: { almacen: discoAlmacen("datos/archivos", { ttlSeg: 30 * 86400 }) },
+});
+// y de vez en cuando:
+await purgarDisco("datos/archivos", { ttlSeg: 30 * 86400 });
+```
+
 ## Relacionar con otra tabla
 
 `origin` + `idorigin` enlazan un archivo con una fila de cualquier tabla, sin FK rígida: `origin: "errores", idorigin: "17"`.

@@ -18,6 +18,7 @@
  */
 export * from "@Jeff-Aporta/DER/src/03-plugins/archivos/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/auditoria.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/common/almacen-disco.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/crypto.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/device.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/common/llm.ts";
