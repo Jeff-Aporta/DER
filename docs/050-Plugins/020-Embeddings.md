@@ -206,3 +206,12 @@ await emb.purgar({ simular: true });
 ## D1
 
 Sin transacciones: una caída entre escrituras deja como mucho un contador sin sumar o una fila por repetir, y la caché se recupera sola. Toda sentencia va troceada bajo 100 parámetros. Un `embeber` con un lote de misses hace varias consultas; tenlo en cuenta en el límite de consultas por invocación. No hay tipo binario en DER: el vector es texto base64url, un tercio más que los bytes. La caché ya no vive en D1: si la base de embeddings se inyecta por `services.embeddingsDb` puede ser otra SQLite o un adaptador; por defecto es `node:sqlite`.
+
+## Como lo usa el CRM (api-crm)
+
+- **Busqueda de la bandeja** (`GET /api/inbox/buscar?q=`): busca por nombre del cliente, texto de los mensajes y
+  resumenes diarios y, si el plugin tiene proveedor, suma los vectores (`embeber`/`buscar`). Sin proveedor no falla:
+  responde `semantica: false` (busqueda por texto) y un `aviso`.
+- **Retencion**: la purga configurable (`POST /api/retencion/purgar`) tambien llama a la purga de embeddings.
+- Modelo: `EMBEDDINGS_URL`, `EMBEDDINGS_KEY`, `EMBEDDINGS_MODEL` y `EMBEDDINGS_DIMS` en el entorno del API. Sin
+  clave el plugin conserva lo que ya tiene pero no puede embeber texto nuevo (error claro, nunca vectores inventados).

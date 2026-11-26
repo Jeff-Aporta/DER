@@ -2,6 +2,16 @@
 
 [← temario](README.md) · referencia: `docs/050-Plugins/110-Notificaciones.md`
 
+## Cuando usarla
+
+- Necesitas la **campana de avisos** con contador de no leidas para una app.
+- Quieres avisos para un usuario, para todos (`destinatarios: ["*"]`) o **push** al navegador/Android.
+
+```ts
+await notif.notificar({ destinatarios: ["ana"], titulo: "Chat asignado", enlace: "/chat/abc" });
+const { items, noLeidas } = await notif.bandeja("ana", 30);
+```
+
 ## Qué es
 
 Avisos para un usuario (o para todos) con **contador de no leídas**: la campana de cualquier app. Una notificación
@@ -90,3 +100,10 @@ del destinatario (las `*` a todas). Si devuelve `"caducada"`, la suscripción se
 - `leer` sin `ids` ni `todas` → 400.
 - Una notificación `*` no tiene `leida` propia en la tabla: se resuelve por usuario en la bandeja.
 - `notificar` por HTTP queda tras `protected`; quién puede crear lo decide la puerta `permissions` del consumidor.
+
+## Como lo usa el CRM del estudio (hoy, sin este plugin)
+
+El CRM **no** monta este plugin: sus avisos son del **navegador** (permiso, service worker `sw.js` y el centro de
+notificaciones del front) y el tiempo real viaja por WebSocket (`/api/ws`: avisos `mensaje`, `borrador`, `presencia`,
+`modo`). El centro guarda lo recibido para que no se pierda si el navegador no muestra avisos, y cada fila abre su
+chat. (PENDIENTE) si se quiere push nativo o campana persistente en el servidor: ahi entra este plugin.

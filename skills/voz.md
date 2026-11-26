@@ -55,3 +55,19 @@ Si el consumidor da el servicio `guardar`, el audio queda guardado con su caduci
 - `POST /api/voz/config` — cambia la voz (`{ iapp, voz, perfil, motor, idioma, tono, activa }`).
 - `GET /api/voz/voces` — las voces que el motor tiene (para el selector del panel).
 - `POST /api/voz/sintetizar` — sintetiza; devuelve el audio binario (no JSON).
+
+## Cuando usarla
+
+- Una app necesita **hablar**: notas de voz o audios con una voz configurable por app (`voz_app`).
+- Quieres centralizar la voz (un panel la cambia y todos los bots usan la misma).
+
+```ts
+await voz.configurar("chat-assistant", { voz: "serena", perfil: "rapido" });
+const a = await voz.sintetizar({ texto: "Listo", iapp: "chat-assistant" });   // audio binario
+```
+
+## Como lo usa el CRM del estudio (api-crm)
+
+- `POST /api/voz/nota` (token del canal) sintetiza la nota que manda el bot y devuelve el audio binario.
+- La transcripcion (voz -> texto) **no** es de este plugin: el API del CRM usa un motor STT (`QWEN_STT_URL` o whisper
+  de Groq) y guarda el texto en `crm_transcripciones`; sin motor queda `pendiente` (nunca se inventa).

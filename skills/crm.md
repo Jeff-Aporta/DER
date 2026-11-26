@@ -2,6 +2,17 @@
 
 [← temario](README.md) · referencia: `docs/050-Plugins/130-CRM.md` · relacionadas: [reportes.md](reportes.md), [atencion.md](atencion.md) (canales WhatsApp/Telegram, modo entrenamiento y calificación; reutiliza `crm.contexto`), [identity.md](identity.md), [permissions.md](permissions.md), [archivos.md](archivos.md), [notificaciones.md](notificaciones.md)
 
+## Cuando usarla
+
+- Montas (o tocas) un API **multi-empresa** con usuarios que entran a varias empresas con un rol por empresa.
+- Necesitas **contactos** por empresa y el **chat interno** (hilos, participantes, mensajes, adjuntos).
+- Vas a agregar rutas propias que dependan de la empresa activa ("la puerta" es `crm.contexto`).
+
+```ts
+const ctx = await crm.contexto(sesion.id, req.headers.get("x-empresa"));   // { iusuario, iempresa, rol }
+await crm.enviarChat(ctx, { hilo: "general", texto: "Hola" });
+```
+
 ## Qué es
 
 El modelo **multi-tenant** de un CRM: **empresas**, **usuarios↔empresas N:M con un rol por empresa**, **contactos por
@@ -84,3 +95,13 @@ Ops: `login`, `yo`, `empresas`, `crearEmpresa`, `miembros`, `vincularMiembro`, `
 - Consultar las tablas del CRM sin `iempresa` en el `where`: cruza inquilinos. Usa los verbos (`ctx.iempresa`).
 - Dos usuarios con el mismo hilo `general`: es normal, la clave solo es única entre las conversaciones DEL usuario (cada uno tiene la suya con el bot).
 - Mensajes `lector` en grupos: 403; en el chat con el bot sí pueden escribir.
+
+## Extensiones del consumidor CRM (api-crm)
+
+El CRM del estudio suma a este plugin, en su propia base y con rutas propias: notas internas (`crm_notas`), marcas de
+prueba (`crm_marcas`), modo Manual por chat (`crm_modos`), presencia (`crm_presencia`), perfil con nombre confirmado
+(`crm_perfiles`), resumenes diarios (`crm_resumenes`), avatares (`crm_avatares`), grupos de la bandeja
+(`crm_grupos`, `crm_grupo_chats`), prospectos privados (`crm_prospectos`), contactos automaticos
+(`crm_contactos_auto`), retencion (`crm_retencion`) y transcripciones (`crm_transcripciones`). Nada de eso se
+publica por CRUD: todo va por `/api/*` filtrando la empresa activa. `GET crm/miembros` se envuelve para sumar
+`avatarUrl`. El front entra por `usuarios/login` (identidad) y resuelve la empresa con `GET crm/yo`.

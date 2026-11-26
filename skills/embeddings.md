@@ -47,3 +47,20 @@ Se reemplazan declarando una regla con el mismo nombre; se apagan con `"activa":
 - El vector nunca sale por CRUD (`hidden`) y el texto no se guarda. Los perfiles de usuario se leen con SQL parametrizado (`usuarios.ts`), no con `query`, porque su `vector` está oculto.
 - Con reducción activa, el índice externo debe tener las dimensiones de la proyección; el perfil de usuario se guarda en la proyección vigente del modelo.
 - La base de embeddings se inyecta por `services.embeddingsDb` o se abre con `cfg.ruta`/`cfg.db`; nunca metas sus tablas en la base principal.
+
+## Cuando usarla
+
+- Quieres **busqueda semantica** (encontrar por significado, no por texto exacto) sobre lo que ya guardas.
+- Necesitas **perfiles de usuario** por similitud de intereses.
+
+```ts
+await emb.embeber({ items: [{ texto: "cafe molido", entidad: "productos", id: 7 }] });
+const { resultados } = await emb.buscar({ q: "café", entidades: ["productos"] });
+```
+
+## Como lo usa el CRM del estudio (api-crm)
+
+- Busqueda de la bandeja (`GET /api/inbox/buscar?q=`): nombre, texto de mensajes, resumenes diarios y, si hay
+  proveedor, semantica. Sin proveedor responde `semantica: false` y un `aviso`: la busqueda nunca se cae.
+- La purga de la retencion configurable tambien purga embeddings.
+- Variables: `EMBEDDINGS_URL`, `EMBEDDINGS_KEY`, `EMBEDDINGS_MODEL`, `EMBEDDINGS_DIMS`.

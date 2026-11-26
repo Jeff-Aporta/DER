@@ -2,6 +2,19 @@
 
 [← temario](README.md) · referencia: `docs/050-Plugins/140-Atencion.md` · relacionadas: [crm.md](crm.md), [whatsapp.md](whatsapp.md), [mensajes.md](mensajes.md), [calificaciones.md](calificaciones.md)
 
+## Cuando usarla
+
+- Vas a montar una **bandeja conversacional** (WhatsApp o Telegram) con bot y atencion humana, o a integrar la que
+  ya existe (el CRM del estudio la usa completa).
+- Necesitas **borradores**: que el bot proponga y una persona apruebe, corrija o rechace.
+- Necesitas **modo manual por chat**, calificacion del cliente final o los tipos de mensaje que admite cada canal.
+
+```ts
+await at.registrarEntrante({ canal: "whatsapp", icuenta, cliente, mensaje });   // llega un mensaje
+await at.proponer(iempresa, { ichat, texto });                                  // el bot propone
+await at.setModo(iempresa, { ichat, modo: "entrenamiento" });                   // Manual / Auto
+```
+
 ## Qué es
 
 Bandeja de **atención conversacional omnicanal** (WhatsApp y Telegram) REUTILIZABLE: no conoce al CRM. El aislamiento es por `iempresa` (cualquier inquilino); el consumidor aporta la sesión con `services.contexto(req, sesion) → { iusuario, iempresa }` (el CRM lo hace con `crm.contexto`). Extiende lo que hacen `mensajes` (hilo) y `calificaciones` (nota) con dirección, canal, tipos, modo de entrenamiento y calificación del cliente final.
@@ -59,3 +72,18 @@ Enlace = id del chat + código de 4 dígitos. `GET atencion/calificacion?ichat=&
 - Sin `services.contexto` las rutas protegidas fallan: el plugin no inventa la empresa.
 - Sin `services.entregar` los salientes quedan `pendiente` (el gateway los toma de la tabla).
 - Mensajes de otra empresa o chats ajenos responden «No existe» (404) sin distinguir el motivo.
+
+## Modo Manual, presencia y borradores compartidos (como lo consume el CRM)
+
+- **Manual = `entrenamiento`**. La base y el plugin siguen usando `entrenamiento`; la interfaz del CRM y su API
+  (`POST /api/inbox/modo`) lo llaman **Manual**. El modo es **por chat** y **temporal**: se apaga solo a los 30
+  minutos sin actividad del equipo y el front lo devuelve a `auto` al cerrar la pestaña (guarda los chats que el
+  mismo encendio y los suelta).
+- **Presencia**: en Manual el bot solo propone si hay alguien del equipo en ese chat. El CRM lo aplica en
+  `proponerConReglas`: cuando no hay nadie, la propuesta se descarta con `omitido: "sin_presencia"`. El bot pregunta
+  por `GET /api/bot/presencia?ichat=`.
+- **Borradores compartidos**: el CRM guarda ademas el borrador de cada agente por chat (`crm_borradores`) para
+  mostrar "X esta escribiendo..." y no pisarse; los del bot siguen en `atencion_borradores`.
+- **Numeros de prueba**: los chats que nacen de un numero de PRUEBA arrancan en Manual (los marca el CRM).
+- **Adjuntos con transcripcion**: una nota de voz o de video se transcribe al enviarse; el texto sobrevive a que el
+  audio caduque.

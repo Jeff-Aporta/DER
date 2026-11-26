@@ -67,3 +67,22 @@ La `ruta` de una carpeta la deriva el server del padre; `(ipadre, nombre)` es ú
 - Sin transacciones en algunos motores: primero el objeto y luego la fila; si la fila falla, se borra el objeto.
 - `clave` es interna: al cliente se le da la URL firmada.
 - Auditoría en cada fila: ver [plugins.md](plugins.md#auditoría).
+
+## Cuando usarla
+
+- Hay que **guardar bytes** (adjuntos del chat, avatares, capturas de errores) y servir los con URLs firmadas.
+- Necesitas **relacionar un archivo con cualquier tabla** sin FK (`origin` + `idorigin`).
+- Quieres caducidad (30 dias) y purga de lo vencido sin escribir un sistema de archivos.
+
+```ts
+const fila = await archivos.guardar({ bytes, nombre, mime, origin: "atencion", idorigin: mensaje.id }, ctx);
+const url = await archivos.publico(fila, ctx);   // firmada, caduca
+```
+
+## Como lo usa el CRM del estudio (api-crm)
+
+- Adjuntos del chat: origen `atencion`, `idorigin` = mensaje o chat; el mensaje guarda `{ iarchivo, url, nombre, mime,
+  bytes, duracion?, transcripcion? }`.
+- Avatares: origen `crm-avatar`, `idorigin` = `iusuario` (se reemplaza con `olvidarDe`).
+- 30 dias de vida en disco: el API **renueva la firma** al abrir el chat (`GET /api/adjuntos/url`) y guarda el texto de
+  las notas en su base (el audio puede caducar).

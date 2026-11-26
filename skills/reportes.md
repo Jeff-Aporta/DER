@@ -2,6 +2,18 @@
 
 [← temario](README.md) · referencia: `docs/050-Plugins/150-Reportes.md` · relacionadas: [errores.md](errores.md) (el hermano para bugs de la app), [atencion.md](atencion.md), [crm.md](crm.md), [archivos.md](archivos.md)
 
+## Cuando usarla
+
+- Alguien (persona o agente) tiene que **marcar un error de contenido** sobre cualquier cosa (un mensaje del bot, una
+  ficha, una pantalla) y un **auditor** atenderlo con bitacora.
+- Quieres aprendizaje por empresa: los reportes cerrados quedan como ejemplo (no se borran).
+
+```ts
+await rep.reportar(iempresa, autor, { origin: "atencion.mensaje", idorigin: mensaje.id, motivo: "tono frio", tipo: "redaccion" });
+await rep.tomar(iempresa, id, auditor);   // 409 si otro lo tiene
+await rep.cerrar(iempresa, id, "aplicada", "se ajusto el ejemplo");
+```
+
 ## Qué es
 
 Cualquier persona marca un error sobre **cualquier cosa** del sistema (un mensaje de un bot, un contacto, una pantalla…) y un **auditor o agente** (humano o IA) lo atiende con la mecánica de `errores`: toma atómica, bitácora y cierre. Diferencias con `errores`: tiene **empresa** (`iempresa`), apunta con **`origin` + `idorigin`** (como `archivos` y `mensajes`, sin FK), y cerrar **no borra**: queda `aplicada` o `descartada` con quién lo cerró y la nota, para alimentar la mejora del asistente por empresa y por `ambito` (bot, canal, módulo).
@@ -54,3 +66,11 @@ El rol `auditor` existe por empresa en el CRM (rol entre `lector` y `agente`: le
 ## Con el CRM y la atención
 
 Reportar un mensaje del bot: `origin: "atencion.mensaje"`, `idorigin: <id del mensaje>`, `ambito: <id del canal/bot>`, `contexto: { texto, ichat }`. Los reportes aplicados son el insumo (junto a los `entrenamientos` de atención) para mejorar el contrato del bot de ESA empresa.
+
+## Observaciones dentro del chat (CRM)
+
+En el CRM las observaciones se ven **dentro de la conversacion** (panel del boton de la cabecera), no en un menu
+aparte. El API filtra la cola por chat: `GET /api/reportes/chat?ichat=&estado=&limite=` devuelve solo las
+observaciones cuyo `contexto.ichat` es ese (o `origin: "atencion.chat"` + `idorigin` = chat). El auditor ve toda la
+cola del chat; los demas, solo las que reportaron. Los verbos del ciclo (`tomar`, `avance`, `soltar`, `cerrar`) se
+llaman igual desde el panel.

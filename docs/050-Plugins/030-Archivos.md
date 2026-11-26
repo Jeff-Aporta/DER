@@ -42,3 +42,14 @@ La clave queda `<prefijo>/<año>/<mes>/<uuid>-<nombre seguro>`.
 | `secret` | — | firma de las URLs (`env:`) |
 | `ttlSeg` | 900 | vida de una URL firmada |
 | `maxMb` | 30 | tamaño máximo sin política |
+
+## Como lo usa el CRM (api-crm)
+
+- **Subidas del chat**: origen `atencion`, `idorigin` = id del mensaje o del chat; el mensaje guarda
+  `{ iarchivo, url, nombre, mime, bytes, duracion?, transcripcion? }` en su contenido.
+- **Avatares**: origen `crm-avatar`, `idorigin` = `iusuario`; la foto anterior se olvida con `olvidarDe` antes de
+  guardar la nueva.
+- **Vida**: 30 dias en disco (`discoAlmacen` + `purgarDisco`). Por eso el API **renueva la firma** cada vez que abre
+  el chat (`GET /api/adjuntos/url`) y guarda el texto de las notas en la base principal (no depende del audio).
+- **ZIP**: `POST /api/adjuntos/zip` comprime varios adjuntos ya subidos, opcionalmente cifrado con la clave = el
+  telefono E.164 del usuario que lo manda.

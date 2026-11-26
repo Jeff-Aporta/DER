@@ -30,3 +30,20 @@ con origen cliente/usuario/bot, cita y estado), `atencion_borradores`, `atencion
 
 `crearAtencion({ db, cfg, services })` con los verbos de la skill. `seed()` crea las tablas en cualquier motor
 (SQLite, PostgreSQL, PGlite, D1…) y vincula los canales de `cfg.canales`; repetirlo no duplica nada.
+
+## Como lo usa el CRM (api-crm)
+
+- **Modo Manual**: la interfaz del CRM llama **Manual** a `entrenamiento`. El API del CRM guarda el modo por **chat**
+  en `crm_modos` (no toca `atencion_chats.modo`, que sigue siendo el modo del canal) y lo traduce al verbo
+  `setModo`/`atencion/modo`. La ruta propia es `POST /api/inbox/modo` (`{ ichat, modo: "auto"|"manual"|"entrenamiento" }`);
+  `POST /api/atencion/modo` queda para el modo por canal (compatibilidad).
+- **Temporal**: el modo manual de un chat se apaga solo a los 30 minutos sin actividad del equipo (`MODO_MANUAL_MIN`)
+  y el front lo devuelve a `auto` al cerrar o esconder la pestaña.
+- **Con presencia**: en modo manual el bot solo debe proponer si hay alguien del equipo con ese chat abierto. Esa
+  regla la aplica el CRM (`GET /api/bot/presencia?ichat=` y `proponerConReglas`), no el plugin: el plugin sigue
+  aceptando `proponer` como siempre.
+- **Borradores compartidos**: ademas de `atencion_borradores` (lo que propone el bot), el CRM guarda el borrador de
+  CADA agente por chat (`crm_borradores`, `GET/POST /api/borrador`) y lo difunde por WebSocket ("X esta escribiendo...").
+- **Adjuntos y transcripcion**: el envio de una nota de voz o de video se envuelve en `POST /api/atencion/enviar`
+  para transcribirla; el texto queda en `crm_transcripciones` y en el mensaje, porque el audio caduca a los 30 dias.
+- **Grupos de chats** (carpetas de la bandeja) NO son de este plugin: viven en el API del CRM (`crm_grupos`).
