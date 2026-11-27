@@ -29,4 +29,5 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/permisos/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/apps/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/catalogo/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/pagos/index.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/contratos/index.ts";
 export { createClient } from "@Jeff-Aporta/DER/src/02-controllers/client/plugin.ts";

@@ -148,7 +148,7 @@ async function closure(entry: string): Promise<Map<string, string[]>> {
 }
 
 Deno.test("arch: las entradas de cliente no alcanzan nada del servidor (ni kysely, pglite o node:)", async () => {
-  const entries = ["index.ts", "src/02-controllers/client/index.ts", "src/03-plugins/client.ts", "src/03-plugins/identity/index.ts", "src/03-plugins/permissions/index.ts", "src/03-plugins/permisos/index.ts", "src/03-plugins/apps/index.ts", "src/03-plugins/catalogo/index.ts", "src/03-plugins/pagos/index.ts", "src/03-plugins/embeddings/index.ts", "src/03-plugins/archivos/index.ts", "src/03-plugins/errores/index.ts", "src/03-plugins/penalizaciones/index.ts", "src/03-plugins/tks/index.ts", "src/03-plugins/tiquetes/index.ts", "src/03-plugins/mensajes/index.ts", "src/03-plugins/calificaciones/index.ts", "src/03-plugins/reacciones/index.ts", "src/03-plugins/canal/index.ts", "src/03-plugins/crm/index.ts", "src/03-plugins/atencion/index.ts", "src/03-plugins/reportes/index.ts"];
+  const entries = ["index.ts", "src/02-controllers/client/index.ts", "src/03-plugins/client.ts", "src/03-plugins/identity/index.ts", "src/03-plugins/permissions/index.ts", "src/03-plugins/permisos/index.ts", "src/03-plugins/apps/index.ts", "src/03-plugins/catalogo/index.ts", "src/03-plugins/pagos/index.ts", "src/03-plugins/contratos/index.ts", "src/03-plugins/embeddings/index.ts", "src/03-plugins/archivos/index.ts", "src/03-plugins/errores/index.ts", "src/03-plugins/penalizaciones/index.ts", "src/03-plugins/tks/index.ts", "src/03-plugins/tiquetes/index.ts", "src/03-plugins/mensajes/index.ts", "src/03-plugins/calificaciones/index.ts", "src/03-plugins/reacciones/index.ts", "src/03-plugins/canal/index.ts", "src/03-plugins/crm/index.ts", "src/03-plugins/atencion/index.ts", "src/03-plugins/reportes/index.ts"];
   for (const entry of entries) {
     for (const [file, externos] of await closure(entry)) {
       assert(!file.includes("02-controllers/server/"), `${entry} alcanza ${file}`);
@@ -159,7 +159,7 @@ Deno.test("arch: las entradas de cliente no alcanzan nada del servidor (ni kysel
 });
 
 Deno.test("arch: cada plugin es JSON: schemas.ts, index.ts (transversal) y server.ts (push de particularidades); common/ con crypto y device", async () => {
-  for (const plugin of ["identity", "permissions", "permisos", "apps", "catalogo", "pagos", "embeddings", "archivos", "errores", "penalizaciones", "tks", "tiquetes", "mensajes", "calificaciones", "reacciones", "canal", "crm", "atencion", "reportes"]) {
+  for (const plugin of ["identity", "permissions", "permisos", "apps", "catalogo", "pagos", "contratos", "embeddings", "archivos", "errores", "penalizaciones", "tks", "tiquetes", "mensajes", "calificaciones", "reacciones", "canal", "crm", "atencion", "reportes"]) {
     for (const f of ["schemas.ts", "index.ts", "server.ts"]) await Deno.stat(new URL(`src/03-plugins/${plugin}/${f}`, ROOT));
     const index = await read(`src/03-plugins/${plugin}/index.ts`);
     assert(/export const \w+: PluginDef = \{/.test(index), `${plugin}/index.ts debe exportar el JSON transversal (PluginDef)`);
@@ -232,7 +232,7 @@ Deno.test("skills: cada archivo de src/ enlaza por CDN la skill general y la par
   }
   assertEquals(bad, []);
   const index = await read("skills/README.md");
-  for (const s of ["consumo-cdn", "objetos", "controllers", "servidor", "plugins", "identity", "permissions", "permisos", "apps", "catalogo", "pagos", "embeddings", "archivos", "errores", "penalizaciones", "tks", "tiquetes", "mensajes", "calificaciones", "reacciones", "notificaciones", "whatsapp", "crm", "atencion", "reportes", "canal", "estilo"]) {
+  for (const s of ["consumo-cdn", "objetos", "controllers", "servidor", "plugins", "identity", "permissions", "permisos", "apps", "catalogo", "pagos", "contratos", "embeddings", "archivos", "errores", "penalizaciones", "tks", "tiquetes", "mensajes", "calificaciones", "reacciones", "notificaciones", "whatsapp", "crm", "atencion", "reportes", "canal", "estilo"]) {
     assert(index.includes(`${BASE}${s}.md`), `skills/README.md no enlaza ${s}.md por CDN`);
     await Deno.stat(new URL(`skills/${s}.md`, ROOT));
   }

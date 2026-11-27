@@ -29,6 +29,8 @@
     "./plugins/catalogo/client": "./src/03-plugins/catalogo/index.ts",
     "./plugins/pagos": "./src/03-plugins/pagos/server.ts",
     "./plugins/pagos/client": "./src/03-plugins/pagos/index.ts",
+    "./plugins/contratos": "./src/03-plugins/contratos/server.ts",
+    "./plugins/contratos/client": "./src/03-plugins/contratos/index.ts",
     "./plugins/embeddings": "./src/03-plugins/embeddings/server.ts",
     "./plugins/embeddings/client": "./src/03-plugins/embeddings/index.ts",
     "./plugins/archivos": "./src/03-plugins/archivos/server.ts",

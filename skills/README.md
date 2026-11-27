@@ -23,6 +23,7 @@
 | Apps (aislamiento por iapp) | [apps.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/apps.md) | cada negocio con su `iapp`: filtro obligatorio, ficha publica, purga de demos |
 | Catalogo de productos y servicios | [catalogo.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/catalogo.md) | categorias, items, disponibilidad de servicios, importador idempotente |
 | Pagos (simulado, Wompi, Stripe, Mercado Pago) | [pagos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/pagos.md) | transferencia con comprobante, tarjeta, efectivo acordado; webhooks firmados |
+| Contratos homogeneos | [contratos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/contratos.md) | el servidor sirve `GET contratos` (JSON Schema + rutas + version) y el front usa `clienteContratos` con CRUD generico por `iapp` |
 | Embeddings | [embeddings.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/embeddings.md) | caché por huella, búsqueda, reducción, reglas de purga en JSON |
 | Gestión de archivos | [archivos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/archivos.md) | carpetas, archivos, almacén del consumidor, relación libre `origin` + `idorigin` |
 | Errores | [errores.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/errores.md) | reportar errores desde una app o **atenderlos como agente** (toma, bitácora, cierre, reglas) |
