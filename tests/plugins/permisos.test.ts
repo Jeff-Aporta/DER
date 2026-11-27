@@ -57,7 +57,7 @@ Deno.test("P-RBAC-01 semilla: catalogo, roles base y matriz por defecto", async 
     }
     // el catalogo y los roles base tienen su numero (dato de arranque, editable despues)
     assertEquals(clavesRol.length, 8, "la semilla trae 8 roles");
-    assertEquals(claves.length, 51, "la semilla trae 51 acciones");
+    assertEquals(claves.length, 55, "la semilla trae 55 acciones");
     // el propietario lo puede todo y su etiqueta sale de la base
     const todo = await permitidasDe(permisos, "propietario");
     assertEquals(todo.length, claves.length, "propietario debe tener todo el catalogo");

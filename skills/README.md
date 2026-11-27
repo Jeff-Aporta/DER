@@ -20,6 +20,9 @@
 | Entidad `usuarios` (identidad) | [identity.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/identity.md) | login, sesiones, contraseñas, auditoría, JWT |
 | Entidades de permisos | [permissions.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permissions.md) | roles, rol base, acciones, alias, catálogo, carga del DER |
 | Permisos RBAC (roles y matriz en la base) | [permisos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permisos.md) | permisos por ACCION: catálogo de acciones, matriz rol x acción editable, 8 roles de semilla, `puede`/`exigir`/`exigirPermiso` |
+| Apps (aislamiento por iapp) | [apps.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/apps.md) | cada negocio con su `iapp`: filtro obligatorio, ficha publica, purga de demos |
+| Catalogo de productos y servicios | [catalogo.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/catalogo.md) | categorias, items, disponibilidad de servicios, importador idempotente |
+| Pagos (simulado, Wompi, Stripe, Mercado Pago) | [pagos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/pagos.md) | transferencia con comprobante, tarjeta, efectivo acordado; webhooks firmados |
 | Embeddings | [embeddings.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/embeddings.md) | caché por huella, búsqueda, reducción, reglas de purga en JSON |
 | Gestión de archivos | [archivos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/archivos.md) | carpetas, archivos, almacén del consumidor, relación libre `origin` + `idorigin` |
 | Errores | [errores.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/errores.md) | reportar errores desde una app o **atenderlos como agente** (toma, bitácora, cierre, reglas) |

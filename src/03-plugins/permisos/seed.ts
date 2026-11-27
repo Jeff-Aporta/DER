@@ -78,6 +78,10 @@ export const ACCIONES_SEMILLA: readonly AccionSemilla[] = [
   { clave: "csat.forzar", grupo: "csat", descripcion: "Reenviar una encuesta aunque ya se haya enviado" },
   { clave: "resumenes.generar", grupo: "resumenes", descripcion: "Generar resumenes de conversaciones" },
   { clave: "reportes.ver", grupo: "reportes", descripcion: "Ver reportes y observaciones del auditor" },
+  { clave: "apps.administrar", grupo: "apps", descripcion: "Crear y editar apps (negocios) y su ficha publica" },
+  { clave: "catalogo.editar", grupo: "catalogo", descripcion: "Editar el catalogo de productos y servicios" },
+  { clave: "pagos.ver", grupo: "pagos", descripcion: "Ver los pagos de la app" },
+  { clave: "pagos.verificar", grupo: "pagos", descripcion: "Verificar pagos por transferencia y efectivo" },
   { clave: "grupos.globales", grupo: "grupos", descripcion: "Administrar grupos globales de chats" },
 ];
 
@@ -123,7 +127,7 @@ export const ROLES_SEMILLA: readonly RolSemilla[] = [
     etiqueta: "AGENTE",
     nivel: 50,
     descripcion: "Atiende la bandeja, el chat y los tiquetes de la empresa.",
-    permisos: [...grupo("inbox"), ...grupo("chat"), ...grupo("contactos"), ...grupo("prospectos"), "metricas.ver", "empresa.ver", "usuarios.ver", "notificaciones.prefs", "retencion.ver", ...grupo("tiquetes"), "csat.ver", "csat.enviar", "entrenamientos.ver", "adjuntos.subir", "notas.editar", "marcas.editar", "ia.usar", "resumenes.generar", "salud.ver"],
+    permisos: [...grupo("inbox"), ...grupo("chat"), ...grupo("contactos"), ...grupo("prospectos"), "metricas.ver", "empresa.ver", "usuarios.ver", "notificaciones.prefs", "retencion.ver", ...grupo("tiquetes"), "csat.ver", "csat.enviar", "pagos.ver", "entrenamientos.ver", "adjuntos.subir", "notas.editar", "marcas.editar", "ia.usar", "resumenes.generar", "salud.ver"],
   },
   { clave: "wrkr", nombre: "Trabajador", etiqueta: "WRKR", nivel: 30, descripcion: "Trabajador de tiquetes: SOLO tiquetes (adopta, cambia estado, comenta y resuelve); sin conversaciones, errores ni estadisticas.", permisos: ["tiquetes.ver", "tiquetes.adoptar", "tiquetes.estado", "tiquetes.comentar", "tiquetes.cerrar"] },
   { clave: "lector", nombre: "Lector", etiqueta: "LECTURA", nivel: 20, descripcion: "Solo lectura de la bandeja y la empresa.", permisos: ["inbox.ver", "chat.ver", "contactos.ver", "empresa.ver", "tiquetes.ver"] },
