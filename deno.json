@@ -21,6 +21,8 @@
     "./plugins/identity/client": "./src/03-plugins/identity/client.ts",
     "./plugins/permissions": "./src/03-plugins/permissions/index.ts",
     "./plugins/permissions/client": "./src/03-plugins/permissions/client.ts",
+    "./plugins/permisos": "./src/03-plugins/permisos/server.ts",
+    "./plugins/permisos/client": "./src/03-plugins/permisos/index.ts",
     "./plugins/embeddings": "./src/03-plugins/embeddings/server.ts",
     "./plugins/embeddings/client": "./src/03-plugins/embeddings/index.ts",
     "./plugins/archivos": "./src/03-plugins/archivos/server.ts",
@@ -65,6 +67,7 @@
   },
   "tasks": {
     "test": "deno test -A",
+    "test:all": "deno task check && deno lint && deno task test",
     "check": "deno check index.ts src/02-controllers/client/index.ts src/02-controllers/server/sqlite.ts src/02-controllers/server/pg.ts src/02-controllers/server/pglite.ts src/02-controllers/server/d1.ts src/02-controllers/server/sqlite-http.ts src/02-controllers/server/sqlite-http-host.ts src/02-controllers/server/hosts/azure.ts src/02-controllers/server/hosts/cloudflare.ts src/03-plugins/index.ts src/03-plugins/client.ts examples/ tests/",
     "example": "deno run -A examples/server.ts",
     "diagramas": "deno run -A examples/diagramas-plugins.ts",

@@ -49,6 +49,7 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/penalizaciones/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/voz/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/voz/server.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/server.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/permisos/server.ts";
 // El WebSocket: el contrato en vivo (avisos y consultas de solo lectura) que comparten servidor y cliente.
 // No es un plugin de datos (no tiene entidades): es el transporte en vivo con el mismo contrato en los dos lados.
 export { SalaWebSocket } from "@Jeff-Aporta/DER/src/03-plugins/websocket/server.ts";

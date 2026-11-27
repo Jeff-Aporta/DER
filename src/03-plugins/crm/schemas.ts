@@ -11,7 +11,7 @@ import { z } from "zod";
 import type { AlmacenArchivos } from "@Jeff-Aporta/DER/src/03-plugins/archivos/schemas.ts";
 
 /** Roles de un usuario DENTRO de una empresa, de menor a mayor poder. */
-export const ROLES_CRM = ["lector", "auditor", "agente", "admin", "propietario"] as const;
+export const ROLES_CRM = ["lector", "auditor", "agente", "wrkr", "gerente", "admin", "propietario", "cliente"] as const;
 
 /** Tipos de conversación: `bot` (usuario ↔ asistente, como el chat de peon), `directa` (dos usuarios) y `grupo`. */
 export const TIPOS_CONVERSACION = ["bot", "directa", "grupo"] as const;

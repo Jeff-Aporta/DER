@@ -25,4 +25,5 @@ export * from "@Jeff-Aporta/DER/src/03-plugins/identity/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/penalizaciones/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/voz/index.ts";
 export * from "@Jeff-Aporta/DER/src/03-plugins/permissions/index.ts";
+export * from "@Jeff-Aporta/DER/src/03-plugins/permisos/index.ts";
 export { createClient } from "@Jeff-Aporta/DER/src/02-controllers/client/plugin.ts";

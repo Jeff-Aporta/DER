@@ -19,6 +19,7 @@
 | Plugins JSON | [plugins.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/plugins.md) | armas o escribes un plugin (`createClient`/`createServer`, `paths`, puertas de seguridad) |
 | Entidad `usuarios` (identidad) | [identity.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/identity.md) | login, sesiones, contraseñas, auditoría, JWT |
 | Entidades de permisos | [permissions.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permissions.md) | roles, rol base, acciones, alias, catálogo, carga del DER |
+| Permisos RBAC (roles y matriz en la base) | [permisos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/permisos.md) | permisos por ACCION: catálogo de acciones, matriz rol x acción editable, 8 roles de semilla, `puede`/`exigir`/`exigirPermiso` |
 | Embeddings | [embeddings.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/embeddings.md) | caché por huella, búsqueda, reducción, reglas de purga en JSON |
 | Gestión de archivos | [archivos.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/archivos.md) | carpetas, archivos, almacén del consumidor, relación libre `origin` + `idorigin` |
 | Errores | [errores.md](https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/errores.md) | reportar errores desde una app o **atenderlos como agente** (toma, bitácora, cierre, reglas) |
@@ -47,6 +48,7 @@
 | `03-plugins/common/`, `03-plugins/index.ts`, `03-plugins/client.ts` | plugins.md |
 | `03-plugins/identity/` | identity.md |
 | `03-plugins/permissions/` | permissions.md |
+| `03-plugins/permisos/` | permisos.md |
 | `03-plugins/embeddings/` | embeddings.md |
 | `03-plugins/archivos/` | archivos.md |
 | `03-plugins/errores/` | errores.md |
