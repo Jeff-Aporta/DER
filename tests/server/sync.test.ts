@@ -67,3 +67,20 @@ Deno.test("syncSchema: tabla inexistente se crea; columna del schema sin getter/
     await db.destroy();
   }
 });
+
+for (const [name, make] of ENGINES) {
+  Deno.test(`[${name}] seed: una tabla de una version anterior recibe las columnas nuevas antes de crear indices`, async () => {
+    const db = make();
+    try {
+      await sql`create table productos_viejos (iproducto integer primary key, nombre text not null, precio numeric not null)`.execute(db.kysely);
+      await sql`insert into productos_viejos (iproducto, nombre, precio) values (1, 'Café', 3.5)`.execute(db.kysely);
+      const productos = new ServerController(ProductoEntity, { db, table: "productos_viejos", indexes: [{ columns: ["icategoria", "nombre"] }] } as never);
+      await productos.seed({ propagate: false }); // antes: "no such column: icategoria" al crear el indice
+      const cafe = (await productos.get({ iproducto: 1 }, { include: {} }))!;
+      assertEquals([cafe.nombre, cafe.stock], ["Café", 0]); // fila conservada y columna nueva con su default
+      await productos.seed({ propagate: false }); // idempotente
+    } finally {
+      await db.destroy();
+    }
+  });
+}

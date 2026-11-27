@@ -784,6 +784,9 @@ export class ServerController<P extends Pojo> extends BaseController<P, ServerCt
   async seed(opts: { exec?: Kysely<any>; propagate?: boolean } = {}, visited: Set<ServerController<any>> = new Set()): Promise<void> {
     if (visited.has(this)) return;
     visited.add(this);
+    // Tabla de una version anterior: primero se anaden las columnas que falten (nunca se borra nada),
+    // asi los indices nuevos no fallan con "no such column".
+    if (!opts.exec && await this.#tableExists(this.table, this.db.kysely)) await this.syncSchema({ keepExtra: true });
     await this.seedTable(opts.exec ?? this.db.kysely);
     await this.seedCfgTable(opts.exec ?? this.db.kysely);
     if (opts.propagate === false) return;
