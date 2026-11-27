@@ -18,10 +18,10 @@ errores, empresa) con su matriz por rol, y es el que usa el CRM.
 
 | Tabla | Columnas |
 |---|---|
-| `permisos_roles` | `irol` (pk), `iempresa` (null = GLOBAL), `clave`, `nombre`, `descripcion`, `etiqueta`, `nivel`, `sistema`, `bactivo`, `fhcre` |
-| `permisos_catalogo` | `clave` (pk), `grupo`, `descripcion`, `orden`, `sistema` |
-| `permisos_rol_accion` | `irol` + `clave` (pk), `permitido` — la matriz editable |
-| `permisos_usuarios_roles` | `iusuario` + `iempresa` + `irol` (pk), `fhcre`, `fhasigno` |
+| `rbac_roles` | `irol` (pk), `iempresa` (null = GLOBAL), `clave`, `nombre`, `descripcion`, `etiqueta`, `nivel`, `sistema`, `bactivo`, `fhcre` |
+| `rbac_acciones` | `clave` (pk), `grupo`, `descripcion`, `orden`, `sistema` |
+| `rbac_matriz` | `irol` + `clave` (pk), `permitido` — la matriz editable |
+| `rbac_usuarios_roles` | `iusuario` + `iempresa` + `irol` (pk), `fhcre`, `fhasigno` |
 
 - `irol`: la clave si el rol es global (`propietario`), `empresa:clave` si es de una empresa (`acme:supervisor`).
 - `iempresa` null = rol GLOBAL: aplica en cualquier empresa. La empresa global se escribe `*` (tambien valen "" y "todas").
@@ -81,7 +81,7 @@ desplegar: `PUT permisos/acciones` (accion nueva) o `PUT permisos/roles/{irol}/m
 - La empresa sale de `services.contexto` (el que la resuelve y valida) o, si no hay, de la cabecera `x-empresa`.
 - Un rol global solo lo edita quien tenga comodin; nadie asigna ni edita un rol de nivel igual o superior al suyo.
 - Los roles de una empresa **no aplican** en otra (salvo los globales).
-- Alias de compatibilidad: si el usuario no tiene filas en `permisos_usuarios_roles`, el servidor puede derivar su rol
+- Alias de compatibilidad: si el usuario no tiene filas en `rbac_usuarios_roles`, el servidor puede derivar su rol
   del servicio `rolesDerivados` (en el CRM, `crm_miembros.rol`).
 
 ## Configuracion

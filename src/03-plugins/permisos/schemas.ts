@@ -1,8 +1,8 @@
 /**
  * schemas.ts (plugin de permisos RBAC) — tipos (uno por linea) y contratos Zod compartidos por client y server.
  *
- * El modelo vive EN LA BASE: `permisos_roles`, `permisos_catalogo` (tabla; no choca con `permisos_acciones` del plugin viejo `permissions`), `permisos_rol_accion` y
- * `permisos_usuarios_roles`. El codigo no conoce claves de rol: solo comprueba ACCIONES (`usuarios.rol`,
+ * El modelo vive EN LA BASE: `rbac_roles`, `rbac_acciones` (tabla; no choca con `permisos_acciones` del plugin viejo `permissions`), `rbac_matriz` y
+ * `rbac_usuarios_roles`. El codigo no conoce claves de rol: solo comprueba ACCIONES (`usuarios.rol`,
  * `tiquetes.ver`…). Un rol nuevo se crea por API/base y funciona sin desplegar.
  *
  * Skill general (agentes): https://cdn.jsdelivr.net/gh/Jeff-Aporta/DER@main/skills/README.md

@@ -275,7 +275,7 @@ Deno.test("P-RBAC-10 convive con las tablas del plugin viejo permissions (base r
   try {
     // tablas que dejo el plugin viejo `permissions` en las bases que ya existian
     await sql`create table permisos_acciones (irol text, iaccion text, valor text, primary key (irol, iaccion))`.execute(db.kysely);
-    await sql`create table permisos_roles (irol text primary key, igrupo text, nombre text, bactivo integer)`.execute(db.kysely);
+    await sql`create table permisos_roles (irol text primary key, igrupo text not null, nombre text, bactivo integer)`.execute(db.kysely);
     const auth = createServer(identityServer, { db, cfg: identityCfg() });
     const permisos = createServer(permisosServer, { db, cfg: {} }) as ServerPlugin & Record<string, any>;
     const router = createRouter([], { basePath: "/api", plugins: [auth, permisos] });

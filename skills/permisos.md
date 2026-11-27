@@ -32,10 +32,10 @@ if (mapa["usuarios.rol"]) { ... }                             // el boton solo s
 
 | tabla | columnas |
 |---|---|
-| `permisos_roles` | `irol` (pk), `iempresa` (null = GLOBAL), `clave`, `nombre`, `descripcion`, `etiqueta`, `nivel`, `sistema`, `bactivo`, `fhcre` |
-| `permisos_catalogo` | `clave` (pk), `grupo`, `descripcion`, `orden`, `sistema` |
-| `permisos_rol_accion` | `irol` + `clave` (pk), `permitido` — la matriz editable |
-| `permisos_usuarios_roles` | `iusuario` + `iempresa` + `irol` (pk), `fhcre`, `fhasigno` |
+| `rbac_roles` | `irol` (pk), `iempresa` (null = GLOBAL), `clave`, `nombre`, `descripcion`, `etiqueta`, `nivel`, `sistema`, `bactivo`, `fhcre` |
+| `rbac_acciones` | `clave` (pk), `grupo`, `descripcion`, `orden`, `sistema` |
+| `rbac_matriz` | `irol` + `clave` (pk), `permitido` — la matriz editable |
+| `rbac_usuarios_roles` | `iusuario` + `iempresa` + `irol` (pk), `fhcre`, `fhasigno` |
 
 - `irol`: la clave si el rol es global (`propietario`), `empresa:clave` si es de una empresa (`acme:supervisor`).
 - `iempresa` null = rol GLOBAL: aplica en cualquier empresa. `empresa` = `*` (o vacia, o "todas") = ambito global.
@@ -98,7 +98,7 @@ const puede = await permisos["tienePermiso"](ctx, "tiquetes.cerrar");
 - Un rol global solo lo edita quien tenga comodin; nadie asigna ni edita un rol de nivel igual o superior al suyo
   (no hay escalada de privilegios).
 - Los roles de una empresa **no aplican** en otra (salvo los globales).
-- Alias de compatibilidad: si el usuario no tiene filas en `permisos_usuarios_roles`, el servidor puede derivar su
+- Alias de compatibilidad: si el usuario no tiene filas en `rbac_usuarios_roles`, el servidor puede derivar su
   rol del `servicios.rolesDerivados` (en el CRM, `crm_miembros.rol`).
 
 ## Errores comunes
