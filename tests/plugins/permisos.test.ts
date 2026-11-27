@@ -11,6 +11,7 @@
  *   P-RBAC-08 HTTP: GET permisos/mios, permisos/puede y la puerta de permisos.ver
  *   P-RBAC-09 la matriz por defecto: errores.gestionar solo para propietario y gerente
  */
+import { sql } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
 import { assertEquals } from "@std/assert";
 import { registry } from "@Jeff-Aporta/DER/src/01-objects/registry.ts";
 import { createRouter, createServer, type ServerPlugin } from "@Jeff-Aporta/DER/src/02-controllers/server/index.ts";
@@ -265,5 +266,24 @@ Deno.test("P-RBAC-09 la matriz por defecto: errores.gestionar solo para propieta
     assertEquals(propietario.includes("errores.gestionar"), true);
   } finally {
     await cerrar();
+  }
+});
+
+Deno.test("P-RBAC-10 convive con las tablas del plugin viejo permissions (base real anterior)", async () => {
+  registry.secure(null);
+  const db = sqliteDatabase();
+  try {
+    // tablas que dejo el plugin viejo `permissions` en las bases que ya existian
+    await sql`create table permisos_acciones (irol text, iaccion text, valor text, primary key (irol, iaccion))`.execute(db.kysely);
+    await sql`create table permisos_roles (irol text primary key, igrupo text, nombre text, bactivo integer)`.execute(db.kysely);
+    const auth = createServer(identityServer, { db, cfg: identityCfg() });
+    const permisos = createServer(permisosServer, { db, cfg: {} }) as ServerPlugin & Record<string, any>;
+    const router = createRouter([], { basePath: "/api", plugins: [auth, permisos] });
+    await router.seed(); // antes: "la pk clave no existe en la tabla" y el API no arrancaba
+    assertEquals((await permisos["catalogo"]()).length > 0, true);
+    await router.seed(); // idempotente
+  } finally {
+    registry.secure(null);
+    await db.destroy();
   }
 });

@@ -19,7 +19,7 @@ errores, empresa) con su matriz por rol, y es el que usa el CRM.
 | Tabla | Columnas |
 |---|---|
 | `permisos_roles` | `irol` (pk), `iempresa` (null = GLOBAL), `clave`, `nombre`, `descripcion`, `etiqueta`, `nivel`, `sistema`, `bactivo`, `fhcre` |
-| `permisos_acciones` | `clave` (pk), `grupo`, `descripcion`, `orden`, `sistema` |
+| `permisos_catalogo` | `clave` (pk), `grupo`, `descripcion`, `orden`, `sistema` |
 | `permisos_rol_accion` | `irol` + `clave` (pk), `permitido` — la matriz editable |
 | `permisos_usuarios_roles` | `iusuario` + `iempresa` + `irol` (pk), `fhcre`, `fhasigno` |
 

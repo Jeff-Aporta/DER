@@ -3,7 +3,7 @@
  * solo pide ACCIONES (`usuarios.rol`, `tiquetes.ver`…), nunca compara nombres de rol.
  *
  *   permisos_roles          (irol, iempresa, clave, nombre, descripcion, etiqueta, nivel, sistema, bactivo, fhcre)
- *   permisos_acciones       (clave, grupo, descripcion, orden, sistema)
+ *   permisos_catalogo       (clave, grupo, descripcion, orden, sistema)
  *   permisos_rol_accion     (irol, clave, permitido)                     ← la matriz editable
  *   permisos_usuarios_roles (iusuario, iempresa, irol, fhcre, fhasigno)  ← asignacion por usuario y empresa
  *
@@ -62,7 +62,7 @@ export const permisosPlugin: PluginDef = {
       name: "permisos.accion",
       singular: "permisos_accion",
       plural: "permisos_acciones",
-      table: "permisos_acciones",
+      table: "permisos_catalogo",
       exposed: false,
       administrable: false,
       security: true,
